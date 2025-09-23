@@ -24,8 +24,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
   const [voicePauseTimer, setVoicePauseTimer] = useState<NodeJS.Timeout | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [fontSize, setFontSize] = useState<'small' | 'large'>('small');
   const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
   const [promptState, setPromptState] = useState<'ticking' | 'showing' | 'selected' | 'hidden'>('ticking');
   const [currentPrompt, setCurrentPrompt] = useState<{ id: string; text: string } | null>(null);
   const [hasShownToday, setHasShownToday] = useState(false);
@@ -190,10 +191,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
 
   const getFontSizeClass = () => {
     switch (fontSize) {
-      case 'small': return 'text-sm'; // 14px / 500 weight
-      case 'medium': return 'text-base'; // 15px / 400 weight
-      case 'large': return 'text-lg'; // 16px / 400 weight
-      default: return 'text-base';
+      case 'small': return 'text-sm'; // 14px
+      case 'large': return 'text-lg'; // 18px
+      default: return 'text-sm';
     }
   };
 
@@ -228,7 +228,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
 
 
   return (
-    <div className="h-full flex flex-col space-y-2 sm:space-y-3">
+    <div className="h-full flex flex-col space-y-2 sm:space-y-3 px-1 sm:px-0">
       {/* Digital-style Date/Time Display */}
       <div className="flex-shrink-0">
         <HeaderClock />
@@ -325,7 +325,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         <div className="flex items-center gap-2">
           <span className="font-medium text-xs caption-text">Font:</span>
           <div className="flex items-center gap-1">
-            {(['small', 'medium', 'large'] as const).map((size) => (
+            {(['small', 'large'] as const).map((size) => (
               <button
                 key={size}
                 onClick={() => setFontSize(size)}
@@ -335,7 +335,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
                     : 'bg-white border-soft-silver text-graphite-charcoal hover:bg-tactile-taupe hover:border-graphite-charcoal hover:shadow-md'
                 }`}
               >
-                {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
+                {size === 'small' ? 'S' : 'L'}
               </button>
             ))}
           </div>
@@ -354,9 +354,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
       </div>
 
       {/* Journal entry section - Full width dominant */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 w-full">
         {/* Graphite charcoal typing area with silver focus */}
-        <div className="relative flex-1">
+        <div className="relative flex-1 w-full">
           <div className="relative w-full h-full">
             <textarea
               ref={textareaRef}
@@ -373,9 +373,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
                 setIsUserScrolled(!isAtBottom);
               }}
               placeholder="Type or speak your thoughts..."
-              className={`w-full h-full min-h-[200px] sm:min-h-[250px] p-3 sm:p-4 lg:p-6 journal-input rounded-xl resize-none transition-all duration-300 ${getFontSizeClass()}`}
+              className={`w-full h-full min-h-[180px] sm:min-h-[250px] p-2 sm:p-4 lg:p-6 journal-input rounded-xl resize-none transition-all duration-300 ${getFontSizeClass()}`}
               style={{ 
                 fontFamily: 'Inter, system-ui, sans-serif',
+                fontWeight: '400',
                 lineHeight: '1.8',
                 background: 'var(--graphite-charcoal)',
                 color: 'var(--text-inverse)',
@@ -410,27 +411,42 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         </div>
         
         {/* Circular Silver Save Button - Bottom Right Corner */}
-        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
+        <div className="absolute bottom-4 right-4 md:bottom-8 md:right-8">
           <button
-            onClick={() => {
-              // Trigger silver glow animation
-              setShowSaveGlow(true);
-              setTimeout(() => setShowSaveGlow(false), 1000);
-              // Call the actual save function
-              if (content.trim()) {
-                onSave({
+            onClick={async () => {
+              if (!content.trim()) return;
+              
+              try {
+                // Trigger silver glow animation
+                setShowSaveGlow(true);
+                setTimeout(() => setShowSaveGlow(false), 1000);
+                
+                // Call the actual save function
+                await onSave({
                   content: content.trim(),
                   tags: selectedTags,
                   source,
                   created_at: new Date().toISOString(),
                   user_id: userId || 'anonymous'
                 });
+                
+                // Show success toast
+                setToastMessage('Entry saved successfully!');
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 3000);
+                
                 // Clear form after save
                 setContent('');
                 setSelectedTags([]);
                 setSource('text');
                 setInterimTranscript('');
                 setLastSaved(new Date());
+              } catch (error) {
+                console.error('Save failed:', error);
+                // Show error toast
+                setToastMessage('Failed to save entry. Please try again.');
+                setShowToast(true);
+                setTimeout(() => setShowToast(false), 3000);
               }
             }}
             disabled={!content.trim() || isAutoSaving}
@@ -533,7 +549,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
       {/* Toast Notifications */}
       {showToast && (
         <div className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-          Saved to Heijo Cloud
+          {toastMessage}
         </div>
       )}
 

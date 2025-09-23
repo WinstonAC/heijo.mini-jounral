@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Heijō Intro Animation Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.13.0/gsap.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #000;
+            overflow: hidden;
+            font-family: Inter, system-ui, sans-serif;
+        }
+        .container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .letters {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .letter {
+            font-size: 6rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            opacity: 0;
+        }
+        .tagline {
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            opacity: 0;
+        }
+        .welcome {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            opacity: 0;
+        }
+        .welcome h1 {
+            font-size: 4rem;
+            font-weight: bold;
+            color: #2A2A2A;
+            margin: 0 0 1rem 0;
+        }
+        .welcome p {
+            font-size: 1.5rem;
+            color: #6A6A6A;
+            font-weight: 300;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="letters">
+            <div class="letter">H</div>
+            <div class="letter">E</div>
+            <div class="letter">I</div>
+            <div class="letter">J</div>
+            <div class="letter">Ō</div>
+        </div>
+        <div class="tagline">micro-moments. macro-clarity.</div>
+        <div class="welcome">
+            <h1>Welcome to <span style="font-size: 5rem;">Heijō</span><span style="font-size: 2rem; font-weight: normal; margin-left: 0.5rem;">mini-journal</span></h1>
+            <p>micro-moments for macro-clarity.</p>
+        </div>
+    </div>
+
+    <script>
+        const letters = document.querySelectorAll('.letter');
+        const tagline = document.querySelector('.tagline');
+        const welcome = document.querySelector('.welcome');
+        
+        // Set initial positions
+        letters.forEach((letter, index) => {
+            gsap.set(letter, {
+                x: (Math.random() - 0.5) * 600,
+                y: -100,
+                z: Math.random() * 400 - 200,
+                rotation: Math.random() * 360,
+                scale: 0.5 + Math.random() * 0.5,
+                opacity: 0
+            });
+        });
+        
+        // Create timeline
+        const tl = gsap.timeline({
+            onComplete: () => {
+                console.log('Animation completed!');
+                document.body.style.background = '#FAFAFA';
+            }
+        });
+        
+        // Animate letters
+        tl.to(letters, {
+            x: 0,
+            y: 0,
+            z: 0,
+            rotation: 0,
+            scale: 1,
+            opacity: 1,
+            duration: 1.5,
+            stagger: 0.3,
+            ease: 'power2.out'
+        })
+        .to(letters, {
+            y: '+=8',
+            duration: 1.5,
+            yoyo: true,
+            repeat: -1,
+            ease: 'power2.inOut',
+            stagger: 0.2
+        }, '-=1')
+        .to(letters, {
+            scale: 1.05,
+            duration: 1.2,
+            yoyo: true,
+            repeat: -1,
+            ease: 'power2.inOut',
+            stagger: 0.15
+        }, '-=1')
+        .to(tagline, {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: 'power2.out'
+        }, '-=0.5')
+        .to(letters, {
+            scale: 0,
+            opacity: 0,
+            duration: 0.6,
+            stagger: 0.1,
+            ease: 'power2.in'
+        })
+        .to(tagline, {
+            opacity: 0,
+            duration: 0.3,
+            ease: 'power2.out'
+        }, '-=0.3')
+        .to(document.body, {
+            backgroundColor: '#FAFAFA',
+            duration: 1.5,
+            ease: 'power2.inOut'
+        }, '-=0.3')
+        .to(welcome, {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            ease: 'power2.out'
+        }, '-=0.5')
+        .to({}, { duration: 2 }); // Hold for 2 seconds
+    </script>
+</body>
+</html>

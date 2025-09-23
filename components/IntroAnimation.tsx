@@ -25,9 +25,15 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
     // Check if intro has already been played
     if (localStorage.getItem('heijoIntroPlayed')) {
+      console.log('Intro already played, skipping...');
       onComplete();
       return;
     }
+
+    console.log('Starting intro animation...');
+    
+    // Prevent multiple animations from running
+    setHasAnimated(true);
 
     // Create starfield particles
     const createStarfield = () => {
@@ -58,9 +64,14 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     // Main animation timeline - Total duration: ~8s
     const tl = gsap.timeline({
       onComplete: () => {
+        console.log('Animation completed, transitioning to login...');
         localStorage.setItem('heijoIntroPlayed', 'true');
         setHasAnimated(true);
-        onComplete();
+        
+        // Add a small delay to ensure smooth transition
+        setTimeout(() => {
+          onComplete();
+        }, 200);
       }
     });
 
@@ -95,11 +106,11 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     letterElements.forEach((letter, index) => {
       if (letter) {
         gsap.set(letter, {
-          x: (Math.random() - 0.5) * 400,
-          y: -50,
-          z: Math.random() * 400 - 200, // -200 to 200 z-depth
+          x: (Math.random() - 0.5) * 800,
+          y: -150,
+          z: Math.random() * 600 - 300, // -300 to 300 z-depth
           rotation: Math.random() * 360,
-          scale: 0.8 + Math.random() * 0.4,
+          scale: 0.3 + Math.random() * 0.4,
           opacity: 0
         });
       }
@@ -201,11 +212,17 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       ease: 'power2.out'
     }, '-=0.3');
 
-    // 5. Welcome state (1.5s hold)
-    tl.fromTo(welcomeRef.current,
+    // 5. Hide H glyph and show welcome state (1.5s hold)
+    tl.to(hGlyphRef.current, {
+      opacity: 0,
+      scale: 0,
+      duration: 0.5,
+      ease: 'power2.in'
+    })
+    .fromTo(welcomeRef.current,
       { opacity: 0, y: 30 },
       { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
-      '-=0.5'
+      '-=0.3'
     )
     .to(welcomeRef.current, {
       scale: 1.02,
@@ -223,10 +240,10 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
     // Animation complete - login card will be shown by parent component
 
-    // Parallax effect on letters
+    // Parallax effect on letters (only during letter animation phase)
     const updateParallax = () => {
       letterElements.forEach((letter, index) => {
-        if (letter) {
+        if (letter && letter.style.opacity !== '0') {
           gsap.to(letter, {
             x: mousePosition.x * (8 + index * 1.5),
             y: mousePosition.y * (8 + index * 1.5),
@@ -243,8 +260,22 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       window.removeEventListener('mousemove', handleMouseMove);
       clearInterval(parallaxInterval);
       tl.kill();
+      // Clean up any remaining animations
+      gsap.killTweensOf(letterElements);
+      gsap.killTweensOf(hGlyphRef.current);
+      gsap.killTweensOf(welcomeRef.current);
     };
   }, [mousePosition.x, mousePosition.y, onComplete, hasAnimated]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      console.log('IntroAnimation unmounting...');
+    };
+  }, []);
+
+  // Debug logging
+  console.log('IntroAnimation render:', { hasAnimated });
 
   return (
     <div 
@@ -253,7 +284,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       style={{ 
         perspective: '1000px',
         transformStyle: 'preserve-3d',
-        perspectiveOrigin: 'center center'
+        perspectiveOrigin: 'center center',
+        isolation: 'isolate' // Ensure no other elements bleed through
       }}
     >
       {/* Starfield Background */}
@@ -267,22 +299,25 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
       {/* Letter Constellations */}
       <div className="absolute inset-0 flex items-center justify-center">
-        {letters.map((letter, index) => (
-          <div
-            key={letter}
-            ref={(el) => {
-              if (el) lettersRef.current[index] = el;
-            }}
-            className="absolute text-8xl font-bold text-white opacity-0"
-            style={{
-              fontFamily: 'Inter, system-ui, sans-serif',
-              textShadow: '0 0 20px rgba(255,255,255,0.5)',
-              transformStyle: 'preserve-3d'
-            }}
-          >
-            {letter}
-          </div>
-        ))}
+        <div className="flex items-center justify-center">
+          {letters.map((letter, index) => (
+            <span
+              key={letter}
+              ref={(el) => {
+                if (el) lettersRef.current[index] = el;
+              }}
+              className="text-8xl font-bold text-white opacity-0 inline-block"
+              style={{
+                fontFamily: 'Inter, system-ui, sans-serif',
+                textShadow: '0 0 20px rgba(255,255,255,0.5)',
+                transformStyle: 'preserve-3d',
+                marginRight: index < letters.length - 1 ? '1rem' : '0'
+              }}
+            >
+              {letter}
+            </span>
+          ))}
+        </div>
       </div>
 
       {/* Tagline */}

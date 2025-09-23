@@ -73,16 +73,16 @@ export default function LoginCard({ onSuccess }: LoginCardProps) {
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-lg">
-        <div className="text-center space-y-6">
+        <div className="text-center">
           {/* Logo */}
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-8">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
               <span className="text-3xl font-bold text-gray-800">H</span>
             </div>
           </div>
           
           {/* Title with proper typography */}
-          <div>
+          <div className="mb-8">
             <h1 className="text-4xl font-light text-gray-800 mb-2" style={{ fontFamily: 'Futura, URW Geometric, system-ui, sans-serif' }}>
               <span className="text-5xl">Heijō</span>
               <span className="text-2xl font-normal ml-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>mini-journal</span>
@@ -93,7 +93,7 @@ export default function LoginCard({ onSuccess }: LoginCardProps) {
           </div>
 
           {/* Auth Tabs */}
-          <div className="flex border-b border-gray-200">
+          <div className="flex border-b border-gray-200 mt-8">
             <button
               onClick={() => {
                 setShowMagicLink(false);
