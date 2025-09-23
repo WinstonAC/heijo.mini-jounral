@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { resetIntro, forceShowIntro } from '@/lib/introUtils';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -58,43 +59,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F3] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-mist-white flex items-center justify-center p-4">
       <div className="max-w-md w-full mx-auto">
-        <div className="bg-[#FAFAF8] rounded-lg border-2 border-[#B8B8B8] p-8">
-          <div className="text-center space-y-8">
+        <div className="bg-white rounded-xl border border-soft-silver p-12 shadow-lg">
+          <div className="text-center space-y-12">
             {/* Logo/Title */}
-            <div className="space-y-6">
-              {/* H Icon with subtle halo */}
+            <div className="space-y-8 fade-in-up">
+              {/* H Icon with silver finish */}
               <div className="flex justify-center">
                 <div className="relative">
-                  <div className="w-16 h-16 border-2 border-[#8A8A8A] rounded-lg flex items-center justify-center bg-gradient-to-br from-[#F8F8F8] to-[#F0F0F0]">
-                    <span className="text-3xl font-bold text-[#2A2A2A]" style={{ fontFamily: 'Neue Haas Grotesk Display, sans-serif' }}>H</span>
+                  <div className="w-20 h-20 rounded-full silver-button flex items-center justify-center breathing-pulse">
+                    <span className="text-4xl font-bold text-graphite-charcoal brand-hero">H</span>
                   </div>
-                  <div className="absolute inset-0 w-16 h-16 border border-[#8A8A8A] rounded-lg opacity-20 blur-sm"></div>
                 </div>
               </div>
               
               <div>
-                <h1 className="text-3xl font-bold text-[#1A1A1A] mb-3" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-                  Welcome to Heijō MiniJournal
+                <h1 className="text-5xl brand-hero text-graphite-charcoal mb-2 leading-tight">
+                  <span className="word-by-word" style={{ animationDelay: '0.1s' }}>Welcome</span>{' '}
+                  <span className="word-by-word" style={{ animationDelay: '0.3s' }}>to</span>{' '}
+                  <span className="word-by-word" style={{ animationDelay: '0.5s' }}>
+                    <span className="brand-hero">Heijō</span>
+                    <span className="brand-label text-text-secondary ml-2">mini-journal</span>
+                  </span>
                 </h1>
-                <p className="text-lg font-light text-[#6A6A6A]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                <p className="text-lg body-text text-text-secondary leading-relaxed mt-4">
                   Your ritual space for reflection, reset, and reconnection.
                 </p>
               </div>
             </div>
 
             {/* Auth Forms */}
-            <div className="space-y-6">
+            <div className="space-y-8">
               {!showMagicLink ? (
-                <form onSubmit={handleEmailAuth} className="space-y-5">
+                <form onSubmit={handleEmailAuth} className="space-y-6">
                   <div>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full px-4 py-4 text-base border border-[#B8B8B8] rounded-lg bg-[#F8F8F8] focus:border-[#8A8A8A] focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300"
+                      className="w-full px-6 py-4 text-base border border-soft-silver rounded-lg bg-mist-white focus:border-soft-silver focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-graphite-charcoal placeholder-text-caption body-text"
                       required
                     />
                   </div>
@@ -106,7 +111,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
-                        className="w-full px-4 py-4 text-base border border-[#B8B8B8] rounded-lg bg-[#F8F8F8] focus:border-[#8A8A8A] focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300"
+                        className="w-full px-6 py-4 text-base border border-soft-silver rounded-lg bg-mist-white focus:border-soft-silver focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-graphite-charcoal placeholder-text-caption body-text"
                         required
                       />
                     </div>
@@ -115,20 +120,20 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={isLoading || !email || (!isSignUp && !password)}
-                    className="w-full px-6 py-4 text-base font-medium bg-[#1A1A1A] text-white rounded-lg hover:bg-[#2A2A2A] hover:shadow-[0_0_20px_rgba(26,26,26,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    className="w-full px-8 py-5 text-lg font-medium silver-button text-graphite-charcoal rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     {isLoading ? 'Please wait...' : 'Start Journaling'}
                   </button>
                 </form>
               ) : (
-                <form onSubmit={handleMagicLink} className="space-y-5">
+                <form onSubmit={handleMagicLink} className="space-y-6">
                   <div>
                     <input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Enter your email"
-                      className="w-full px-4 py-4 text-base border border-[#B8B8B8] rounded-lg bg-[#F8F8F8] focus:border-[#8A8A8A] focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300"
+                      className="w-full px-6 py-4 text-base border border-soft-silver rounded-lg bg-mist-white focus:border-soft-silver focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-graphite-charcoal placeholder-text-caption body-text"
                       required
                     />
                   </div>
@@ -136,7 +141,7 @@ export default function LoginPage() {
                   <button
                     type="submit"
                     disabled={isLoading || !email}
-                    className="w-full px-6 py-4 text-base font-medium bg-[#1A1A1A] text-white rounded-lg hover:bg-[#2A2A2A] hover:shadow-[0_0_20px_rgba(26,26,26,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                    className="w-full px-8 py-5 text-lg font-medium silver-button text-graphite-charcoal rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     {isLoading ? 'Sending...' : 'Send Magic Link'}
                   </button>
@@ -145,7 +150,7 @@ export default function LoginPage() {
 
               {/* Message */}
               {message && (
-                <div className={`text-sm p-4 rounded-lg border ${
+                <div className={`text-sm p-6 rounded-lg border ${
                   message.includes('Check your email') 
                     ? 'bg-[#F0F8F0] text-[#2A5A2A] border-[#B8D8B8]' 
                     : 'bg-[#F8F0F0] text-[#5A2A2A] border-[#D8B8B8]'
@@ -155,17 +160,17 @@ export default function LoginPage() {
               )}
 
               {/* Auth Options */}
-              <div className="space-y-3 text-center">
+              <div className="space-y-4 text-center">
                 <button
                   onClick={() => setIsSignUp(!isSignUp)}
-                  className="text-sm text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors duration-200 block w-full"
+                  className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 block w-full py-2 caption-text"
                 >
                   {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
                 </button>
                 
                 <button
                   onClick={() => setShowMagicLink(!showMagicLink)}
-                  className="text-sm text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors duration-200 block w-full"
+                  className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 block w-full py-2 caption-text"
                 >
                   {showMagicLink ? 'Use password instead' : 'Use magic link instead'}
                 </button>
@@ -173,7 +178,7 @@ export default function LoginPage() {
                 {!isSignUp && (
                   <button
                     onClick={() => setIsSignUp(true)}
-                    className="text-sm text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors duration-200 block w-full"
+                    className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 block w-full py-2 caption-text"
                   >
                     Sign up with password
                   </button>
@@ -182,11 +187,36 @@ export default function LoginPage() {
             </div>
 
             {/* Privacy note */}
-            <div className="pt-6 border-t border-[#D8D8D8]">
-              <p className="text-sm text-[#8A8A8A] leading-relaxed" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <div className="pt-8 border-t border-soft-silver">
+              <p className="text-sm text-text-caption leading-relaxed caption-text">
                 Private by design. Stored on your device. Yours alone.
               </p>
             </div>
+
+            {/* Debug controls - only show in development */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="pt-4 border-t border-soft-silver">
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={() => {
+                      resetIntro();
+                      window.location.href = '/';
+                    }}
+                    className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 px-3 py-1 border border-soft-silver rounded"
+                  >
+                    Reset Intro
+                  </button>
+                  <button
+                    onClick={() => {
+                      forceShowIntro();
+                    }}
+                    className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 px-3 py-1 border border-soft-silver rounded"
+                  >
+                    Show Intro
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
