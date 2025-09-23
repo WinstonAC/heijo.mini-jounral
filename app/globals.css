@@ -1,0 +1,272 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Heijō Brand Color System */
+  --mist-white: #FAFAFA;
+  --graphite-charcoal: #2A2A2A;
+  --soft-silver: #C0C0C0;
+  --tactile-taupe: #DAD6D0;
+  
+  /* Typography Colors */
+  --text-primary: #2A2A2A;
+  --text-secondary: #6A6A6A;
+  --text-caption: #9A9A9A;
+  --text-inverse: #FAFAFA;
+  
+  /* Silver Gradients */
+  --silver-gradient: linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 50%, #A8A8A8 100%);
+  --silver-gradient-hover: linear-gradient(135deg, #F0F0F0 0%, #D0D0D0 50%, #B8B8B8 100%);
+  --silver-glow: 0 0 20px rgba(192, 192, 192, 0.3);
+}
+
+@layer base {
+  body {
+    background-color: var(--mist-white);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text-primary);
+  }
+  
+  /* Typography System */
+  .brand-hero {
+    font-family: "Futura", "URW Geometric", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+    font-weight: 300;
+    letter-spacing: 0.05em;
+  }
+  
+  .brand-label {
+    font-family: "Futura", "URW Geometric", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+    font-weight: 400;
+    font-size: 0.6em;
+    letter-spacing: 0.02em;
+  }
+  
+  .subheading {
+    font-family: "Futura", "URW Geometric", "Avenir Next", "Helvetica Neue", system-ui, sans-serif;
+    font-weight: 400;
+  }
+  
+  .body-text {
+    font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+  
+  .caption-text {
+    font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 0.875rem;
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.3s ease-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes heijoPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(13,110,253,0.35); }
+    100% { box-shadow: 0 0 0 12px rgba(13,110,253,0); }
+  }
+  
+  @keyframes breathing {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  @keyframes breathingPulse {
+    0%, 100% { transform: scale(1.0); }
+    50% { transform: scale(1.05); }
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes wordByWord {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes silverGlow {
+    0%, 100% { box-shadow: var(--silver-glow); }
+    50% { box-shadow: 0 0 30px rgba(192, 192, 192, 0.5); }
+  }
+}
+
+@layer components {
+  .lcd {
+    font-family: 'Orbitron', system-ui, sans-serif;
+    letter-spacing: 0.06em;
+    font-size: 12px;
+    color: var(--ui-graphite);
+  }
+  
+  .card-border {
+    position: relative;
+  }
+  
+  .card-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0.5rem;
+    border: 1px solid var(--ui-silver);
+    pointer-events: none;
+  }
+  
+  .icon-stroke {
+    stroke-width: 1.5;
+    color: var(--ui-silver);
+  }
+  
+  .icon-stroke:active {
+    color: var(--ui-press);
+  }
+  
+  .journal-screen {
+    background: var(--ui-transcript-bg);
+    color: var(--ui-transcript-text);
+  }
+  
+  .journal-screen::placeholder {
+    color: var(--ui-transcript-placeholder);
+  }
+  
+  .record-btn.is-recording {
+    outline-color: var(--ui-recording);
+    animation: heijoPulse 1.2s ease-out infinite;
+  }
+  
+  .silver-button {
+    background: var(--silver-gradient);
+    border: 1px solid var(--soft-silver);
+    box-shadow: 
+      0 4px 12px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .silver-button:hover {
+    background: var(--silver-gradient-hover);
+    box-shadow: 
+      0 6px 16px rgba(0, 0, 0, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+  }
+  
+  .silver-button:active {
+    transform: translateY(0);
+    box-shadow: 
+      0 2px 6px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  }
+  
+  .silver-button.saved {
+    animation: silverGlow 1s ease-out;
+  }
+  
+  .breathing-pulse {
+    animation: breathing 4s ease-in-out infinite;
+  }
+  
+  .fade-in-up {
+    animation: fadeInUp 0.8s ease-out;
+  }
+  
+  .word-by-word {
+    animation: wordByWord 0.6s ease-out forwards;
+    opacity: 0;
+  }
+  
+  .outline-button {
+    border: 1px solid var(--soft-silver);
+    background: transparent;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+  }
+  
+  .outline-button:hover {
+    background: var(--graphite-charcoal);
+    color: var(--text-inverse);
+    box-shadow: var(--silver-glow);
+  }
+  
+  .journal-input {
+    background: var(--graphite-charcoal);
+    color: var(--text-inverse);
+    border: 1px solid var(--soft-silver);
+    transition: all 0.3s ease;
+  }
+  
+  .journal-input:focus {
+    border-color: var(--soft-silver);
+    box-shadow: var(--silver-glow);
+    outline: none;
+    animation: silverGlow 0.3s ease-out;
+  }
+  
+  .prompt-bubble {
+    background: var(--mist-white);
+    border: 1px solid var(--soft-silver);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    animation: fadeInUp 0.4s ease-out;
+  }
+}
+
+
+
