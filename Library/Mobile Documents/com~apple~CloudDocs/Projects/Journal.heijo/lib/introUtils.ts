@@ -2,7 +2,7 @@
  * Utility functions for managing the intro animation state
  */
 
-export const INTRO_STORAGE_KEY = 'heijo-intro-shown';
+export const INTRO_STORAGE_KEY = 'heijoIntroPlayed';
 
 /**
  * Check if the intro animation has been shown before

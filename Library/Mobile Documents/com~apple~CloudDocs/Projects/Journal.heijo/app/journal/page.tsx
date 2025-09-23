@@ -12,13 +12,13 @@ import { gdprManager } from '@/lib/gdpr';
 import { performanceMonitor } from '@/lib/performance';
 import { rateLimiter } from '@/lib/rateLimiter';
 import { useAuth } from '@/lib/auth';
-import PrivacySettings from '@/components/PrivacySettings';
+import Settings from '@/components/Settings';
 
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showPrivacySettings, setShowPrivacySettings] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{ id: string; text: string } | null>(null);
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
@@ -42,7 +42,7 @@ export default function JournalPage() {
         // Check GDPR consent
         const hasConsent = gdprManager.hasDataStorageConsent();
         if (!hasConsent) {
-          setShowPrivacySettings(true);
+          setShowSettings(true);
         }
         
         loadEntries();
@@ -139,42 +139,38 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="h-screen bg-[#EFEFEF] p-2 sm:p-4 overflow-hidden">
-      <div className="max-w-4xl lg:max-w-6xl mx-auto h-full flex flex-col">
-        {/* Main Journal Panel - Nintendo/PalmPilot gray outer shell */}
-        <div className="bg-[#D8D8D8] rounded-lg border-2 border-[#B8B8B8] p-3 sm:p-4 lg:p-6 shadow-[0_0_25px_rgba(184,184,184,0.2)] relative flex-1 flex flex-col">
+    <div className="h-screen bg-mist-white p-2 sm:p-4 lg:p-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto h-full flex flex-col">
+        {/* Main Journal Panel - Clean white container */}
+        <div className="bg-white rounded-xl border border-soft-silver p-3 sm:p-4 lg:p-6 shadow-lg relative flex-1 flex flex-col">
           {/* Header inside journal panel */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-[#C7C7C7] flex-shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-soft-silver flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
               <div className="relative group">
-                <h1 className="text-xl font-semibold text-[#1A1A1A] relative" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                  <span className="bg-gradient-to-r from-[#1A1A1A] via-[#4A4A4A] to-[#1A1A1A] bg-clip-text text-transparent">
-                    Heijō
-                  </span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#E8E8E8] to-transparent opacity-20 blur-sm group-hover:opacity-40 transition-opacity duration-100"></div>
+                <h1 className="text-xl sm:text-2xl lg:text-3xl brand-hero text-graphite-charcoal relative">
+                  <span className="brand-hero">Heijō</span>
+                  <span className="brand-label text-text-secondary ml-1 sm:ml-2">mini-journal</span>
                 </h1>
-                <div className="flex items-center gap-2 -mt-1">
-                  <div className="text-sm font-medium text-[#6A6A6A]" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-                    Mini-Journal
-                  </div>
-                  <span className="text-xs text-[#6A6A6A] font-medium italic" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-xs text-text-secondary font-medium subheading">
+                    Your ritual space for reflection
+                  </span>
+                  <span className="text-xs text-text-caption font-medium px-2 py-1 bg-tactile-taupe rounded-full caption-text">
                     beta
                   </span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 self-end sm:self-auto">
+            <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
-                onClick={() => setShowPrivacySettings(true)}
-                className="text-sm text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors duration-100"
-                style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+                onClick={() => setShowSettings(true)}
+                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-1 px-2 rounded-lg hover:bg-tactile-taupe caption-text"
               >
-                Privacy
+                Settings
               </button>
               <button
                 onClick={signOut}
-                className="text-sm text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors duration-100"
-                style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-1 px-2 rounded-lg hover:bg-tactile-taupe caption-text"
               >
                 Sign Out
               </button>
@@ -206,9 +202,10 @@ export default function JournalPage() {
       />
 
       {/* Privacy Settings modal */}
-      <PrivacySettings
-        isOpen={showPrivacySettings}
-        onClose={() => setShowPrivacySettings(false)}
+      <Settings
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        onExportCSV={handleExport}
       />
     </div>
   );

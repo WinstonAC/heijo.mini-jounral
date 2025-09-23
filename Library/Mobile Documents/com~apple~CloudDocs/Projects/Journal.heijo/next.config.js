@@ -1,8 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
-  },
   async headers() {
     return [
       {
@@ -13,9 +10,9 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Required for Next.js
-              "style-src 'self' 'unsafe-inline'", // Required for Tailwind
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Required for Tailwind and Google Fonts
               "img-src 'self' data: blob:",
-              "font-src 'self' data:",
+              "font-src 'self' data: https://fonts.gstatic.com",
               "connect-src 'self' https://*.supabase.co https://*.supabase.io",
               "media-src 'self' blob:",
               "object-src 'none'",

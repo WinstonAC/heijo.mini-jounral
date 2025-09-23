@@ -1,4 +1,4 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
-  <rect width="512" height="512" fill="#D8D8D8" rx="64"/>
-  <text x="256" y="320" font-family="Inter, system-ui, sans-serif" font-size="256" font-weight="bold" text-anchor="middle" fill="#1A1A1A">H</text>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="512" height="512" fill="white"/>
+<path d="M128 128V384H128V256H384V384H384V128H384V256H128V128Z" fill="black"/>
 </svg>

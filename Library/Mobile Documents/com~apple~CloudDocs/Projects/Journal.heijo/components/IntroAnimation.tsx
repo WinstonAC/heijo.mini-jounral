@@ -16,12 +16,19 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const welcomeRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [hasAnimated, setHasAnimated] = useState(false);
 
   const letters = ['H', 'E', 'I', 'J', 'Ō'];
 
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || hasAnimated) return;
+
+    // Check if intro has already been played
+    if (localStorage.getItem('heijoIntroPlayed')) {
+      onComplete();
+      return;
+    }
 
     // Create starfield particles
     const createStarfield = () => {
@@ -49,21 +56,23 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Main animation timeline
+    // Main animation timeline - Total duration: ~8s
     const tl = gsap.timeline({
       onComplete: () => {
+        localStorage.setItem('heijoIntroPlayed', 'true');
+        setHasAnimated(true);
         onComplete();
       }
     });
 
-    // 1. Black starfield entry (2s)
+    // 1. Black starfield entry (1.5s)
     tl.fromTo(container, 
       { backgroundColor: '#000000' },
       { backgroundColor: '#000000', duration: 0.1 }
     )
     .fromTo(starfieldRef.current, 
       { opacity: 0 },
-      { opacity: 1, duration: 2, ease: 'power2.out' }
+      { opacity: 1, duration: 1.5, ease: 'power2.out' }
     )
     .fromTo(starfieldRef.current?.children, 
       { 
@@ -73,79 +82,71 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       { 
         scale: 1,
         rotation: 0,
-        duration: 2,
+        duration: 1.5,
         stagger: 0.01,
         ease: 'back.out(1.7)'
       },
-      '-=1.5'
+      '-=1.2'
     );
 
-    // 2. Letter constellations (3s)
+    // 2. Letter constellations with improved stagger (2.5s)
     const letterElements = lettersRef.current;
-    const initialPositions = letterElements.map(() => ({
-      x: (Math.random() - 0.5) * 800,
-      y: (Math.random() - 0.5) * 600,
-      z: Math.random() * 200 - 100,
-      rotation: Math.random() * 360
-    }));
-
-    // Set initial scattered positions
+    
+    // Set initial positions with z-depth and y offset
     letterElements.forEach((letter, index) => {
       if (letter) {
         gsap.set(letter, {
-          x: initialPositions[index].x,
-          y: initialPositions[index].y,
-          z: initialPositions[index].z,
-          rotation: initialPositions[index].rotation,
-          scale: 0.8 + Math.random() * 0.4
+          x: (Math.random() - 0.5) * 400,
+          y: -50,
+          z: Math.random() * 400 - 200, // -200 to 200 z-depth
+          rotation: Math.random() * 360,
+          scale: 0.8 + Math.random() * 0.4,
+          opacity: 0
         });
       }
     });
 
+    // Animate letters with stagger
     tl.to(letterElements, {
       x: 0,
       y: 0,
       z: 0,
       rotation: 0,
       scale: 1,
-      duration: 3,
-      stagger: 0.2,
-      ease: 'power2.inOut'
-    }, '-=1')
-    .fromTo(letterElements,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.5, stagger: 0.1 },
-      '-=2.5'
-    )
+      opacity: 1,
+      duration: 1.5,
+      stagger: 0.3, // 0.3s stagger between each letter
+      ease: 'power2.out'
+    }, '-=0.5')
     .to(letterElements, {
-      y: '+=10',
-      duration: 2,
-      yoyo: true,
-      repeat: -1,
-      ease: 'power2.inOut',
-      stagger: 0.3
-    }, '-=1.5')
-    .to(letterElements, {
-      scale: 1.05,
+      y: '+=8',
       duration: 1.5,
       yoyo: true,
       repeat: -1,
       ease: 'power2.inOut',
       stagger: 0.2
-    }, '-=1.5');
+    }, '-=1')
+    .to(letterElements, {
+      scale: 1.05,
+      duration: 1.2,
+      yoyo: true,
+      repeat: -1,
+      ease: 'power2.inOut',
+      stagger: 0.15
+    }, '-=1');
 
     // Tagline fade in
     tl.fromTo('.tagline', 
       { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 1, ease: 'power2.out' },
-      '-=1'
+      { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
+      '-=0.5'
     );
 
-    // 3. 3D H glyph emergence (2s)
+    // 3. 3D H glyph emergence (1.5s)
     tl.to(letterElements, {
       scale: 0,
       opacity: 0,
-      duration: 0.8,
+      duration: 0.6,
       stagger: 0.1,
       ease: 'power2.in'
     })
@@ -160,27 +161,27 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         rotationY: 360,
         opacity: 1,
         duration: 1.2,
-        ease: 'power2.out'
+        ease: 'power2.inOut'
       },
-      '-=0.4'
+      '-=0.3'
     )
     .to(hGlyphRef.current, {
-      boxShadow: '0 0 30px rgba(192, 192, 192, 0.8), 0 0 60px rgba(192, 192, 192, 0.4)',
-      duration: 1,
+      boxShadow: '0 0 40px rgba(192, 192, 192, 0.9), 0 0 80px rgba(192, 192, 192, 0.5)',
+      duration: 0.8,
       ease: 'power2.inOut'
-    }, '-=0.8')
+    }, '-=0.6')
     .to(hGlyphRef.current, {
       boxShadow: '0 0 0px rgba(192, 192, 192, 0)',
-      duration: 1,
+      duration: 0.7,
       ease: 'power2.out'
     });
 
-    // 4. Portal transition (2s)
+    // 4. Portal transition (1.5s)
     tl.to(container, {
       backgroundColor: '#FAFAFA',
-      duration: 2,
+      duration: 1.5,
       ease: 'power2.inOut'
-    }, '-=0.5')
+    }, '-=0.3')
     .fromTo(portalRef.current,
       { 
         scale: 0,
@@ -190,37 +191,38 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       { 
         scale: 3,
         opacity: 1,
-        duration: 1.5,
+        duration: 1.2,
         ease: 'power2.inOut'
       },
-      '-=1.5'
+      '-=1.2'
     )
     .to(portalRef.current, {
       opacity: 0,
-      duration: 0.5,
+      duration: 0.3,
       ease: 'power2.out'
-    }, '-=0.5');
+    }, '-=0.3');
 
-    // 5. Welcome state (1.5s)
+    // 5. Welcome state (1.5s hold)
     tl.fromTo(welcomeRef.current,
       { opacity: 0, y: 30 },
-      { opacity: 1, y: 0, duration: 1, ease: 'power2.out' },
-      '-=1'
+      { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
+      '-=0.5'
     )
     .to(welcomeRef.current, {
       scale: 1.02,
-      duration: 0.5,
+      duration: 0.4,
       yoyo: true,
       repeat: 1,
       ease: 'power2.inOut'
     })
     .to(welcomeRef.current, {
       scale: 1,
-      duration: 0.5,
+      duration: 0.4,
       ease: 'power2.out'
-    });
+    })
+    .to({}, { duration: 1.5 }); // Hold for 1.5s
 
-    // 6. Login reveal (2s)
+    // 6. Login reveal (1.5s)
     tl.fromTo(loginRef.current,
       { 
         opacity: 0,
@@ -231,21 +233,20 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 1.5,
+        duration: 1.2,
         ease: 'power2.out'
-      },
-      '-=0.5'
+      }
     )
     .fromTo(loginRef.current?.querySelectorAll('input, button'),
       { opacity: 0, y: 20 },
       { 
         opacity: 1,
         y: 0,
-        duration: 0.8,
+        duration: 0.6,
         stagger: 0.1,
         ease: 'power2.out'
       },
-      '-=1'
+      '-=0.8'
     )
     .to(loginRef.current?.querySelector('button'), {
       scale: 1.05,
@@ -253,16 +254,16 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       yoyo: true,
       repeat: 1,
       ease: 'power2.inOut'
-    }, '-=0.5');
+    }, '-=0.3');
 
     // Parallax effect on letters
     const updateParallax = () => {
       letterElements.forEach((letter, index) => {
         if (letter) {
           gsap.to(letter, {
-            x: mousePosition.x * (10 + index * 2),
-            y: mousePosition.y * (10 + index * 2),
-            duration: 0.5,
+            x: mousePosition.x * (8 + index * 1.5),
+            y: mousePosition.y * (8 + index * 1.5),
+            duration: 0.3,
             ease: 'power2.out'
           });
         }
@@ -276,7 +277,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       clearInterval(parallaxInterval);
       tl.kill();
     };
-  }, [mousePosition.x, mousePosition.y, onComplete]);
+  }, [mousePosition.x, mousePosition.y, onComplete, hasAnimated]);
 
   return (
     <div 
@@ -284,7 +285,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       className="fixed inset-0 z-50 bg-black overflow-hidden"
       style={{ 
         perspective: '1000px',
-        transformStyle: 'preserve-3d'
+        transformStyle: 'preserve-3d',
+        perspectiveOrigin: 'center center'
       }}
     >
       {/* Starfield Background */}
@@ -334,7 +336,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         ref={hGlyphRef}
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0"
         style={{
-          transformStyle: 'preserve-3d'
+          transformStyle: 'preserve-3d',
+          perspective: '1000px'
         }}
       >
         <div 
@@ -342,14 +345,16 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
           style={{
             background: 'linear-gradient(135deg, #C0C0C0 0%, #E8E8E8 100%)',
             boxShadow: '0 0 0px rgba(192, 192, 192, 0)',
-            transformStyle: 'preserve-3d'
+            transformStyle: 'preserve-3d',
+            backfaceVisibility: 'hidden'
           }}
         >
           <span 
             className="text-6xl font-bold text-gray-800"
             style={{
               fontFamily: 'Inter, system-ui, sans-serif',
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+              transformStyle: 'preserve-3d'
             }}
           >
             H

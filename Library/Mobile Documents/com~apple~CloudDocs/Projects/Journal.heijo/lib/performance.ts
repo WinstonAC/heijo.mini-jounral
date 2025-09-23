@@ -461,3 +461,8 @@ export class PerformanceOptimizer {
 }
 
 export const performanceMonitor = PerformanceMonitor.getInstance();
+
+
+
+
+

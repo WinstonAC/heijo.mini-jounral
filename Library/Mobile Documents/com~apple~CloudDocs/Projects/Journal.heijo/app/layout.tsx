@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth'
@@ -9,10 +9,21 @@ export const metadata: Metadata = {
   title: 'Heijō MiniJournal',
   description: 'A privacy-first, resilient voice journal with Dieter Rams design',
   manifest: '/site.webmanifest',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
-  themeColor: '#F8F8F8',
   robots: 'noindex, nofollow', // Privacy-first: don't index personal journals
   referrer: 'strict-origin-when-cross-origin',
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/icon-192.svg',
+  },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: '#F8F8F8',
 }
 
 export default function RootLayout({

@@ -467,3 +467,8 @@ export class EnhancedMicButton {
 
 // Export singleton instance
 export const enhancedMicButton = new EnhancedMicButton();
+
+
+
+
+

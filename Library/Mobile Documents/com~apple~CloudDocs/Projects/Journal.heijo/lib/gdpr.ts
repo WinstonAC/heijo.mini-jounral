@@ -282,3 +282,8 @@ class GDPRManager {
 }
 
 export const gdprManager = GDPRManager.getInstance();
+
+
+
+
+

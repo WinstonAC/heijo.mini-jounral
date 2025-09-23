@@ -23,9 +23,7 @@ export default function HomePage() {
   }, [router]);
 
   const handleIntroComplete = () => {
-    // Mark intro as shown
-    markIntroAsShown();
-    // Navigate to login
+    // Navigate to login (intro component handles localStorage)
     router.push('/login');
   };
 

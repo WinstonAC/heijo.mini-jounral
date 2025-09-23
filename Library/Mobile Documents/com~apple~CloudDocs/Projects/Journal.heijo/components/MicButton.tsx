@@ -113,17 +113,17 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
   const getButtonClass = () => {
     const state = getButtonState();
-    const baseClass = 'w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 flex items-center justify-center transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50';
+    const baseClass = 'w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-soft-silver focus:ring-opacity-50';
     
     switch (state) {
       case 'listening':
-        return `${baseClass} border-[#0D6EFD] text-[#0D6EFD] bg-transparent record-btn is-recording`;
+        return `${baseClass} border-soft-silver text-soft-silver bg-transparent record-btn is-recording`;
       case 'denied':
         return `${baseClass} border-red-300 text-red-500 bg-red-50 cursor-not-allowed`;
       case 'unsupported':
-        return `${baseClass} border-gray-300 text-gray-400 bg-gray-50 cursor-not-allowed`;
+        return `${baseClass} border-soft-silver text-text-caption bg-tactile-taupe cursor-not-allowed`;
       default:
-        return `${baseClass} border-[#C7C7C7] text-[#6A6A6A] hover:border-[#8A8A8A] hover:text-[#1A1A1A] hover:bg-[#F0F0F0]`;
+        return `${baseClass} border-soft-silver text-text-secondary hover:border-graphite-charcoal hover:text-graphite-charcoal hover:bg-tactile-taupe`;
     }
   };
 
@@ -133,9 +133,9 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
       case 'listening':
         return 'Stop recording';
       case 'denied':
-        return 'Microphone permission denied';
+        return 'Microphone not available. Check permissions.';
       case 'unsupported':
-        return 'Voice recognition not supported';
+        return 'Microphone not available. Check permissions.';
       default:
         return 'Start voice recording';
     }
@@ -143,7 +143,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
   if (!isSupported) {
     return (
-      <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gray-300 text-gray-400 bg-gray-50 flex items-center justify-center cursor-not-allowed">
+      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-soft-silver text-text-caption bg-tactile-taupe flex items-center justify-center cursor-not-allowed">
         <svg
           width="16"
           height="16"
@@ -190,9 +190,9 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
       </button>
       
       {/* Tooltip */}
-      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-graphite-charcoal text-text-inverse text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
         {getTooltipText()}
-        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
+        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-graphite-charcoal"></div>
       </div>
 
       {/* Metrics display (for debugging) */}

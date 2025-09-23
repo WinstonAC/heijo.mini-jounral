@@ -32,6 +32,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUserScrolled, setIsUserScrolled] = useState(false);
+  const [showSaveGlow, setShowSaveGlow] = useState(false);
 
   // Check if we've shown a prompt today
   useEffect(() => {
@@ -227,67 +228,78 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
 
 
   return (
-    <div className="h-full flex flex-col space-y-4 sm:space-y-6">
+    <div className="h-full flex flex-col space-y-2 sm:space-y-3">
       {/* Digital-style Date/Time Display */}
       <div className="flex-shrink-0">
         <HeaderClock />
       </div>
 
-      {/* Prompt Question - Full screen overlay */}
+      {/* Prompt Question - Minimal floating card */}
       {promptState === 'ticking' && !hasShownToday && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-[#F8F8F8] border border-[#C7C7C7] rounded-lg p-6 shadow-lg max-w-md mx-4">
+        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-60 flex items-center justify-center z-50">
+          <div className="prompt-bubble rounded-xl p-8 max-w-md mx-4">
             <div className="text-center">
-              <p className="text-[#1A1A1A] font-medium text-lg mb-6" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+              <p className="text-graphite-charcoal font-medium text-xl mb-8 leading-relaxed subheading">
                 Would you like a prompt today?
               </p>
-              <div className="flex gap-4 justify-center">
+              <div className="flex gap-4 justify-center mb-4">
                 <button
                   onClick={handlePromptYes}
-                  className="px-6 py-3 text-sm font-medium bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors duration-100 rounded"
-                  style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+                  className="px-6 py-3 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300"
                 >
                   Yes
                 </button>
                 <button
                   onClick={handlePromptNo}
-                  className="px-6 py-3 text-sm font-medium border border-[#B8B8B8] text-[#6A6A6A] hover:bg-[#F0F0F0] transition-colors duration-100 rounded"
-                  style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+                  className="px-6 py-3 text-sm font-medium outline-button rounded-lg transition-all duration-300"
                 >
                   No
                 </button>
               </div>
+              <button
+                onClick={handlePromptNo}
+                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 caption-text"
+              >
+                Skip
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Prompt Display - At top of screen */}
+      {/* Prompt Display - Minimal floating card */}
       {promptState === 'showing' && currentPrompt && (
-        <div className="flex-shrink-0 bg-[#F8F8F8] border border-[#C7C7C7] rounded px-4 py-3 shadow-sm">
+        <div className="flex-shrink-0 prompt-bubble rounded-xl px-6 py-4">
           <div className="flex items-center justify-between">
-            <p className="text-[#1A1A1A] font-medium text-sm flex-1 pr-4" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <p className="text-graphite-charcoal font-medium text-base flex-1 pr-6 leading-relaxed body-text">
               {currentPrompt.text}
             </p>
-            <button
-              onClick={handleSelectPrompt}
-              className="px-4 py-2 text-xs font-medium bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors duration-100 rounded"
-              style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
-            >
-              Use This
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSelectPrompt}
+                className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300"
+              >
+                Use This
+              </button>
+              <button
+                onClick={handlePromptNo}
+                className="px-4 py-2 text-sm font-medium outline-button rounded-lg transition-all duration-300"
+              >
+                Skip
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Selected Prompt Display - At top of screen */}
+      {/* Selected Prompt Display - Minimal floating card */}
       {promptState === 'selected' && currentPrompt && (
-        <div className="flex-shrink-0 bg-[#F8F8F8] border border-[#C7C7C7] rounded px-4 py-3 shadow-sm">
+        <div className="flex-shrink-0 prompt-bubble border-soft-silver rounded-xl px-6 py-4">
           <div className="flex items-center justify-between">
-            <p className="text-[#1A1A1A] font-medium text-sm" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <p className="text-graphite-charcoal font-medium text-base leading-relaxed body-text">
               {currentPrompt.text}
             </p>
-            <div className="text-xs text-[#8A8A8A] font-medium" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            <div className="text-xs text-text-caption font-medium px-3 py-1 bg-tactile-taupe rounded-full caption-text">
               SELECTED
             </div>
           </div>
@@ -309,20 +321,19 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
       )}
 
       {/* Typography Controls and Mic Button */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 sm:gap-3 text-xs text-[#8A8A8A]">
-        <div className="flex items-center gap-1.5">
-          <span className="font-medium text-xs" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>Font:</span>
+      <div className="flex-shrink-0 flex items-center justify-between gap-2 sm:gap-4 text-xs text-text-caption">
+        <div className="flex items-center gap-2">
+          <span className="font-medium text-xs caption-text">Font:</span>
           <div className="flex items-center gap-1">
             {(['small', 'medium', 'large'] as const).map((size) => (
               <button
                 key={size}
                 onClick={() => setFontSize(size)}
-                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 transition-all duration-100 flex items-center justify-center text-xs font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50 ${
+                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg border transition-all duration-300 flex items-center justify-center text-xs font-medium focus:outline-none focus:ring-2 focus:ring-soft-silver focus:ring-opacity-50 ${
                   fontSize === size
-                    ? 'bg-[#F0F0F0] border-[#8A8A8A] text-[#1A1A1A] shadow-[0_0_8px_rgba(59,130,246,0.3)] ring-2 ring-blue-400 ring-opacity-50'
-                    : 'bg-[#F8F8F8] border-[#B8B8B8] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] hover:shadow-[0_0_4px_rgba(59,130,246,0.2)]'
+                    ? 'bg-graphite-charcoal border-graphite-charcoal text-text-inverse shadow-lg'
+                    : 'bg-white border-soft-silver text-graphite-charcoal hover:bg-tactile-taupe hover:border-graphite-charcoal hover:shadow-md'
                 }`}
-                style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
               >
                 {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
               </button>
@@ -337,14 +348,14 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
             onError={handleVoiceError}
           />
           {isVoiceActive && (
-            <div className="absolute -inset-1 bg-[#C7C7C7] rounded-lg animate-pulse opacity-30"></div>
+            <div className="absolute -inset-1 bg-soft-silver rounded-lg animate-pulse opacity-20"></div>
           )}
         </div>
       </div>
 
-      {/* Journal entry section - Full width */}
+      {/* Journal entry section - Full width dominant */}
       <div className="flex-1 flex flex-col min-h-0">
-        {/* Dark central typing box with silver bevel - edge to edge */}
+        {/* Graphite charcoal typing area with silver focus */}
         <div className="relative flex-1">
           <div className="relative w-full h-full">
             <textarea
@@ -362,45 +373,91 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
                 setIsUserScrolled(!isAtBottom);
               }}
               placeholder="Type or speak your thoughts..."
-              className={`w-full h-full min-h-[200px] p-3 sm:p-4 journal-screen border-2 border-[#C7C7C7] focus:border-[#E8E8E8] focus:outline-none focus:ring-0 resize-none transition-all duration-100 shadow-[inset_0_2px_4px_rgba(0,0,0,0.3),0_0_15px_rgba(184,184,184,0.2)] ${getFontSizeClass()}`}
+              className={`w-full h-full min-h-[200px] sm:min-h-[250px] p-3 sm:p-4 lg:p-6 journal-input rounded-xl resize-none transition-all duration-300 ${getFontSizeClass()}`}
               style={{ 
-                fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif',
-                borderRadius: '8px', // Slightly beveled, not fully rounded
-                lineHeight: '1.5'
+                fontFamily: 'Inter, system-ui, sans-serif',
+                lineHeight: '1.8',
+                background: 'var(--graphite-charcoal)',
+                color: 'var(--text-inverse)',
+                border: '1px solid var(--soft-silver)',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.1)'
               }}
             />
             
             {/* Jump to live button */}
             {isUserScrolled && isVoiceActive && (
-              <div className="absolute bottom-2 left-2 bg-[#0D6EFD] text-white text-xs px-3 py-1 rounded cursor-pointer hover:bg-[#0B5ED7] transition-colors duration-100 animate-fade-in"
+              <div className="absolute bottom-4 left-4 bg-graphite-charcoal text-text-inverse text-sm px-4 py-2 rounded-lg cursor-pointer hover:bg-soft-silver hover:text-graphite-charcoal transition-all duration-300 animate-fade-in shadow-lg"
                    onClick={() => {
                      if (textareaRef.current) {
                        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
                        setIsUserScrolled(false);
                      }
-                   }}
-                   style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+                   }}>
                 Jump to live
               </div>
             )}
             
             {/* Live transcript indicator */}
             {interimTranscript && (
-              <div className="absolute bottom-2 right-2 bg-[#2A2A2A] text-[#E8E8E8] text-xs px-2 py-1 rounded opacity-75 animate-fade-in">
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 bg-[#0D6EFD] rounded-full animate-pulse"></div>
-                  <span style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>Listening...</span>
+              <div className="absolute bottom-4 right-4 bg-graphite-charcoal text-text-inverse text-sm px-4 py-2 rounded-lg opacity-90 animate-fade-in shadow-lg">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-soft-silver rounded-full animate-pulse"></div>
+                  <span>Listening...</span>
                 </div>
               </div>
             )}
           </div>
-          {/* Silver bevel effect */}
-          <div className="absolute inset-0 pointer-events-none rounded-lg border border-[#E8E8E8] opacity-30"></div>
+        </div>
+        
+        {/* Circular Silver Save Button - Bottom Right Corner */}
+        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
+          <button
+            onClick={() => {
+              // Trigger silver glow animation
+              setShowSaveGlow(true);
+              setTimeout(() => setShowSaveGlow(false), 1000);
+              // Call the actual save function
+              if (content.trim()) {
+                onSave({
+                  content: content.trim(),
+                  tags: selectedTags,
+                  source,
+                  created_at: new Date().toISOString(),
+                  user_id: userId || 'anonymous'
+                });
+                // Clear form after save
+                setContent('');
+                setSelectedTags([]);
+                setSource('text');
+                setInterimTranscript('');
+                setLastSaved(new Date());
+              }
+            }}
+            disabled={!content.trim() || isAutoSaving}
+            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+              isAutoSaving ? 'animate-pulse' : ''
+            } ${showSaveGlow ? 'animate-silverGlow' : ''}`}
+            title={isAutoSaving ? 'Auto-saving...' : 'Save entry'}
+          >
+            <svg 
+              className="w-4 h-4 sm:w-6 sm:h-6 text-graphite-charcoal" 
+              fill="none" 
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M5 13l4 4L19 7" 
+              />
+            </svg>
+          </button>
         </div>
       </div>
 
       {/* Tag picker and Status - Compact footer */}
-      <div className="flex-shrink-0 space-y-2">
+      <div className="flex-shrink-0 space-y-1">
         <TagPicker
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}

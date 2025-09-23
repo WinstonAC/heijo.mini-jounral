@@ -137,7 +137,7 @@ class EncryptionManager {
         }
       };
 
-      request.onsuccess = (event) => {
+      request.onsuccess = async (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
         const transaction = db.transaction(['keys'], 'readwrite');
         const store = transaction.objectStore('keys');
@@ -255,3 +255,4 @@ class EncryptionManager {
 }
 
 export const encryptionManager = EncryptionManager.getInstance();
+export { EncryptionManager };

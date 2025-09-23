@@ -3,7 +3,7 @@
  * Implements local-first data storage with AES-GCM encryption
  */
 
-import { encryptionManager, EncryptedData } from './encryption';
+import { encryptionManager, EncryptedData, EncryptionManager } from './encryption';
 import { JournalEntry } from './store';
 
 export interface SecureStorageConfig {
@@ -48,7 +48,7 @@ class SecureLocalStorage {
     try {
       const serializedEntry = JSON.stringify(newEntry);
       
-      if (this.config.encryptData && encryptionManager.isSupported()) {
+      if (this.config.encryptData && EncryptionManager.isSupported()) {
         const encryptedData = await encryptionManager.encrypt(serializedEntry);
         await this.storeEncryptedEntry(newEntry.id, encryptedData);
       } else {
@@ -102,7 +102,7 @@ class SecureLocalStorage {
    */
   async getEntry(id: string): Promise<JournalEntry | null> {
     try {
-      if (this.config.encryptData && encryptionManager.isSupported()) {
+      if (this.config.encryptData && EncryptionManager.isSupported()) {
         const encryptedData = await this.getEncryptedEntry(id);
         if (!encryptedData) return null;
         
@@ -124,7 +124,7 @@ class SecureLocalStorage {
    */
   async deleteEntry(id: string): Promise<void> {
     try {
-      if (this.config.encryptData && encryptionManager.isSupported()) {
+      if (this.config.encryptData && EncryptionManager.isSupported()) {
         await this.deleteEncryptedEntry(id);
       } else {
         await this.deletePlainEntry(id);
@@ -150,7 +150,7 @@ class SecureLocalStorage {
    */
   async clearAllData(): Promise<void> {
     try {
-      if (this.config.encryptData && encryptionManager.isSupported()) {
+      if (this.config.encryptData && EncryptionManager.isSupported()) {
         await encryptionManager.clearAllData();
       }
       
@@ -304,7 +304,7 @@ class SecureLocalStorage {
     const ids: string[] = [];
     
     // Get from IndexedDB if using encryption
-    if (this.config.encryptData && encryptionManager.isSupported()) {
+    if (this.config.encryptData && EncryptionManager.isSupported()) {
       try {
         const request = indexedDB.open('HeijoSecureStorage', 1);
         await new Promise<void>((resolve, reject) => {
@@ -341,7 +341,7 @@ class SecureLocalStorage {
   private async calculateStorageSize(): Promise<number> {
     let totalSize = 0;
     
-    if (this.config.encryptData && encryptionManager.isSupported()) {
+    if (this.config.encryptData && EncryptionManager.isSupported()) {
       // Calculate IndexedDB size (approximate)
       const entries = await this.getEntries();
       totalSize = entries.reduce((size, entry) => {
@@ -393,3 +393,8 @@ class SecureLocalStorage {
 }
 
 export const secureStorage = new SecureLocalStorage();
+
+
+
+
+

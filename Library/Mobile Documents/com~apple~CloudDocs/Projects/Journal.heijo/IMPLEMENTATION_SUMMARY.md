@@ -172,3 +172,8 @@ Heijo now meets the highest standards for:
 - **Compliance**: Full GDPR compliance
 
 The app is ready for production deployment with enterprise-grade security and performance.
+
+
+
+
+
