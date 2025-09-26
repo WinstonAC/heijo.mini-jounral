@@ -44,7 +44,7 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
             Privacy Promise
           </h3>
           <p className="text-xs text-[var(--ui-graphite)] leading-relaxed">
-            Your journal entries are stored locally on your device. We don&apos;t collect, 
+            Your journal entries are stored locally on your device. We don't collect, 
             analyze, or share your personal thoughts. Your data stays private and secure.
           </p>
         </div>

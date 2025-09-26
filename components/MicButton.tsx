@@ -207,7 +207,13 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
   );
 }
 
-// SpeechRecognition types are declared in voiceToText.ts
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    SpeechRecognition: typeof SpeechRecognition;
+    webkitSpeechRecognition: typeof SpeechRecognition;
+  }
+}
 
 
 

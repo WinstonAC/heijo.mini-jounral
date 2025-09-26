@@ -29,14 +29,14 @@ export default function PrivacyPage() {
             <ul className="list-disc list-inside text-[#6A6A6A] mb-4 space-y-2">
               <li>All journal entries are encrypted using device-specific keys</li>
               <li>Voice recordings are processed locally and not stored unless you opt-in</li>
-              <li>Data is stored in your browser&apos;s IndexedDB with encryption</li>
+              <li>Data is stored in your browser's IndexedDB with encryption</li>
               <li>No data is transmitted to external servers without your explicit consent</li>
             </ul>
 
             <h2 className="text-xl font-medium text-[#1A1A1A] mb-4">Microphone Access</h2>
             <p className="text-[#6A6A6A] mb-4">
               Microphone access is requested only when you tap the record button. Voice data is processed 
-              locally using your browser&apos;s speech recognition API and is not transmitted to external servers. 
+              locally using your browser's speech recognition API and is not transmitted to external servers. 
               You can revoke microphone access at any time through your browser settings.
             </p>
 

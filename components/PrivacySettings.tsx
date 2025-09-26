@@ -36,6 +36,16 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
     gdprManager.updateConsent(updatedConsent);
   };
 
+  const handleExportJSON = async () => {
+    setIsExporting(true);
+    try {
+      await gdprManager.exportAsJSON();
+    } catch (error) {
+      console.error('Export failed:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const handleExportCSV = async () => {
     setIsExporting(true);
@@ -175,6 +185,13 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
           <div className="mb-6">
             <h3 className="text-sm font-medium text-[#1A1A1A] mb-4">Export Your Data</h3>
             <div className="flex gap-3">
+              <button
+                onClick={handleExportJSON}
+                disabled={isExporting || metrics.totalEntries === 0}
+                className="px-4 py-2 text-sm font-light bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded"
+              >
+                {isExporting ? 'Exporting...' : 'Export as JSON'}
+              </button>
               <button
                 onClick={handleExportCSV}
                 disabled={isExporting || metrics.totalEntries === 0}
