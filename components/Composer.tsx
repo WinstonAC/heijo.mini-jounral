@@ -8,7 +8,7 @@ import { JournalEntry } from '@/lib/store';
 import { getPrompt, logPromptHistory } from '@/lib/pickPrompt';
 
 interface ComposerProps {
-  onSave: (entry: Omit<JournalEntry, 'id'>) => void;
+  onSave: (entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'>) => void;
   onExport: () => void;
   selectedPrompt?: { id: string; text: string } | null;
   userId?: string;
@@ -84,8 +84,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         content: content.trim(),
         source,
         tags: selectedTags,
-        created_at: new Date().toISOString(),
-        sync_status: 'local_only'
+        created_at: new Date().toISOString()
       });
       setLastSaved(new Date());
     } catch (error) {
@@ -160,8 +159,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         content: content.trim(),
         source,
         tags: selectedTags,
-        created_at: new Date().toISOString(),
-        sync_status: 'local_only'
+        created_at: new Date().toISOString()
       });
 
       // Show toast confirmation

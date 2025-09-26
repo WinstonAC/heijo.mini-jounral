@@ -58,7 +58,7 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
                 {entry.source === 'voice' ? '🎤 Voice' : '✏️ Text'}
               </span>
               <span>•</span>
-              <span>{formatDateTime(entry.createdAt)}</span>
+              <span>{formatDateTime(entry.created_at)}</span>
             </div>
           </div>
 

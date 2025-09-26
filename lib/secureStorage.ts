@@ -27,7 +27,6 @@ class SecureLocalStorage {
 
   constructor(config: SecureStorageConfig = { encryptData: true }) {
     this.config = {
-      encryptData: true,
       autoDeleteAfterDays: 365, // 1 year default
       maxStorageSize: this.MAX_STORAGE_SIZE,
       ...config

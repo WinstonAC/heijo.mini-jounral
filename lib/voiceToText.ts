@@ -3,6 +3,14 @@
  * Optimized for low latency and best-in-class transcription quality
  */
 
+// Simple type declaration for SpeechRecognition API
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
+  }
+}
+
 export interface VoiceConfig {
   language: string;
   continuous: boolean;
@@ -30,7 +38,7 @@ export interface VoiceMetrics {
 }
 
 class VoiceToTextEngine {
-  private recognition: SpeechRecognition | null = null;
+  private recognition: any = null;
   private config: VoiceConfig;
   private isListening: boolean = false;
   private startTime: number = 0;
@@ -154,11 +162,11 @@ class VoiceToTextEngine {
       this.onStartCallback?.();
     };
 
-    this.recognition.onresult = (event) => {
+    this.recognition.onresult = (event: any) => {
       this.handleRecognitionResult(event);
     };
 
-    this.recognition.onerror = (event) => {
+    this.recognition.onerror = (event: any) => {
       this.isListening = false;
       this.clearSilenceTimer();
       this.onErrorCallback?.(event.error);
@@ -183,7 +191,7 @@ class VoiceToTextEngine {
   /**
    * Handle recognition results with latency tracking
    */
-  private handleRecognitionResult(event: SpeechRecognitionEvent): void {
+  private handleRecognitionResult(event: any): void {
     const currentTime = performance.now();
     const chunkLatency = currentTime - this.startTime;
     
@@ -358,7 +366,7 @@ class VoiceActivityDetector {
   private detectVoice(): void {
     if (!this.isActive || !this.analyser || !this.dataArray) return;
 
-    this.analyser.getByteFrequencyData(this.dataArray);
+    this.analyser.getByteFrequencyData(this.dataArray as any);
     
     // Calculate average volume
     const average = this.dataArray.reduce((sum, value) => sum + value, 0) / this.dataArray.length;
@@ -438,9 +446,9 @@ export class EnhancedMicButton {
       onTranscript(result.text, result.isFinal);
     });
 
-    this.voiceEngine.onError(onError);
-    this.voiceEngine.onStart(onStart);
-    this.voiceEngine.onEnd(onEnd);
+    this.voiceEngine.onError(onError || (() => {}));
+    this.voiceEngine.onStart(onStart || (() => {}));
+    this.voiceEngine.onEnd(onEnd || (() => {}));
 
     this.voiceEngine.start();
     this.vad.start();

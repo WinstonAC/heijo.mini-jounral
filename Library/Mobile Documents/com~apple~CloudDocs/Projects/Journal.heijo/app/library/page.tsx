@@ -149,7 +149,7 @@ export default function LibraryPage() {
                         ))}
                       </div>
                       <span className="text-xs text-[var(--ui-graphite)]">
-                        {formatDate(entry.createdAt)}
+                        {formatDate(entry.created_at)}
                       </span>
                     </div>
                   </div>

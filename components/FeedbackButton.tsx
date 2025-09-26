@@ -22,17 +22,19 @@ export default function FeedbackButton({ className = '' }: FeedbackButtonProps) 
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase
+      const res = await supabase
         ?.from('feedback')
-        .insert([{
-          user_id: user?.id || null,
-          type: feedbackType,
-          comment: comment.trim(),
-          created_at: new Date().toISOString()
-        }]);
+        .insert([
+          {
+            user_id: user?.id || null,
+            type: feedbackType,
+            comment: comment.trim(),
+            created_at: new Date().toISOString()
+          }
+        ]);
 
-      if (error) {
-        console.error('Failed to submit feedback:', error);
+      if (!res || res.error) {
+        console.error('Failed to submit feedback:', res?.error || 'Supabase not configured');
         return;
       }
 

@@ -10,7 +10,7 @@ interface IntroAnimationProps {
 export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const starfieldRef = useRef<HTMLDivElement>(null);
-  const lettersRef = useRef<HTMLDivElement[]>([]);
+  const lettersRef = useRef<HTMLElement[]>([]);
   const hGlyphRef = useRef<HTMLDivElement>(null);
   const portalRef = useRef<HTMLDivElement>(null);
   const welcomeRef = useRef<HTMLDivElement>(null);
@@ -83,21 +83,25 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     .fromTo(starfieldRef.current, 
       { opacity: 0 },
       { opacity: 1, duration: 1.5, ease: 'power2.out' }
-    )
-    .fromTo(starfieldRef.current?.children, 
-      { 
-        scale: 0,
-        rotation: Math.random() * 360
-      },
-      { 
-        scale: 1,
-        rotation: 0,
-        duration: 1.5,
-        stagger: 0.01,
-        ease: 'back.out(1.7)'
-      },
-      '-=1.2'
     );
+
+    if (starfieldRef.current) {
+      tl.fromTo(
+        starfieldRef.current.children,
+        {
+          scale: 0,
+          rotation: Math.random() * 360
+        },
+        {
+          scale: 1,
+          rotation: 0,
+          duration: 1.5,
+          stagger: 0.01,
+          ease: 'back.out(1.7)'
+        },
+        '-=1.2'
+      );
+    }
 
     // 2. Letter constellations with improved stagger (2.5s)
     const letterElements = lettersRef.current;
@@ -262,8 +266,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       tl.kill();
       // Clean up any remaining animations
       gsap.killTweensOf(letterElements);
-      gsap.killTweensOf(hGlyphRef.current);
-      gsap.killTweensOf(welcomeRef.current);
+      if (hGlyphRef.current) gsap.killTweensOf(hGlyphRef.current);
+      if (welcomeRef.current) gsap.killTweensOf(welcomeRef.current);
     };
   }, [mousePosition.x, mousePosition.y, onComplete, hasAnimated]);
 

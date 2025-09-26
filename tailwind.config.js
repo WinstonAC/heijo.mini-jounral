@@ -18,6 +18,7 @@ module.exports = {
         'text-inverse': '#FAFAFA',
       },
       fontFamily: {
+        'inter': ['Inter', 'sans-serif'],
         'brand': ['Futura', 'URW Geometric', 'Avenir Next', 'Helvetica Neue', 'system-ui', 'sans-serif'],
         'subheading': ['Futura', 'URW Geometric', 'Avenir Next', 'Helvetica Neue', 'system-ui', 'sans-serif'],
         'body': ['Inter', 'Helvetica Neue', 'system-ui', 'sans-serif'],
