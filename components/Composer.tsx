@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import MicButton from './MicButton';
 import TagPicker from './TagPicker';
 import HeaderClock from './HeaderClock';
@@ -54,6 +54,26 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
   }, []);
 
   // Auto-save functionality (5-10 seconds)
+  const handleAutoSave = useCallback(async () => {
+    if (!content.trim()) return;
+
+    setIsAutoSaving(true);
+    try {
+      const savedEntry = await onSave({
+        content: content.trim(),
+        source,
+        tags: selectedTags,
+        created_at: new Date().toISOString(),
+        sync_status: 'local_only'
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [content, onSave, selectedTags, source]);
+
   useEffect(() => {
     if (content.trim() && content.length > 10) {
       // Clear existing timeout
@@ -72,27 +92,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [content]);
-
-  const handleAutoSave = async () => {
-    if (!content.trim()) return;
-
-    setIsAutoSaving(true);
-    try {
-      const savedEntry = await onSave({
-        content: content.trim(),
-        source,
-        tags: selectedTags,
-        created_at: new Date().toISOString(),
-        sync_status: 'local_only'
-      });
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsAutoSaving(false);
-    }
-  };
+  }, [content, handleAutoSave]);
 
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     if (isFinal) {
