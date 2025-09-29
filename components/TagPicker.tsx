@@ -39,7 +39,7 @@ export default function TagPicker({ selectedTags, onTagsChange }: TagPickerProps
     <div className="space-y-4">
       <label className="block text-sm sm:text-base font-semibold relative" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
         <span className="relative z-10 bg-gradient-to-r from-[#1A1A1A] via-[#4A4A4A] to-[#1A1A1A] bg-clip-text text-transparent">
-          Today's Vibe
+          Today&apos;s Vibe
         </span>
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#E8E8E8] to-transparent opacity-30 blur-sm"></div>
       </label>

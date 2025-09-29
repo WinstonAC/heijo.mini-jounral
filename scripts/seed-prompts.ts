@@ -37,7 +37,7 @@ function chunk<T>(arr: T[], size = 50) {
       const { error, count } = await supabase
         .from("prompts")
         .upsert(batch, { onConflict: "text_en", ignoreDuplicates: false })
-        .select("id", { count: "exact", head: true }); // force execution & get count
+        .select("id"); // force execution
       if (error) throw error;
       total += batch.length;
       console.log(`Batch ${i+1}/${groups.length} upserted (${batch.length}). Running total: ${total}`);

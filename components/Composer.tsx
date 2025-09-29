@@ -423,7 +423,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
                   tags: selectedTags,
                   source,
                   created_at: new Date().toISOString(),
-                  user_id: userId || 'anonymous'
+                  user_id: userId || 'anonymous',
+                  sync_status: 'local_only' as const
                 });
                 // Clear form after save
                 setContent('');

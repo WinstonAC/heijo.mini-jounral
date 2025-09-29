@@ -74,7 +74,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       { opacity: 0 },
       { opacity: 1, duration: 1.5, ease: 'power2.out' }
     )
-    .fromTo(starfieldRef.current?.children, 
+    .fromTo(starfieldRef.current?.children || [], 
       { 
         scale: 0,
         rotation: Math.random() * 360
@@ -237,7 +237,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         ease: 'power2.out'
       }
     )
-    .fromTo(loginRef.current?.querySelectorAll('input, button'),
+    .fromTo(loginRef.current?.querySelectorAll('input, button') || [],
       { opacity: 0, y: 20 },
       { 
         opacity: 1,
@@ -248,7 +248,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       },
       '-=0.8'
     )
-    .to(loginRef.current?.querySelector('button'), {
+    .to(loginRef.current?.querySelector('button') || loginRef.current, {
       scale: 1.05,
       duration: 0.3,
       yoyo: true,

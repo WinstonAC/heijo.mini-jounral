@@ -74,7 +74,7 @@ class EncryptionManager {
 
     return {
       data: this.arrayBufferToBase64(encryptedBuffer),
-      iv: this.arrayBufferToBase64(iv),
+      iv: this.arrayBufferToBase64(iv.buffer),
       keyId: this.KEY_ID
     };
   }

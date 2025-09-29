@@ -3,6 +3,64 @@
  * Optimized for low latency and best-in-class transcription quality
  */
 
+// Speech Recognition interfaces
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onresult: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+  onerror: ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null;
+  onspeechstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onspeechend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onsoundstart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onsoundend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onaudiostart: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onaudioend: ((this: SpeechRecognition, ev: Event) => any) | null;
+  onnomatch: ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+  message: string;
+}
+
+// Extend Window interface for TypeScript
+declare global {
+  interface Window {
+    SpeechRecognition: new () => SpeechRecognition;
+    webkitSpeechRecognition: new () => SpeechRecognition;
+  }
+}
+
 export interface VoiceConfig {
   language: string;
   continuous: boolean;
@@ -332,7 +390,7 @@ class VoiceActivityDetector {
       this.microphone = this.audioContext.createMediaStreamSource(stream);
       this.microphone.connect(this.analyser);
       
-      this.dataArray = new Uint8Array(this.analyser.frequencyBinCount);
+      this.dataArray = new Uint8Array(new ArrayBuffer(this.analyser.frequencyBinCount));
       return true;
     } catch (error) {
       console.error('Failed to initialize VAD:', error);
@@ -358,7 +416,7 @@ class VoiceActivityDetector {
   private detectVoice(): void {
     if (!this.isActive || !this.analyser || !this.dataArray) return;
 
-    this.analyser.getByteFrequencyData(this.dataArray);
+    (this.analyser as any).getByteFrequencyData(this.dataArray);
     
     // Calculate average volume
     const average = this.dataArray.reduce((sum, value) => sum + value, 0) / this.dataArray.length;
@@ -439,8 +497,8 @@ export class EnhancedMicButton {
     });
 
     this.voiceEngine.onError(onError);
-    this.voiceEngine.onStart(onStart);
-    this.voiceEngine.onEnd(onEnd);
+    if (onStart) this.voiceEngine.onStart(onStart);
+    if (onEnd) this.voiceEngine.onEnd(onEnd);
 
     this.voiceEngine.start();
     this.vad.start();
