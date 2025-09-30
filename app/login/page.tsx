@@ -28,9 +28,11 @@ export default function LoginPage() {
       if (error) {
         setMessage(error.message);
       } else if (isSignUp) {
-        setMessage('Check your email for a confirmation link!');
+        setMessage('✅ Account created! You can now sign in with your email and password.');
+        setIsSignUp(false); // Switch to sign in mode
       } else {
-        router.push('/journal');
+        setMessage('✅ Sign in successful! Redirecting...');
+        setTimeout(() => router.push('/journal'), 1000);
       }
     } catch (error) {
       setMessage('An unexpected error occurred');
@@ -104,25 +106,23 @@ export default function LoginPage() {
                     />
                   </div>
                   
-                  {!isSignUp && (
-                    <div>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="w-full px-6 py-4 text-base border border-soft-silver rounded-lg bg-mist-white focus:border-soft-silver focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-graphite-charcoal placeholder-text-caption body-text"
-                        required
-                      />
-                    </div>
-                  )}
+                  <div>
+                    <input
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      className="w-full px-6 py-4 text-base border border-soft-silver rounded-lg bg-mist-white focus:border-soft-silver focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-graphite-charcoal placeholder-text-caption body-text"
+                      required
+                    />
+                  </div>
 
                   <button
                     type="submit"
-                    disabled={isLoading || !email || (!isSignUp && !password)}
+                    disabled={isLoading || !email || !password}
                     className="w-full px-8 py-5 text-lg font-medium silver-button text-graphite-charcoal rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
-                    {isLoading ? 'Please wait...' : 'Start Journaling'}
+                    {isLoading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
                   </button>
                 </form>
               ) : (

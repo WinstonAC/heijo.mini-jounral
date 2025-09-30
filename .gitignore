@@ -35,5 +35,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# iCloud sync folder
+Library/
+
 
 

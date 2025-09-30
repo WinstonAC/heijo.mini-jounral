@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import MicButton from './MicButton';
 import TagPicker from './TagPicker';
 import HeaderClock from './HeaderClock';
@@ -8,7 +8,7 @@ import { JournalEntry } from '@/lib/store';
 import { getPrompt, logPromptHistory } from '@/lib/pickPrompt';
 
 interface ComposerProps {
-  onSave: (entry: Omit<JournalEntry, 'id'>) => void;
+  onSave: (entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { sync_status?: 'local_only' | 'synced' }) => Promise<JournalEntry>;
   onExport: () => void;
   selectedPrompt?: { id: string; text: string } | null;
   userId?: string;
@@ -53,6 +53,27 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
     localStorage.removeItem('heijo-prompt-shown');
   }, []);
 
+  const handleAutoSave = useCallback(async () => {
+    if (!content.trim()) return;
+
+    setIsAutoSaving(true);
+    try {
+      const savedEntry = await onSave({
+        content: content.trim(),
+        source,
+        tags: selectedTags,
+        created_at: new Date().toISOString(),
+        user_id: userId || 'anonymous',
+        sync_status: 'local_only'
+      });
+      setLastSaved(new Date());
+    } catch (error) {
+      console.error('Auto-save failed:', error);
+    } finally {
+      setIsAutoSaving(false);
+    }
+  }, [content, source, selectedTags, userId, onSave]);
+
   // Auto-save functionality (5-10 seconds)
   useEffect(() => {
     if (content.trim() && content.length > 10) {
@@ -72,27 +93,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [content]);
-
-  const handleAutoSave = async () => {
-    if (!content.trim()) return;
-
-    setIsAutoSaving(true);
-    try {
-      const savedEntry = await onSave({
-        content: content.trim(),
-        source,
-        tags: selectedTags,
-        created_at: new Date().toISOString(),
-        sync_status: 'local_only'
-      });
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Auto-save failed:', error);
-    } finally {
-      setIsAutoSaving(false);
-    }
-  };
+  }, [content, handleAutoSave]);
 
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     if (isFinal) {
@@ -409,51 +410,57 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
           </div>
         </div>
         
-        {/* Circular Silver Save Button - Bottom Right Corner */}
-        <div className="absolute bottom-4 right-4 sm:bottom-6 sm:right-6">
-          <button
-            onClick={() => {
-              // Trigger silver glow animation
-              setShowSaveGlow(true);
-              setTimeout(() => setShowSaveGlow(false), 1000);
-              // Call the actual save function
-              if (content.trim()) {
-                onSave({
-                  content: content.trim(),
-                  tags: selectedTags,
-                  source,
-                  created_at: new Date().toISOString(),
-                  user_id: userId || 'anonymous',
-                  sync_status: 'local_only' as const
-                });
-                // Clear form after save
-                setContent('');
-                setSelectedTags([]);
-                setSource('text');
-                setInterimTranscript('');
-                setLastSaved(new Date());
-              }
-            }}
-            disabled={!content.trim() || isAutoSaving}
-            className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
-              isAutoSaving ? 'animate-pulse' : ''
-            } ${showSaveGlow ? 'animate-silverGlow' : ''}`}
-            title={isAutoSaving ? 'Auto-saving...' : 'Save entry'}
-          >
-            <svg 
-              className="w-4 h-4 sm:w-6 sm:h-6 text-graphite-charcoal" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
+        {/* Circular Silver Save Button - Positioned to avoid S/E/H overlap */}
+        <div className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-10">
+          <div className="relative group">
+            <button
+              onClick={() => {
+                // Trigger silver glow animation
+                setShowSaveGlow(true);
+                setTimeout(() => setShowSaveGlow(false), 1000);
+                // Call the actual save function
+                if (content.trim()) {
+                  onSave({
+                    content: content.trim(),
+                    tags: selectedTags,
+                    source,
+                    created_at: new Date().toISOString(),
+                    user_id: userId || 'anonymous',
+                    sync_status: 'local_only'
+                  });
+                  // Clear form after save
+                  setContent('');
+                  setSelectedTags([]);
+                  setSource('text');
+                  setInterimTranscript('');
+                  setLastSaved(new Date());
+                }
+              }}
+              disabled={!content.trim() || isAutoSaving}
+              className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                isAutoSaving ? 'animate-pulse' : ''
+              } ${showSaveGlow ? 'silverGlow' : ''}`}
             >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M5 13l4 4L19 7" 
-              />
-            </svg>
-          </button>
+              <svg 
+                className="w-4 h-4 sm:w-6 sm:h-6 text-graphite-charcoal" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M5 13l4 4L19 7" 
+                />
+              </svg>
+            </button>
+            {/* Tooltip matching existing pattern */}
+            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+              {isAutoSaving ? 'Auto-saving...' : 'Save entry'}
+              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
+            </div>
+          </div>
         </div>
       </div>
 

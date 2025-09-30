@@ -17,8 +17,47 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const loginRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSkipButton, setShowSkipButton] = useState(false);
 
-  const letters = ['H', 'E', 'I', 'J', 'Ō'];
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    try {
+      // For now, just complete the intro and go to journal
+      // In production, this would call the actual auth
+      setTimeout(() => {
+        onComplete();
+      }, 1000);
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSkipToLogin = () => {
+    // Kill any running animations
+    if (containerRef.current) {
+      gsap.killTweensOf(containerRef.current);
+      gsap.killTweensOf(hGlyphRef.current);
+      gsap.killTweensOf(starfieldRef.current);
+      gsap.killTweensOf(portalRef.current);
+      gsap.killTweensOf(welcomeRef.current);
+      gsap.killTweensOf(loginRef.current);
+    }
+    
+    // Mark as animated to prevent restart
+    setHasAnimated(true);
+    localStorage.setItem('heijoIntroPlayed', 'true');
+    
+    // Complete the intro
+    onComplete();
+  };
+
 
   useEffect(() => {
     const container = containerRef.current;
@@ -56,7 +95,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Main animation timeline - Total duration: ~8s
+    // Simplified animation timeline - Total duration: ~4s
     const tl = gsap.timeline({
       onComplete: () => {
         localStorage.setItem('heijoIntroPlayed', 'true');
@@ -65,14 +104,14 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       }
     });
 
-    // 1. Black starfield entry (1.5s)
+    // 1. Black starfield entry (1s)
     tl.fromTo(container, 
       { backgroundColor: '#000000' },
       { backgroundColor: '#000000', duration: 0.1 }
     )
     .fromTo(starfieldRef.current, 
       { opacity: 0 },
-      { opacity: 1, duration: 1.5, ease: 'power2.out' }
+      { opacity: 1, duration: 1, ease: 'power2.out' }
     )
     .fromTo(starfieldRef.current?.children || [], 
       { 
@@ -82,88 +121,28 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       { 
         scale: 1,
         rotation: 0,
-        duration: 1.5,
+        duration: 1,
         stagger: 0.01,
         ease: 'back.out(1.7)'
       },
-      '-=1.2'
+      '-=0.8'
     );
 
-    // 2. Letter constellations with improved stagger (2.5s)
-    const letterElements = lettersRef.current;
-    
-    // Set initial positions with z-depth and y offset
-    letterElements.forEach((letter, index) => {
-      if (letter) {
-        gsap.set(letter, {
-          x: (Math.random() - 0.5) * 400,
-          y: -50,
-          z: Math.random() * 400 - 200, // -200 to 200 z-depth
-          rotation: Math.random() * 360,
-          scale: 0.8 + Math.random() * 0.4,
-          opacity: 0
-        });
-      }
-    });
-
-    // Animate letters with stagger
-    tl.to(letterElements, {
-      x: 0,
-      y: 0,
-      z: 0,
-      rotation: 0,
-      scale: 1,
-      opacity: 1,
-      duration: 1.5,
-      stagger: 0.3, // 0.3s stagger between each letter
-      ease: 'power2.out'
-    }, '-=0.5')
-    .to(letterElements, {
-      y: '+=8',
-      duration: 1.5,
-      yoyo: true,
-      repeat: -1,
-      ease: 'power2.inOut',
-      stagger: 0.2
-    }, '-=1')
-    .to(letterElements, {
-      scale: 1.05,
-      duration: 1.2,
-      yoyo: true,
-      repeat: -1,
-      ease: 'power2.inOut',
-      stagger: 0.15
-    }, '-=1');
-
-    // Tagline fade in
-    tl.fromTo('.tagline', 
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
-      '-=0.5'
-    );
-
-    // 3. 3D H glyph emergence (1.5s)
-    tl.to(letterElements, {
-      scale: 0,
-      opacity: 0,
-      duration: 0.6,
-      stagger: 0.1,
-      ease: 'power2.in'
-    })
-    .fromTo(hGlyphRef.current,
+    // 2. H glyph emergence (1.5s) - Only the H with light spinning
+    tl.fromTo(hGlyphRef.current,
       { 
         scale: 0,
-        rotationY: 0,
+        rotation: 0,
         opacity: 0
       },
       { 
         scale: 1,
-        rotationY: 360,
+        rotation: 360,
         opacity: 1,
         duration: 1.2,
         ease: 'power2.inOut'
       },
-      '-=0.3'
+      '-=0.5'
     )
     .to(hGlyphRef.current, {
       boxShadow: '0 0 40px rgba(192, 192, 192, 0.9), 0 0 80px rgba(192, 192, 192, 0.5)',
@@ -174,12 +153,19 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       boxShadow: '0 0 0px rgba(192, 192, 192, 0)',
       duration: 0.7,
       ease: 'power2.out'
-    });
+    })
+    // Add continuous light spinning (only during intro)
+    .to(hGlyphRef.current, {
+      rotation: '+=180',
+      duration: 4,
+      ease: 'none',
+      repeat: 1
+    }, '-=0.3');
 
-    // 4. Portal transition (1.5s)
+    // 3. Portal transition (1s)
     tl.to(container, {
       backgroundColor: '#FAFAFA',
-      duration: 1.5,
+      duration: 1,
       ease: 'power2.inOut'
     }, '-=0.3')
     .fromTo(portalRef.current,
@@ -191,10 +177,10 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       { 
         scale: 3,
         opacity: 1,
-        duration: 1.2,
+        duration: 1,
         ease: 'power2.inOut'
       },
-      '-=1.2'
+      '-=0.8'
     )
     .to(portalRef.current, {
       opacity: 0,
@@ -202,27 +188,15 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       ease: 'power2.out'
     }, '-=0.3');
 
-    // 5. Welcome state (1.5s hold)
+    // 4. Welcome state (1s hold)
     tl.fromTo(welcomeRef.current,
       { opacity: 0, y: 30 },
       { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
       '-=0.5'
     )
-    .to(welcomeRef.current, {
-      scale: 1.02,
-      duration: 0.4,
-      yoyo: true,
-      repeat: 1,
-      ease: 'power2.inOut'
-    })
-    .to(welcomeRef.current, {
-      scale: 1,
-      duration: 0.4,
-      ease: 'power2.out'
-    })
-    .to({}, { duration: 1.5 }); // Hold for 1.5s
+    .to({}, { duration: 1 }); // Hold for 1s
 
-    // 6. Login reveal (1.5s)
+    // 5. Login reveal (1s)
     tl.fromTo(loginRef.current,
       { 
         opacity: 0,
@@ -233,7 +207,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         opacity: 1,
         y: 0,
         scale: 1,
-        duration: 1.2,
+        duration: 1,
         ease: 'power2.out'
       }
     )
@@ -247,34 +221,20 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         ease: 'power2.out'
       },
       '-=0.8'
-    )
-    .to(loginRef.current?.querySelector('button') || loginRef.current, {
-      scale: 1.05,
-      duration: 0.3,
-      yoyo: true,
-      repeat: 1,
-      ease: 'power2.inOut'
-    }, '-=0.3');
+    );
 
-    // Parallax effect on letters
-    const updateParallax = () => {
-      letterElements.forEach((letter, index) => {
-        if (letter) {
-          gsap.to(letter, {
-            x: mousePosition.x * (8 + index * 1.5),
-            y: mousePosition.y * (8 + index * 1.5),
-            duration: 0.3,
-            ease: 'power2.out'
-          });
-        }
-      });
-    };
+    // Show skip button after 2 seconds
+    setTimeout(() => {
+      setShowSkipButton(true);
+    }, 2000);
 
-    const parallaxInterval = setInterval(updateParallax, 16);
+    // Ensure animation completes and doesn't loop
+    tl.call(() => {
+      setHasAnimated(true);
+    });
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
-      clearInterval(parallaxInterval);
       tl.kill();
     };
   }, [mousePosition.x, mousePosition.y, onComplete, hasAnimated]);
@@ -297,26 +257,6 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
           background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)'
         }}
       />
-
-      {/* Letter Constellations */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        {letters.map((letter, index) => (
-          <div
-            key={letter}
-            ref={(el) => {
-              if (el) lettersRef.current[index] = el;
-            }}
-            className="absolute text-8xl font-bold text-white opacity-0"
-            style={{
-              fontFamily: 'Inter, system-ui, sans-serif',
-              textShadow: '0 0 20px rgba(255,255,255,0.5)',
-              transformStyle: 'preserve-3d'
-            }}
-          >
-            {letter}
-          </div>
-        ))}
-      </div>
 
       {/* Tagline */}
       <div 
@@ -430,23 +370,33 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
             </div>
 
             {/* Login Form */}
-            <div className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-6">
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 className="w-full px-6 py-4 text-base border border-gray-200 rounded-lg bg-gray-50 focus:border-gray-300 focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-500"
+                required
               />
               
               <input
                 type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 className="w-full px-6 py-4 text-base border border-gray-200 rounded-lg bg-gray-50 focus:border-gray-300 focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-gray-800 placeholder-gray-500"
+                required
               />
 
-              <button className="w-full px-8 py-5 text-lg font-medium bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 rounded-lg hover:from-gray-300 hover:to-gray-400 transition-all duration-300">
-                Start Journaling
+              <button 
+                type="submit"
+                disabled={isLoading}
+                className="w-full px-8 py-5 text-lg font-medium bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 rounded-lg hover:from-gray-300 hover:to-gray-400 transition-all duration-300 disabled:opacity-50"
+              >
+                {isLoading ? 'Please wait...' : 'Start Journaling'}
               </button>
-            </div>
+            </form>
 
             {/* Privacy note */}
             <div className="pt-6 border-t border-gray-200">
@@ -457,6 +407,17 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
           </div>
         </div>
       </div>
+
+      {/* Skip Button */}
+      {showSkipButton && (
+        <button
+          onClick={handleSkipToLogin}
+          className="absolute bottom-6 right-6 px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors duration-200 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200 hover:bg-white"
+        >
+          Skip to Login
+        </button>
+      )}
+
     </div>
   );
 }
