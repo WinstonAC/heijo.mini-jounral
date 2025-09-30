@@ -455,6 +455,8 @@ export class EnhancedMicButton {
   private voiceEngine: VoiceToTextEngine;
   private vad: VoiceActivityDetector;
   private isInitialized: boolean = false;
+  private vadInitialized: boolean = false;
+  private vadInitPromise: Promise<boolean> | null = null;
 
   constructor() {
     this.voiceEngine = new VoiceToTextEngine({
@@ -471,25 +473,25 @@ export class EnhancedMicButton {
   async initialize(): Promise<boolean> {
     try {
       const voiceReady = await this.voiceEngine.initialize();
-      const vadReady = await this.vad.initialize();
-      
-      this.isInitialized = voiceReady && vadReady;
+      this.isInitialized = voiceReady;
       return this.isInitialized;
     } catch (error) {
-      console.error('Failed to initialize enhanced mic:', error);
+      console.error('Failed to initialize speech engine:', error);
+      this.isInitialized = false;
       return false;
     }
   }
 
-  startListening(
+  async startListening(
     onTranscript: (text: string, isFinal: boolean) => void,
     onError: (error: string) => void,
     onStart?: () => void,
     onEnd?: () => void
-  ): void {
+  ): Promise<void> {
     if (!this.isInitialized) {
-      onError('Voice recognition not initialized');
-      return;
+      const error = new Error('Voice recognition not initialized');
+      onError(error.message);
+      throw error;
     }
 
     this.voiceEngine.onResult((result) => {
@@ -500,8 +502,29 @@ export class EnhancedMicButton {
     if (onStart) this.voiceEngine.onStart(onStart);
     if (onEnd) this.voiceEngine.onEnd(onEnd);
 
-    this.voiceEngine.start();
-    this.vad.start();
+    try {
+      if (!this.vadInitialized) {
+        if (!this.vadInitPromise) {
+          this.vadInitPromise = this.vad.initialize();
+        }
+
+        const vadReady = await this.vadInitPromise;
+        if (!vadReady) {
+          this.vadInitPromise = null;
+          throw new Error('Voice activity detection failed to initialize');
+        }
+
+        this.vadInitialized = true;
+      }
+
+      await this.voiceEngine.start();
+      this.vad.start();
+    } catch (error) {
+      if (!this.vadInitialized) {
+        this.vadInitPromise = null;
+      }
+      throw error instanceof Error ? error : new Error(String(error));
+    }
   }
 
   stopListening(): void {
@@ -520,6 +543,9 @@ export class EnhancedMicButton {
   destroy(): void {
     this.voiceEngine.destroy();
     this.vad.destroy();
+    this.isInitialized = false;
+    this.vadInitialized = false;
+    this.vadInitPromise = null;
   }
 }
 

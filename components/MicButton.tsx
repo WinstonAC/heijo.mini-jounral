@@ -44,7 +44,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         // Initialize enhanced mic button
         const initialized = await enhancedMicButton.initialize();
         setIsInitialized(initialized);
-        setIsSupported(initialized);
+        setIsSupported(Boolean(SpeechRecognition));
       } catch (error) {
         console.error('Failed to initialize microphone:', error);
         setIsSupported(false);
@@ -69,13 +69,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
       setIsListening(false);
     } else {
       try {
-        // Request microphone permission if needed
-        if (permissionState === 'prompt' || permissionState === 'unknown') {
-          await navigator.mediaDevices.getUserMedia({ audio: true });
-          setPermissionState('granted');
-        }
-
-        enhancedMicButton.startListening(
+        await enhancedMicButton.startListening(
           (text, isFinal) => {
             onTranscript(text, isFinal);
             if (isFinal) {
@@ -96,6 +90,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
             setMetrics(enhancedMicButton.getMetrics());
           }
         );
+        setPermissionState('granted');
       } catch (error) {
         console.error('Failed to start listening:', error);
         onError?.('Failed to access microphone. Please check permissions.');
