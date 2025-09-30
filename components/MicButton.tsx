@@ -83,7 +83,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         const initialized = await enhancedMicButton.initialize();
         console.log('Enhanced microphone initialization result:', initialized);
         setIsInitialized(initialized);
-        setIsSupported(initialized);
+        setIsSupported(Boolean(SpeechRecognition));
       } catch (error) {
         console.error('Failed to initialize microphone:', error);
         setIsSupported(false);
@@ -151,6 +151,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
             setMetrics(enhancedMicButton.getMetrics());
           }
         );
+        setPermissionState('granted');
       } catch (error) {
         console.error('Mic initialization failed:', error);
         onError?.('Failed to access microphone. Please check permissions.');
