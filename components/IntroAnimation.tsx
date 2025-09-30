@@ -237,7 +237,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       window.removeEventListener('mousemove', handleMouseMove);
       tl.kill();
     };
-  }, [mousePosition.x, mousePosition.y, onComplete, hasAnimated]);
+  }, [onComplete, hasAnimated]);
 
   return (
     <div 

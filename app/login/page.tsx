@@ -62,11 +62,11 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-mist-white flex items-center justify-center p-4">
-      <div className="max-w-md w-full mx-auto">
-        <div className="bg-white rounded-xl border border-soft-silver p-12 shadow-lg">
-          <div className="text-center space-y-12">
+      <div className="w-[90%] max-w-md mx-auto">
+        <div className="bg-white rounded-xl border border-soft-silver p-8 shadow-lg">
+          <div className="text-center space-y-8">
             {/* Logo/Title */}
-            <div className="space-y-8 fade-in-up">
+            <div className="space-y-6 fade-in-up">
               {/* H Icon with silver finish */}
               <div className="flex justify-center">
                 <div className="relative">
@@ -86,13 +86,13 @@ export default function LoginPage() {
                   </span>
                 </h1>
                 <p className="text-lg body-text text-text-secondary leading-relaxed mt-4">
-                  Your ritual space for reflection, reset, and reconnection.
+                  Micro-moments. Macro-clarity.
                 </p>
               </div>
             </div>
 
             {/* Auth Forms */}
-            <div className="space-y-8">
+            <div className="space-y-6">
               {!showMagicLink ? (
                 <form onSubmit={handleEmailAuth} className="space-y-6">
                   <div>
@@ -160,7 +160,7 @@ export default function LoginPage() {
               )}
 
               {/* Auth Options */}
-              <div className="space-y-4 text-center">
+              <div className="space-y-3 text-center">
                 <button
                   onClick={() => setIsSignUp(!isSignUp)}
                   className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 block w-full py-2 caption-text"
@@ -187,7 +187,7 @@ export default function LoginPage() {
             </div>
 
             {/* Privacy note */}
-            <div className="pt-8 border-t border-soft-silver">
+            <div className="pt-6 border-t border-soft-silver">
               <p className="text-sm text-text-caption leading-relaxed caption-text">
                 Private by design. Stored on your device. Yours alone.
               </p>

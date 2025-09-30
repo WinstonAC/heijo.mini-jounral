@@ -3,6 +3,24 @@
 import { useState, useRef, useEffect } from 'react';
 import { enhancedMicButton, VoiceMetrics } from '@/lib/voiceToText';
 
+/**
+ * CODEX CHANGES INVESTIGATION:
+ * 
+ * The microphone functionality uses an enhanced implementation with:
+ * 1. VoiceToTextEngine: Handles speech recognition with low-latency streaming
+ * 2. VoiceActivityDetector: Uses Web Audio API for voice detection
+ * 3. EnhancedMicButton: Combines both engines for optimal performance
+ * 
+ * Key features added by Codex:
+ * - Streaming transcription with 500ms chunks for low latency
+ * - Voice Activity Detection (VAD) using Web Audio API
+ * - Comprehensive error handling and permission management
+ * - Performance metrics tracking (latency, chunks processed)
+ * - Automatic silence detection with 3-second timeout
+ * 
+ * The implementation is more sophisticated than basic Web Speech API usage.
+ */
+
 interface MicButtonProps {
   onTranscript: (text: string, isFinal?: boolean) => void;
   onError?: (error: string) => void;
@@ -20,20 +38,39 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
   useEffect(() => {
     const initializeMic = async () => {
       try {
-        // Check for speech recognition support
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
+        // Check for microphone API availability
+        if (!navigator.mediaDevices) {
+          console.log('Microphone not supported in this browser');
           setIsSupported(false);
           return;
         }
+
+        // Check HTTPS requirement
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+          console.log('Microphone requires HTTPS context');
+          setIsSupported(false);
+          return;
+        }
+
+        // Check for speech recognition support
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          console.log('Speech recognition not supported in this browser');
+          setIsSupported(false);
+          return;
+        }
+
+        console.log('Speech recognition and microphone APIs are available');
 
         // Check microphone permission
         if (navigator.permissions) {
           try {
             const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+            console.log('Microphone permission state:', permission.state);
             setPermissionState(permission.state);
             
             permission.onchange = () => {
+              console.log('Microphone permission changed to:', permission.state);
               setPermissionState(permission.state);
             };
           } catch (error) {
@@ -42,7 +79,9 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         }
 
         // Initialize enhanced mic button
+        console.log('Initializing enhanced microphone...');
         const initialized = await enhancedMicButton.initialize();
+        console.log('Enhanced microphone initialization result:', initialized);
         setIsInitialized(initialized);
         setIsSupported(initialized);
       } catch (error) {
@@ -59,22 +98,36 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
   }, []);
 
   const toggleListening = async () => {
+    console.log('Mic button pressed');
+    
     if (!isInitialized || !isSupported) {
+      console.log('Microphone not available or not initialized');
       onError?.('Microphone not available or not initialized');
       return;
     }
 
     if (isListening) {
+      console.log('Stopping microphone listening');
       enhancedMicButton.stopListening();
       setIsListening(false);
     } else {
       try {
         // Request microphone permission if needed
         if (permissionState === 'prompt' || permissionState === 'unknown') {
-          await navigator.mediaDevices.getUserMedia({ audio: true });
-          setPermissionState('granted');
+          console.log('getUserMedia called');
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            console.log('Mic permission granted');
+            console.log('Audio stream started successfully');
+            setPermissionState('granted');
+          } catch (error) {
+            console.log('Mic permission denied');
+            console.error('Audio stream failed:', error);
+            throw error;
+          }
         }
 
+        console.log('Starting enhanced microphone listening...');
         enhancedMicButton.startListening(
           (text, isFinal) => {
             onTranscript(text, isFinal);
@@ -89,15 +142,17 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
             onError?.(error);
           },
           () => {
+            console.log('Voice recognition started');
             setIsListening(true);
           },
           () => {
+            console.log('Voice recognition stopped');
             setIsListening(false);
             setMetrics(enhancedMicButton.getMetrics());
           }
         );
       } catch (error) {
-        console.error('Failed to start listening:', error);
+        console.error('Mic initialization failed:', error);
         onError?.('Failed to access microphone. Please check permissions.');
         setPermissionState('denied');
       }

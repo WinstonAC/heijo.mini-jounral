@@ -7,9 +7,11 @@ interface SettingsProps {
   isOpen: boolean;
   onClose: () => void;
   onExportCSV?: () => void;
+  fontSize: 'small' | 'medium' | 'large';
+  setFontSize: (size: 'small' | 'medium' | 'large') => void;
 }
 
-export default function Settings({ isOpen, onClose, onExportCSV }: SettingsProps) {
+export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFontSize }: SettingsProps) {
   const [consent, setConsent] = useState<ConsentSettings | null>(null);
   const [metrics, setMetrics] = useState<PrivacyMetrics | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -171,6 +173,34 @@ export default function Settings({ isOpen, onClose, onExportCSV }: SettingsProps
                   />
                   <div className="w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal"></div>
                 </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Display Settings */}
+          <div className="mb-6">
+            <h3 className="text-sm font-medium text-graphite-charcoal mb-4 subheading">Display Settings</h3>
+            <div className="space-y-4">
+              <div>
+                <div className="text-sm font-medium text-graphite-charcoal mb-3">Font Size</div>
+                <div className="flex items-center gap-2">
+                  {(['small', 'medium', 'large'] as const).map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setFontSize(size)}
+                      className={`w-8 h-8 rounded-lg border transition-all duration-300 flex items-center justify-center text-xs font-medium focus:outline-none focus:ring-2 focus:ring-soft-silver focus:ring-opacity-50 ${
+                        fontSize === size
+                          ? 'bg-graphite-charcoal border-graphite-charcoal text-text-inverse shadow-lg'
+                          : 'bg-white border-soft-silver text-graphite-charcoal hover:bg-tactile-taupe hover:border-graphite-charcoal hover:shadow-md'
+                      }`}
+                    >
+                      {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-text-secondary mt-2">
+                  Adjust the font size for your journal entries
+                </p>
               </div>
             </div>
           </div>

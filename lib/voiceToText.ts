@@ -125,16 +125,20 @@ class VoiceToTextEngine {
    */
   async initialize(): Promise<boolean> {
     if (typeof window === 'undefined') {
+      console.log('VoiceToTextEngine: Window not available (SSR)');
       return false;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
+      console.log('VoiceToTextEngine: Speech recognition not supported in this browser');
       throw new Error('Speech recognition not supported in this browser');
     }
 
+    console.log('VoiceToTextEngine: Initializing speech recognition');
     this.recognition = new SpeechRecognition();
     this.setupRecognition();
+    console.log('VoiceToTextEngine: Speech recognition initialized successfully');
     return true;
   }
 
@@ -372,11 +376,13 @@ class VoiceActivityDetector {
 
   async initialize(): Promise<boolean> {
     try {
+      console.log('VoiceActivityDetector: Initializing audio context and microphone access');
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.8;
       
+      console.log('VoiceActivityDetector: Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
           sampleRate: 16000,
@@ -387,13 +393,15 @@ class VoiceActivityDetector {
         } 
       });
       
+      console.log('VoiceActivityDetector: Microphone access granted, setting up audio processing');
       this.microphone = this.audioContext.createMediaStreamSource(stream);
       this.microphone.connect(this.analyser);
       
       this.dataArray = new Uint8Array(new ArrayBuffer(this.analyser.frequencyBinCount));
+      console.log('VoiceActivityDetector: Initialized successfully');
       return true;
     } catch (error) {
-      console.error('Failed to initialize VAD:', error);
+      console.error('VoiceActivityDetector: Failed to initialize VAD:', error);
       return false;
     }
   }
@@ -470,13 +478,18 @@ export class EnhancedMicButton {
 
   async initialize(): Promise<boolean> {
     try {
+      console.log('EnhancedMicButton: Initializing voice engine and VAD...');
       const voiceReady = await this.voiceEngine.initialize();
+      console.log('EnhancedMicButton: Voice engine ready:', voiceReady);
+      
       const vadReady = await this.vad.initialize();
+      console.log('EnhancedMicButton: VAD ready:', vadReady);
       
       this.isInitialized = voiceReady && vadReady;
+      console.log('EnhancedMicButton: Overall initialization result:', this.isInitialized);
       return this.isInitialized;
     } catch (error) {
-      console.error('Failed to initialize enhanced mic:', error);
+      console.error('EnhancedMicButton: Failed to initialize enhanced mic:', error);
       return false;
     }
   }
@@ -488,10 +501,12 @@ export class EnhancedMicButton {
     onEnd?: () => void
   ): void {
     if (!this.isInitialized) {
+      console.log('EnhancedMicButton: Voice recognition not initialized');
       onError('Voice recognition not initialized');
       return;
     }
 
+    console.log('EnhancedMicButton: Starting voice recognition and VAD');
     this.voiceEngine.onResult((result) => {
       onTranscript(result.text, result.isFinal);
     });

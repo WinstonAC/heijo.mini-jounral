@@ -60,6 +60,13 @@ class HybridStorage implements StorageBackend {
               last_synced: new Date().toISOString()
             });
             return data;
+          } else if (error) {
+            // Check for specific conflict errors
+            if (error.code === '23505' || error.message.includes('duplicate key')) {
+              console.warn('Supabase conflict detected (duplicate key), keeping local entry:', error);
+            } else {
+              console.warn('Supabase insert failed:', error);
+            }
           }
         }
       } catch (error) {

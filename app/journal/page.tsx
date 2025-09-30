@@ -20,6 +20,7 @@ export default function JournalPage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{ id: string; text: string } | null>(null);
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
@@ -93,7 +94,21 @@ export default function JournalPage() {
       return savedEntry;
     } catch (error) {
       console.error('Failed to save entry:', error);
-      throw error; // Re-throw for Composer to handle
+      
+      // Check if it's a Supabase conflict error
+      if (error instanceof Error && error.message.includes('409')) {
+        console.warn('Mic transcription ready, but Supabase save failed: [409 conflict]', error);
+        // Don't throw - let the user continue with their transcription
+        // The entry is still saved locally
+        return {
+          id: `local-${Date.now()}`,
+          ...entry,
+          sync_status: 'failed' as const,
+          last_synced: null
+        };
+      }
+      
+      throw error; // Re-throw for other errors
     }
   };
 
@@ -153,7 +168,7 @@ export default function JournalPage() {
                 </h1>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="text-xs text-text-secondary font-medium subheading">
-                    Your ritual space for reflection
+                    Micro-moments. Macro-clarity.
                   </span>
                   <span className="text-xs text-text-caption font-medium px-2 py-1 bg-tactile-taupe rounded-full caption-text">
                     beta
@@ -183,6 +198,8 @@ export default function JournalPage() {
               onExport={handleExport} 
               selectedPrompt={selectedPrompt}
               userId={user.id}
+              fontSize={fontSize}
+              setFontSize={setFontSize}
             />
           </div>
         </div>
@@ -206,6 +223,8 @@ export default function JournalPage() {
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         onExportCSV={handleExport}
+        fontSize={fontSize}
+        setFontSize={setFontSize}
       />
     </div>
   );

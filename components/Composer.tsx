@@ -12,9 +12,11 @@ interface ComposerProps {
   onExport: () => void;
   selectedPrompt?: { id: string; text: string } | null;
   userId?: string;
+  fontSize: 'small' | 'medium' | 'large';
+  setFontSize: (size: 'small' | 'medium' | 'large') => void;
 }
 
-export default function Composer({ onSave, onExport, selectedPrompt, userId }: ComposerProps) {
+export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize }: ComposerProps) {
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [source, setSource] = useState<'text' | 'voice'>('text');
@@ -24,7 +26,6 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
   const [voicePauseTimer, setVoicePauseTimer] = useState<NodeJS.Timeout | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showToast, setShowToast] = useState(false);
   const [promptState, setPromptState] = useState<'ticking' | 'showing' | 'selected' | 'hidden'>('ticking');
   const [currentPrompt, setCurrentPrompt] = useState<{ id: string; text: string } | null>(null);
@@ -33,6 +34,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
+  
+  // Feature flag to disable FAB
+  const ENABLE_FAB = false;
 
   // Check if we've shown a prompt today
   useEffect(() => {
@@ -69,6 +73,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
       setLastSaved(new Date());
     } catch (error) {
       console.error('Auto-save failed:', error);
+      // Check if this was a voice transcription that failed to save
+      if (source === 'voice') {
+        console.warn('Mic transcription ready, but Supabase save failed:', error);
+      }
     } finally {
       setIsAutoSaving(false);
     }
@@ -95,8 +103,44 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
     };
   }, [content, handleAutoSave]);
 
+  // Keyboard shortcuts for save functionality
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Cmd/Ctrl + S or Cmd/Ctrl + Enter
+      if ((event.metaKey || event.ctrlKey) && (event.key === 's' || event.key === 'Enter')) {
+        event.preventDefault(); // Prevent browser save dialog
+        
+        if (content.trim()) {
+          console.info('Save triggered via keyboard shortcut');
+          // Trigger silver glow animation
+          setShowSaveGlow(true);
+          setTimeout(() => setShowSaveGlow(false), 1000);
+          // Call the actual save function
+          onSave({
+            content: content.trim(),
+            tags: selectedTags,
+            source,
+            created_at: new Date().toISOString(),
+            user_id: userId || 'anonymous',
+            sync_status: 'local_only'
+          });
+          // Clear form after save
+          setContent('');
+          setSelectedTags([]);
+          setSource('text');
+          setInterimTranscript('');
+          setLastSaved(new Date());
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [content, selectedTags, source, userId, onSave]);
+
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     if (isFinal) {
+      console.log('Mic transcription complete, ready for saving');
       // Final transcript - add to content with smooth transitions
       setContent(prev => {
         let newContent = prev + (prev ? ' ' : '') + transcript;
@@ -175,11 +219,64 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
       setLastSaved(new Date());
     } catch (error) {
       console.error('Manual save failed:', error);
+      // Check if this was a voice transcription that failed to save
+      if (source === 'voice') {
+        console.warn('Mic transcription ready, but Supabase save failed:', error);
+      }
     }
   };
 
   const handleExport = () => {
     onExport();
+  };
+
+  const handleExportCurrentEntry = () => {
+    if (!content.trim()) {
+      console.warn("No entry to export");
+      return;
+    }
+
+    try {
+      // Create a single entry object with current content
+      const currentEntry = {
+        content: content.trim(),
+        tags: selectedTags,
+        source,
+        created_at: new Date().toISOString(),
+        user_id: userId || 'anonymous'
+      };
+
+      // Generate filename with timestamp
+      const now = new Date();
+      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const filename = `heijo-entry-${timestamp}.txt`;
+
+      // Create and download the file
+      const contentText = `Heijo Journal Entry
+Date: ${now.toLocaleDateString()}
+Time: ${now.toLocaleTimeString()}
+Source: ${source}
+
+Content:
+${currentEntry.content}
+
+${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
+
+      const blob = new Blob([contentText], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.info(`Current entry exported as ${filename}`);
+    } catch (error) {
+      console.error('Failed to export current entry:', error);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -321,28 +418,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         </div>
       )}
 
-      {/* Typography Controls and Mic Button */}
-      <div className="flex-shrink-0 flex items-center justify-between gap-2 sm:gap-4 text-xs text-text-caption">
-        <div className="flex items-center gap-2">
-          <span className="font-medium text-xs caption-text">Font:</span>
-          <div className="flex items-center gap-1">
-            {(['small', 'medium', 'large'] as const).map((size) => (
-              <button
-                key={size}
-                onClick={() => setFontSize(size)}
-                className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg border transition-all duration-300 flex items-center justify-center text-xs font-medium focus:outline-none focus:ring-2 focus:ring-soft-silver focus:ring-opacity-50 ${
-                  fontSize === size
-                    ? 'bg-graphite-charcoal border-graphite-charcoal text-text-inverse shadow-lg'
-                    : 'bg-white border-soft-silver text-graphite-charcoal hover:bg-tactile-taupe hover:border-graphite-charcoal hover:shadow-md'
-                }`}
-              >
-                {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
-              </button>
-            ))}
-          </div>
-        </div>
-        
-        {/* Mic button - parallel to font buttons */}
+      {/* Mic Button */}
+      <div className="flex-shrink-0 flex items-center justify-end gap-2 sm:gap-4 text-xs text-text-caption">
         <div className="relative group">
           <MicButton 
             onTranscript={handleVoiceTranscript} 
@@ -411,57 +488,59 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
         </div>
         
         {/* Circular Silver Save Button - Positioned to avoid S/E/H overlap */}
-        <div className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-10">
-          <div className="relative group">
-            <button
-              onClick={() => {
-                // Trigger silver glow animation
-                setShowSaveGlow(true);
-                setTimeout(() => setShowSaveGlow(false), 1000);
-                // Call the actual save function
-                if (content.trim()) {
-                  onSave({
-                    content: content.trim(),
-                    tags: selectedTags,
-                    source,
-                    created_at: new Date().toISOString(),
-                    user_id: userId || 'anonymous',
-                    sync_status: 'local_only'
-                  });
-                  // Clear form after save
-                  setContent('');
-                  setSelectedTags([]);
-                  setSource('text');
-                  setInterimTranscript('');
-                  setLastSaved(new Date());
-                }
-              }}
-              disabled={!content.trim() || isAutoSaving}
-              className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
-                isAutoSaving ? 'animate-pulse' : ''
-              } ${showSaveGlow ? 'silverGlow' : ''}`}
-            >
-              <svg 
-                className="w-4 h-4 sm:w-6 sm:h-6 text-graphite-charcoal" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
+        {ENABLE_FAB && (
+          <div className="absolute bottom-20 right-4 sm:bottom-24 sm:right-6 z-10">
+            <div className="relative group">
+              <button
+                onClick={() => {
+                  // Trigger silver glow animation
+                  setShowSaveGlow(true);
+                  setTimeout(() => setShowSaveGlow(false), 1000);
+                  // Call the actual save function
+                  if (content.trim()) {
+                    onSave({
+                      content: content.trim(),
+                      tags: selectedTags,
+                      source,
+                      created_at: new Date().toISOString(),
+                      user_id: userId || 'anonymous',
+                      sync_status: 'local_only'
+                    });
+                    // Clear form after save
+                    setContent('');
+                    setSelectedTags([]);
+                    setSource('text');
+                    setInterimTranscript('');
+                    setLastSaved(new Date());
+                  }
+                }}
+                disabled={!content.trim() || isAutoSaving}
+                className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isAutoSaving ? 'animate-pulse' : ''
+                } ${showSaveGlow ? 'silverGlow' : ''}`}
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M5 13l4 4L19 7" 
-                />
-              </svg>
-            </button>
-            {/* Tooltip matching existing pattern */}
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
-              {isAutoSaving ? 'Auto-saving...' : 'Save entry'}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
+                <svg 
+                  className="w-4 h-4 sm:w-6 sm:h-6 text-graphite-charcoal" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M5 13l4 4L19 7" 
+                  />
+                </svg>
+              </button>
+              {/* Tooltip matching existing pattern */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                {isAutoSaving ? 'Auto-saving...' : 'Save entry'}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Tag picker and Status - Compact footer */}
@@ -506,14 +585,14 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId }: C
             </div>
             <div className="relative group">
               <button
-                onClick={handleExport}
+                onClick={handleExportCurrentEntry}
                 className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
                 style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
               >
                 E
               </button>
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
-                Export
+                Export Current
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
               </div>
             </div>
