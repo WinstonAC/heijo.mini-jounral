@@ -257,8 +257,16 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       tl.kill();
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
       
-      // Remove any lingering overlay nodes
-      document.querySelectorAll('[data-overlay="intro"]').forEach(n => n.remove());
+      // Remove any lingering overlay nodes (with safety check)
+      try {
+        document.querySelectorAll('[data-overlay="intro"]').forEach(n => {
+          if (n.parentNode) {
+            n.parentNode.removeChild(n);
+          }
+        });
+      } catch (error) {
+        console.warn('[Heijo][Cleanup] Overlay removal failed:', error);
+      }
     };
   }, [onComplete, hasAnimated]);
 
