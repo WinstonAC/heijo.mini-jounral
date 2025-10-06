@@ -165,8 +165,23 @@ class EncryptionManager {
       return new Promise((resolve) => {
         const request = indexedDB.open('HeijoEncryption', 1);
         
+        request.onupgradeneeded = (event) => {
+          const db = (event.target as IDBOpenDBRequest).result;
+          if (!db.objectStoreNames.contains('keys')) {
+            db.createObjectStore('keys', { keyPath: 'id' });
+          }
+        };
+        
         request.onsuccess = async (event) => {
           const db = (event.target as IDBOpenDBRequest).result;
+          
+          // Check if the object store exists before trying to access it
+          if (!db.objectStoreNames.contains('keys')) {
+            console.warn('Keys object store does not exist in database');
+            resolve(null);
+            return;
+          }
+          
           const transaction = db.transaction(['keys'], 'readonly');
           const store = transaction.objectStore('keys');
           const getRequest = store.get(this.KEY_ID);
