@@ -432,7 +432,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0"
         style={{
           transformStyle: 'preserve-3d',
-          perspective: '1000px'
+          perspective: '1000px',
+          zIndex: 10
         }}
       >
         <div 
