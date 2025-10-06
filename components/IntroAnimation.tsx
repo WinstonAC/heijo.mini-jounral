@@ -16,6 +16,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const portalRef = useRef<HTMLDivElement>(null);
   const welcomeRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
   const [email, setEmail] = useState('');
@@ -26,6 +27,69 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   useEffect(() => {
     trace('IntroAnimation mounted');
     return () => trace('IntroAnimation unmounted');
+  }, []);
+
+  // [Heijo Video Diag] Video playback diagnostics and autoplay logic
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) {
+      if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+        console.warn('[Heijo][Diag] No video element found');
+      }
+      return;
+    }
+
+    // Add event listeners for diagnostics
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+      ['canplay', 'loadeddata', 'play', 'error', 'pause', 'ended'].forEach(ev => {
+        video.addEventListener(ev, () => console.log(`[Heijo][Diag] Video event: ${ev}`));
+      });
+    }
+
+    // Robust autoplay logic
+    const tryPlay = async () => {
+      try {
+        await video.play();
+        if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+          console.log('[Heijo] Video started successfully');
+        }
+      } catch (err) {
+        if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+          console.warn('[Heijo] Autoplay failed, attempting muted replay:', err);
+        }
+        video.muted = true;
+        try {
+          await video.play();
+          if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+            console.log('[Heijo] Video started with muted autoplay');
+          }
+        } catch (e) {
+          if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+            console.error('[Heijo] Video still failed:', e);
+          }
+        }
+      }
+    };
+
+    // Try to play when video is ready
+    if (video.readyState >= 3) { // HAVE_FUTURE_DATA
+      tryPlay();
+    } else {
+      video.addEventListener('canplay', tryPlay, { once: true });
+    }
+
+    // Handle video load errors (fallback to starfield only)
+    video.addEventListener('error', (e) => {
+      if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+        console.warn('[Heijo] Video failed to load, falling back to starfield animation:', e);
+      }
+      // Hide video and show starfield only
+      video.style.display = 'none';
+    });
+
+    return () => {
+      video.removeEventListener('canplay', tryPlay);
+    };
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -122,10 +186,14 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       }
     });
 
-    // 1. Black starfield entry (1s)
+    // 1. Video and starfield entry (1s)
     tl.fromTo(container, 
       { backgroundColor: '#000000' },
       { backgroundColor: '#000000', duration: 0.1 }
+    )
+    .fromTo(videoRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: 'power2.out' }
     )
     .fromTo(starfieldRef.current, 
       { opacity: 0 },
@@ -281,12 +349,29 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         perspectiveOrigin: 'center center'
       }}
     >
+      {/* Space Video Background */}
+      <video
+        ref={videoRef}
+        className="absolute inset-0 w-full h-full object-cover opacity-0"
+        autoPlay
+        muted
+        playsInline
+        preload="auto"
+        loop
+        style={{ zIndex: 1 }}
+      >
+        <source src="/videos/space.mp4" type="video/mp4" />
+        <source src="/videos/space.webm" type="video/webm" />
+        Your browser does not support the video tag.
+      </video>
+
       {/* Starfield Background */}
       <div 
         ref={starfieldRef}
         className="absolute inset-0 opacity-0"
         style={{ 
-          background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)'
+          background: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%)',
+          zIndex: 2
         }}
       />
 
