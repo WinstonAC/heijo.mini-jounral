@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import IntroAnimation from '@/components/IntroAnimation';
 import { hasSeenIntro, markIntroAsShown } from '@/lib/introUtils';
+import { trace } from '@/lib/diagnostics/routeTrace';
 
 export default function HomePage() {
   const [showIntro, setShowIntro] = useState(false);
@@ -11,12 +12,16 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
+    trace('HomePage mounted', { hasSeenIntro: hasSeenIntro() });
+    
     // Check if intro has been shown before
     if (hasSeenIntro()) {
       // Skip intro and go directly to login
+      trace('Skipping intro, redirecting to login');
       router.push('/login');
     } else {
       // Show intro animation
+      trace('Showing intro animation');
       setShowIntro(true);
       setIsLoading(false);
     }
@@ -24,6 +29,9 @@ export default function HomePage() {
 
   const handleIntroComplete = () => {
     // Navigate to login (intro component handles localStorage)
+    trace('Intro completed, redirecting to login');
+    // [Heijo Remediation 2025-01-06] Clear intro guard before navigation
+    (window as any).__HEIJO_INTRO_ACTIVE__ = false;
     router.push('/login');
   };
 

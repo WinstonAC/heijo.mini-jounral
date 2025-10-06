@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { resetIntro, forceShowIntro } from '@/lib/introUtils';
+import { trace } from '@/lib/diagnostics/routeTrace';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -14,6 +15,18 @@ export default function LoginPage() {
   const [showMagicLink, setShowMagicLink] = useState(false);
   const router = useRouter();
   const { signIn, signUp, signInWithMagicLink } = useAuth();
+
+  useEffect(() => {
+    trace('LoginPage mounted');
+    
+    // [Heijo Remediation 2025-01-06] Auth redirect race protection
+    if (window.location.pathname === '/login' && (window as any).__HEIJO_INTRO_ACTIVE__) {
+      console.log('[Heijo][Splash] Preventing redundant redirect');
+      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
+    }
+    
+    return () => trace('LoginPage unmounted');
+  }, []);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();

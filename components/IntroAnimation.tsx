@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
+import { trace } from '@/lib/diagnostics/routeTrace';
 
 interface IntroAnimationProps {
   onComplete: () => void;
@@ -22,14 +23,21 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [showSkipButton, setShowSkipButton] = useState(false);
 
+  useEffect(() => {
+    trace('IntroAnimation mounted');
+    return () => trace('IntroAnimation unmounted');
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    trace('IntroAnimation handleLogin called');
     setIsLoading(true);
     
     try {
       // For now, just complete the intro and go to journal
       // In production, this would call the actual auth
       setTimeout(() => {
+        trace('IntroAnimation calling onComplete');
         onComplete();
       }, 1000);
     } catch (error) {
@@ -40,6 +48,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   };
 
   const handleSkipToLogin = () => {
+    trace('IntroAnimation handleSkipToLogin called');
     // Kill any running animations
     if (containerRef.current) {
       gsap.killTweensOf(containerRef.current);
@@ -55,16 +64,25 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     localStorage.setItem('heijoIntroPlayed', 'true');
     
     // Complete the intro
+    trace('IntroAnimation calling onComplete from skip');
     onComplete();
   };
 
 
   useEffect(() => {
+    // [Heijo Remediation 2025-01-06] Prevent double-mount (StrictMode Safe)
+    if ((window as any).__HEIJO_INTRO_ACTIVE__) return;
+    (window as any).__HEIJO_INTRO_ACTIVE__ = true;
+
     const container = containerRef.current;
-    if (!container || hasAnimated) return;
+    if (!container || hasAnimated) {
+      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
+      return;
+    }
 
     // Check if intro has already been played
     if (localStorage.getItem('heijoIntroPlayed')) {
+      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
       onComplete();
       return;
     }
@@ -234,8 +252,13 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     });
 
     return () => {
+      // [Heijo Remediation 2025-01-06] Cleanup with guard reset and overlay removal
       window.removeEventListener('mousemove', handleMouseMove);
       tl.kill();
+      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
+      
+      // Remove any lingering overlay nodes
+      document.querySelectorAll('[data-overlay="intro"]').forEach(n => n.remove());
     };
   }, [onComplete, hasAnimated]);
 
@@ -243,6 +266,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     <div 
       ref={containerRef}
       className="fixed inset-0 z-50 bg-black overflow-hidden"
+      data-overlay="intro"
       style={{ 
         perspective: '1000px',
         transformStyle: 'preserve-3d',

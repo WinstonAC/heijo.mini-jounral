@@ -104,7 +104,7 @@ export default function JournalPage() {
           id: `local-${Date.now()}`,
           ...entry,
           sync_status: 'failed' as const,
-          last_synced: null
+          last_synced: undefined
         };
       }
       

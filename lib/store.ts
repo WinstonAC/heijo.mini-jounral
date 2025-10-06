@@ -7,7 +7,7 @@ export interface JournalEntry {
   source: 'text' | 'voice';
   tags: string[];
   user_id?: string;
-  sync_status: 'synced' | 'local_only' | 'syncing' | 'error';
+  sync_status: 'synced' | 'local_only' | 'syncing' | 'error' | 'failed';
   last_synced?: string;
 }
 

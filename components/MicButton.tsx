@@ -45,11 +45,20 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
           return;
         }
 
-        // Check HTTPS requirement
-        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+        // [Heijo Remediation 2025-01-06] Secure context fallback for localhost
+        const isSecure = window.isSecureContext;
+        const allowInsecureLocalhost = 
+          !isSecure && 
+          (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+        
+        if (!isSecure && !allowInsecureLocalhost) {
           console.log('Microphone requires HTTPS context');
           setIsSupported(false);
           return;
+        }
+        
+        if (allowInsecureLocalhost) {
+          console.warn('[Heijo][Mic] Insecure context detected — falling back for localhost testing');
         }
 
         // Check for speech recognition support
@@ -62,19 +71,25 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
         console.log('Speech recognition and microphone APIs are available');
 
-        // Check microphone permission
+        // [Heijo Remediation 2025-01-06] Defensive permissions handling
         if (navigator.permissions) {
           try {
             const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
             console.log('Microphone permission state:', permission.state);
             setPermissionState(permission.state);
             
+            if (permission.state === 'denied') {
+              console.warn('[Heijo][Mic] Microphone access blocked — check browser settings');
+              // Don't return here, allow user to try again
+            }
+            
             permission.onchange = () => {
               console.log('Microphone permission changed to:', permission.state);
               setPermissionState(permission.state);
             };
           } catch (error) {
-            console.warn('Permission API not supported:', error);
+            // Safari/Edge fallback — silently continue
+            console.warn('[Heijo][Mic] Permission API not supported, continuing:', error);
           }
         }
 
@@ -99,6 +114,16 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
   const toggleListening = async () => {
     console.log('Mic button pressed');
+    
+    // Diagnostic probe (debug mode only)
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+      try {
+        const { micEnvProbe } = await import('@/lib/diagnostics/micProbe');
+        await micEnvProbe();
+      } catch (e) {
+        console.error('[Heijo][Diag] Mic probe failed:', e);
+      }
+    }
     
     if (!isInitialized || !isSupported) {
       console.log('Microphone not available or not initialized');
@@ -154,9 +179,30 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         setPermissionState('granted');
       } catch (error) {
         console.error('Mic initialization failed:', error);
-        onError?.('Failed to access microphone. Please check permissions.');
+        // [Heijo Remediation 2025-01-06] Unified error messaging
+        const errorMessage = getMicrophoneErrorMessage(error);
+        onError?.(errorMessage);
         setPermissionState('denied');
       }
+    }
+  };
+
+  // [Heijo Remediation 2025-01-06] Unified error messaging
+  const getMicrophoneErrorMessage = (error: any) => {
+    const errorName = error?.name || 'UnknownError';
+    switch (errorName) {
+      case 'NotAllowedError':
+        return 'Permission denied — enable mic in browser.';
+      case 'NotFoundError':
+        return 'No input device detected.';
+      case 'NotReadableError':
+        return 'Mic already in use by another app.';
+      case 'AbortError':
+        return 'Microphone access was interrupted.';
+      case 'SecurityError':
+        return 'Microphone access blocked by security policy.';
+      default:
+        return `Microphone error: ${errorName}`;
     }
   };
 
@@ -189,9 +235,9 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
       case 'listening':
         return 'Stop recording';
       case 'denied':
-        return 'Microphone not available. Check permissions.';
+        return 'Permission denied — enable mic in browser.';
       case 'unsupported':
-        return 'Microphone not available. Check permissions.';
+        return 'Microphone not supported in this browser.';
       default:
         return 'Start voice recording';
     }
