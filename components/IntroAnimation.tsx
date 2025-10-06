@@ -17,6 +17,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
   const welcomeRef = useRef<HTMLDivElement>(null);
   const loginRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const spaceBgRef = useRef<HTMLDivElement>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hasAnimated, setHasAnimated] = useState(false);
   const [email, setEmail] = useState('');
@@ -82,10 +83,22 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     video.addEventListener('error', (e) => {
       if (process.env.NEXT_PUBLIC_DEBUG === '1') {
         console.warn('[Heijo] Video failed to load, falling back to starfield animation:', e);
+        console.log('[Heijo] Video sources:', video.querySelectorAll('source').length);
+        console.log('[Heijo] Video src:', video.src);
       }
       // Hide video and show starfield only
       video.style.display = 'none';
     });
+
+    // Check if video sources exist
+    if (process.env.NEXT_PUBLIC_DEBUG === '1') {
+      video.addEventListener('loadstart', () => {
+        console.log('[Heijo] Video load started');
+      });
+      video.addEventListener('loadeddata', () => {
+        console.log('[Heijo] Video data loaded');
+      });
+    }
 
     return () => {
       video.removeEventListener('canplay', tryPlay);
@@ -198,6 +211,12 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     .fromTo(starfieldRef.current, 
       { opacity: 0 },
       { opacity: 1, duration: 1, ease: 'power2.out' }
+    )
+    // Show CSS space background as fallback if video fails
+    .fromTo(spaceBgRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: 'power2.out' },
+      '-=1'
     )
     .fromTo(starfieldRef.current?.children || [], 
       { 
@@ -349,7 +368,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         perspectiveOrigin: 'center center'
       }}
     >
-      {/* Space Video Background */}
+      {/* Space Video Background - Fallback to CSS animation if no video */}
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-cover opacity-0"
@@ -364,6 +383,25 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         <source src="/videos/space.webm" type="video/webm" />
         Your browser does not support the video tag.
       </video>
+
+      {/* CSS Animated Space Background (fallback) */}
+      <div 
+        ref={spaceBgRef}
+        className="absolute inset-0 opacity-0"
+        style={{ 
+          zIndex: 1,
+          background: `
+            radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+            radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+            radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 160px 30px, #ddd, transparent),
+            linear-gradient(45deg, #000 0%, #111 50%, #000 100%)
+          `,
+          backgroundSize: '200px 200px, 300px 300px, 400px 400px, 500px 500px, 600px 600px, 100% 100%',
+          animation: 'spaceMove 20s linear infinite'
+        }}
+      />
 
       {/* Starfield Background */}
       <div 

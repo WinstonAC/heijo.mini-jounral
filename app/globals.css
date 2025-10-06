@@ -265,6 +265,16 @@
     animation: wordByWord 0.6s ease-out forwards;
     opacity: 0;
   }
+
+  /* Space animation for intro video fallback */
+  @keyframes spaceMove {
+    0% {
+      background-position: 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%, 0% 0%;
+    }
+    100% {
+      background-position: 200px 200px, 300px 300px, 400px 400px, 500px 500px, 600px 600px, 100% 100%;
+    }
+  }
   
   .outline-button {
     border: 1px solid var(--soft-silver);
