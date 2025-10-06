@@ -69,21 +69,21 @@ export default function PromptTicker({ userId, onPromptSelect }: PromptTickerPro
   return (
     <div className="w-full mb-6">
       {state === 'ticking' && (
-        <div className="bg-[#F8F8F8] border border-[#C7C7C7] rounded-lg p-6 shadow-[0_0_15px_rgba(184,184,184,0.1)] animate-fade-in">
+        <div className="bg-heijo-card border border-heijo-border rounded-lg p-6 shadow-sm animate-fade-in">
           <div className="text-center">
-            <p className="text-[#1A1A1A] font-light text-lg mb-4">
+            <p className="text-heijo-text font-light text-lg mb-4">
               Do you want a journal prompt today?
             </p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={handleYes}
-                className="px-6 py-3 text-sm font-light bg-[#1A1A1A] text-white hover:bg-[#2A2A2A] transition-colors duration-200 rounded-lg"
+                className="px-6 py-3 text-sm font-light bg-graphite-charcoal text-text-inverse hover:bg-heijo-text transition-colors duration-200 rounded-lg"
               >
                 Yes
               </button>
               <button
                 onClick={handleNo}
-                className="px-6 py-3 text-sm font-light border border-[#B8B8B8] text-[#6A6A6A] hover:bg-[#F0F0F0] transition-colors duration-200 rounded-lg"
+                className="px-6 py-3 text-sm font-light border border-heijo-border text-text-secondary hover:bg-soft-silver transition-colors duration-200 rounded-lg"
               >
                 No
               </button>

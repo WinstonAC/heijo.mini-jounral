@@ -118,12 +118,12 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
           onClick={() => setIsOpen(false)}
         >
         <div 
-          className="fixed left-0 top-0 h-full w-full max-w-md bg-[#FAFAF8] border-r-2 border-[#B8B8B8] shadow-[0_0_30px_rgba(184,184,184,0.2)] transform transition-transform duration-300 ease-in-out"
+          className="fixed left-0 top-0 h-full w-full max-w-md bg-heijo-card border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-[#B8B8B8]">
-            <h2 className="text-lg font-light text-[#1A1A1A]" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <div className="flex items-center justify-between p-6 border-b border-heijo-border">
+            <h2 className="text-lg font-light text-heijo-text" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Journal History
             </h2>
             <div className="flex items-center gap-3">
@@ -131,20 +131,20 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                 <div className="relative group">
                   <button
                     onClick={onExportAll}
-                    className="px-3 py-1.5 text-xs font-light border border-[#B8B8B8] text-[#6A6A6A] rounded hover:bg-[#F0F0F0] transition-colors duration-200"
+                    className="px-3 py-1.5 text-xs font-light border border-heijo-border text-text-secondary rounded hover:bg-soft-silver transition-colors duration-200"
                   >
                     Export All
                   </button>
                   {/* 90-day retention tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-graphite-charcoal text-text-inverse text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                     Export your last 90 days of entries
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-graphite-charcoal"></div>
                   </div>
                 </div>
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors duration-200"
+                className="text-text-secondary hover:text-heijo-text transition-colors duration-200"
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                   <path d="M18 6L6 18M6 6l12 12" />

@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-inter">
+      <body className="font-inter min-h-screen bg-gradient-to-b from-heijo-bg-top to-heijo-bg-bottom text-heijo-text">
         <AuthProvider>
           {children}
         </AuthProvider>

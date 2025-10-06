@@ -49,10 +49,10 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
       </div>
 
       {/* Entry content */}
-      <div className="bg-white rounded-lg border border-[var(--ui-warm-silver)] p-6">
+      <div className="bg-heijo-card rounded-lg border border-heijo-border p-6 shadow-sm">
         <div className="space-y-4">
           {/* Metadata */}
-          <div className="flex items-center justify-between text-sm text-[var(--ui-graphite)]">
+          <div className="flex items-center justify-between text-sm text-text-secondary">
             <div className="flex items-center gap-2">
               <span>
                 {entry.source === 'voice' ? '🎤 Voice' : '✏️ Text'}
@@ -68,7 +68,7 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
               {entry.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-3 py-1 text-sm bg-[var(--ui-warm-silver)] text-[var(--ui-graphite)] rounded-full"
+                  className="px-3 py-1 text-sm bg-soft-silver text-text-secondary rounded-full"
                 >
                   {tag}
                 </span>
@@ -78,7 +78,7 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
 
           {/* Content */}
           <div className="prose prose-sm max-w-none">
-            <p className="whitespace-pre-wrap text-gray-900 leading-relaxed">
+            <p className="whitespace-pre-wrap text-heijo-text leading-relaxed">
               {entry.content}
             </p>
           </div>

@@ -72,22 +72,22 @@ export default function LoginCard({ onSuccess }: LoginCardProps) {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-white rounded-xl border border-gray-200 p-8 shadow-lg">
+      <div className="bg-heijo-card rounded-xl border border-heijo-border p-8 shadow-sm">
         <div className="text-center">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-              <span className="text-3xl font-bold text-gray-800">H</span>
+            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-heijo-border to-soft-silver flex items-center justify-center">
+              <span className="text-3xl font-bold text-heijo-text">H</span>
             </div>
           </div>
           
           {/* Title with proper typography */}
           <div className="mb-8">
-            <h1 className="text-4xl font-light text-gray-800 mb-2" style={{ fontFamily: 'Futura, URW Geometric, system-ui, sans-serif' }}>
+            <h1 className="text-4xl font-light text-heijo-text mb-2" style={{ fontFamily: 'Futura, URW Geometric, system-ui, sans-serif' }}>
               <span className="text-5xl">Heijō</span>
               <span className="text-2xl font-normal ml-2" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>mini-journal</span>
             </h1>
-            <p className="text-lg text-gray-600" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            <p className="text-lg text-text-secondary" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               micro-moments for macro-clarity.
             </p>
           </div>

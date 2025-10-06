@@ -27,23 +27,23 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-6">
+      <div className="bg-heijo-card rounded-lg max-w-md w-full p-6 space-y-6 border border-heijo-border shadow-sm">
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">
+          <h2 className="text-lg font-semibold text-heijo-text mb-2">
             Welcome to Heijō
           </h2>
-          <p className="text-sm text-[var(--ui-graphite)]">
+          <p className="text-sm text-text-secondary">
             Your personal journaling companion
           </p>
         </div>
 
         {/* Privacy promise */}
-        <div className="bg-[var(--ui-warm-silver)] rounded-lg p-4">
-          <h3 className="text-sm font-medium text-gray-900 mb-2">
+        <div className="bg-soft-silver rounded-lg p-4">
+          <h3 className="text-sm font-medium text-heijo-text mb-2">
             Privacy Promise
           </h3>
-          <p className="text-xs text-[var(--ui-graphite)] leading-relaxed">
+          <p className="text-xs text-text-secondary leading-relaxed">
             Your journal entries are stored locally on your device. We don&apos;t collect, 
             analyze, or share your personal thoughts. Your data stays private and secure.
           </p>

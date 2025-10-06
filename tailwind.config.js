@@ -8,14 +8,22 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        'mist-white': '#FAFAFA',
-        'graphite-charcoal': '#2A2A2A',
-        'soft-silver': '#C0C0C0',
-        'tactile-taupe': '#DAD6D0',
-        'text-primary': '#2A2A2A',
+        // Silver Minimalism Colors
+        'heijo-bg-top': '#F7F7F8',
+        'heijo-bg-bottom': '#F3F3F5',
+        'heijo-card': '#F8F8FA',
+        'heijo-border': '#D9D9DC',
+        'heijo-text': '#1A1A1A',
+        
+        // Legacy colors for compatibility
+        'mist-white': '#F8F8FA',
+        'graphite-charcoal': '#1A1A1A',
+        'soft-silver': '#D9D9DC',
+        'tactile-taupe': '#D9D9DC',
+        'text-primary': '#1A1A1A',
         'text-secondary': '#6A6A6A',
         'text-caption': '#9A9A9A',
-        'text-inverse': '#FAFAFA',
+        'text-inverse': '#F8F8FA',
       },
       fontFamily: {
         'brand': ['Futura', 'URW Geometric', 'Avenir Next', 'Helvetica Neue', 'system-ui', 'sans-serif'],
