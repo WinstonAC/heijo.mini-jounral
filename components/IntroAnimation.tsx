@@ -344,9 +344,14 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       tl.kill();
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
       
-      // Remove any lingering overlay nodes (with safety check)
+      // Remove any lingering overlay nodes (with safety checks)
       try {
         document.querySelectorAll('[data-overlay="intro"]').forEach(n => {
+          // Prefer Element.remove() to avoid NotFoundError when parent has changed
+          if (typeof (n as any).remove === 'function') {
+            (n as any).remove();
+            return;
+          }
           if (n.parentNode) {
             n.parentNode.removeChild(n);
           }
