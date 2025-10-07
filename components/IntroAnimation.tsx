@@ -175,7 +175,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     );
 
     // Animate the H logo
-    tl.fromTo(logoRef.current,
+    tl.fromTo(hGlyphRef.current,
       { scale: 0, rotation: 0, opacity: 0 },
       { 
         scale: 1, 
@@ -187,8 +187,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       "-=1"
     );
 
-    // Animate title text
-    tl.fromTo(titleRef.current,
+    // Animate welcome text
+    tl.fromTo(welcomeRef.current,
       { y: 50, opacity: 0 },
       { 
         y: 0, 
@@ -212,7 +212,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         tl.kill();
       }
       // Kill any remaining tweens
-      gsap.killTweensOf([logoRef.current, titleRef.current, spaceBgRef.current]);
+      gsap.killTweensOf([hGlyphRef.current, welcomeRef.current, spaceBgRef.current]);
       gsap.killTweensOf("*");
       isUnmounted = true;
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
