@@ -111,8 +111,11 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     setIsLoading(true);
     
     try {
-      // For now, just complete the intro and go to journal
-      // In production, this would call the actual auth
+      // Mark intro as shown before completing
+      localStorage.setItem('heijoIntroPlayed', 'true');
+      trace('IntroAnimation marked intro as shown');
+      
+      // Complete the intro and go to login
       setTimeout(() => {
         trace('IntroAnimation calling onComplete');
         onComplete();
@@ -347,13 +350,13 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       // Remove any lingering overlay nodes (with safety checks)
       try {
         document.querySelectorAll('[data-overlay="intro"]').forEach(n => {
-          // Prefer Element.remove() to avoid NotFoundError when parent has changed
-          if (typeof (n as any).remove === 'function') {
-            (n as any).remove();
-            return;
-          }
-          if (n.parentNode) {
-            n.parentNode.removeChild(n);
+          // Use Element.remove() which is safer than removeChild
+          if (n && typeof (n as any).remove === 'function') {
+            try {
+              (n as any).remove();
+            } catch (removeError) {
+              // Node may already be removed, ignore silently
+            }
           }
         });
       } catch (error) {

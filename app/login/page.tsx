@@ -39,7 +39,12 @@ export default function LoginPage() {
         : await signIn(email, password);
 
       if (error) {
-        setMessage(error.message);
+        // Provide helpful guidance for common auth errors
+        if (error.message?.includes('Invalid login credentials')) {
+          setMessage('❌ Invalid credentials. Try creating an account first or check your email/password.');
+        } else {
+          setMessage(error.message);
+        }
       } else if (isSignUp) {
         setMessage('✅ Account created! You can now sign in with your email and password.');
         setIsSignUp(false); // Switch to sign in mode
