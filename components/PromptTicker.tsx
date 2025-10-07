@@ -69,7 +69,7 @@ export default function PromptTicker({ userId, onPromptSelect }: PromptTickerPro
   return (
     <div className="w-full mb-6">
       {state === 'ticking' && (
-        <div className="bg-heijo-card border border-heijo-border rounded-lg p-6 shadow-sm animate-fade-in">
+        <div className="bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom border border-heijo-border rounded-lg p-6 shadow-sm animate-fade-in">
           <div className="text-center">
             <p className="text-heijo-text font-light text-lg mb-4">
               Do you want a journal prompt today?
@@ -83,7 +83,7 @@ export default function PromptTicker({ userId, onPromptSelect }: PromptTickerPro
               </button>
               <button
                 onClick={handleNo}
-                className="px-6 py-3 text-sm font-light border border-heijo-border text-text-secondary hover:bg-soft-silver transition-colors duration-200 rounded-lg"
+                className="px-6 py-3 text-sm font-light bg-gradient-to-b from-heijo-silver-top to-heijo-silver-bottom text-heijo-text hover:from-[#E2E2E2] hover:to-[#CFCFCF] transition-all duration-200 rounded-lg shadow-sm border border-heijo-border-light"
               >
                 No
               </button>
@@ -102,7 +102,7 @@ export default function PromptTicker({ userId, onPromptSelect }: PromptTickerPro
             </p>
             <button
               onClick={handleSelectPrompt}
-              className="px-6 py-3 text-sm font-light bg-[#C7C7C7] text-[#1C1C1C] hover:bg-[#D8D8D8] transition-colors duration-200 rounded-lg"
+              className="px-6 py-3 text-sm font-light bg-gradient-to-b from-heijo-silver-top to-heijo-silver-bottom text-heijo-text hover:from-[#E2E2E2] hover:to-[#CFCFCF] transition-all duration-200 rounded-lg shadow-sm border border-heijo-border-light"
             >
               Use This Prompt
             </button>

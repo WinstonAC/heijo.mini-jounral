@@ -8,11 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Silver Minimalism Colors
+        // Silver Fade Colors
         'heijo-bg-top': '#F7F7F8',
         'heijo-bg-bottom': '#F3F3F5',
+        'heijo-silver-top': '#EAEAEA',
+        'heijo-silver-bottom': '#DCDCDC',
         'heijo-card': '#F8F8FA',
+        'heijo-card-top': '#F8F8FA',
+        'heijo-card-bottom': '#F4F4F6',
         'heijo-border': '#D9D9DC',
+        'heijo-border-light': '#D0D0D0',
         'heijo-text': '#1A1A1A',
         
         // Legacy colors for compatibility

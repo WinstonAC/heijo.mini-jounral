@@ -548,7 +548,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full px-8 py-5 text-lg font-medium bg-gradient-to-r from-gray-200 to-gray-300 text-gray-800 rounded-lg hover:from-gray-300 hover:to-gray-400 transition-all duration-300 disabled:opacity-50"
+                className="w-full px-8 py-5 text-lg font-medium bg-gradient-to-b from-heijo-silver-top to-heijo-silver-bottom text-heijo-text rounded-lg hover:from-[#E2E2E2] hover:to-[#CFCFCF] transition-all duration-300 disabled:opacity-50 shadow-sm border border-heijo-border-light"
               >
                 {isLoading ? 'Please wait...' : 'Start Journaling'}
               </button>

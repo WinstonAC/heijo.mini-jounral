@@ -27,7 +27,7 @@ export default function OnboardingModal({ isOpen, onClose }: OnboardingModalProp
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-heijo-card rounded-lg max-w-md w-full p-6 space-y-6 border border-heijo-border shadow-sm">
+      <div className="bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom rounded-lg max-w-md w-full p-6 space-y-6 border border-heijo-border shadow-sm">
         {/* Header */}
         <div className="text-center">
           <h2 className="text-lg font-semibold text-heijo-text mb-2">

@@ -72,7 +72,7 @@ export default function LoginCard({ onSuccess }: LoginCardProps) {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="bg-heijo-card rounded-xl border border-heijo-border p-8 shadow-sm">
+      <div className="bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom rounded-xl border border-heijo-border p-8 shadow-sm">
         <div className="text-center">
           {/* Logo */}
           <div className="flex justify-center mb-8">
@@ -206,7 +206,7 @@ export default function LoginCard({ onSuccess }: LoginCardProps) {
                 <button
                   type="submit"
                   disabled={isLoading || !email}
-                  className="w-full px-6 py-3 text-base font-medium bg-gray-800 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:bg-gray-700"
+                  className="w-full px-6 py-3 text-base font-medium bg-gradient-to-b from-heijo-silver-top to-heijo-silver-bottom text-heijo-text rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:from-[#E2E2E2] hover:to-[#CFCFCF] shadow-sm border border-heijo-border-light"
                 >
                   {isLoading ? 'Sending...' : 'Send Magic Link'}
                 </button>

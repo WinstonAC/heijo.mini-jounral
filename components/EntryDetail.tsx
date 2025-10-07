@@ -49,7 +49,7 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
       </div>
 
       {/* Entry content */}
-      <div className="bg-heijo-card rounded-lg border border-heijo-border p-6 shadow-sm">
+      <div className="bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom rounded-lg border border-heijo-border p-6 shadow-sm">
         <div className="space-y-4">
           {/* Metadata */}
           <div className="flex items-center justify-between text-sm text-text-secondary">

@@ -38,11 +38,16 @@
 @tailwind utilities;
 
 :root {
-  /* Heijō Silver Minimalism Color System */
+  /* Heijō Silver Fade Color System */
   --heijo-bg-gradient-top: #F7F7F8;
   --heijo-bg-gradient-bottom: #F3F3F5;
+  --heijo-silver-top: #EAEAEA;
+  --heijo-silver-bottom: #DCDCDC;
   --heijo-card: #F8F8FA;
+  --heijo-card-gradient-top: #F8F8FA;
+  --heijo-card-gradient-bottom: #F4F4F6;
   --heijo-border: #D9D9DC;
+  --heijo-border-light: #D0D0D0;
   --heijo-text: #1A1A1A;
   
   /* Legacy colors for compatibility */

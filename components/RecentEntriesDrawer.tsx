@@ -118,7 +118,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
           onClick={() => setIsOpen(false)}
         >
         <div 
-          className="fixed left-0 top-0 h-full w-full max-w-md bg-heijo-card border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out"
+          className="fixed left-0 top-0 h-full w-full max-w-md bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}

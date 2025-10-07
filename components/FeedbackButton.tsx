@@ -128,7 +128,7 @@ export default function FeedbackButton({ className = '' }: FeedbackButtonProps) 
                 <button
                   type="submit"
                   disabled={!comment.trim() || isSubmitting}
-                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gray-800 rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="flex-1 px-4 py-2 text-sm font-medium text-heijo-text bg-gradient-to-b from-heijo-silver-top to-heijo-silver-bottom rounded-lg hover:from-[#E2E2E2] hover:to-[#CFCFCF] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-sm border border-heijo-border-light"
                   style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
                 >
                   {isSubmitting ? 'Sending...' : 'Send'}
