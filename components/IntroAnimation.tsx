@@ -157,26 +157,63 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     // Add unmount guard to prevent GSAP from running after unmount
     let isUnmounted = false;
     
-    // TEMPORARY: Disable GSAP animations to prevent DOM race conditions
-    // Just show the intro for 3 seconds then complete
-    const timeout = setTimeout(() => {
-      if (!isUnmounted) {
-        localStorage.setItem('heijoIntroPlayed', 'true');
-        setHasAnimated(true);
-        onComplete();
+    // Restore full GSAP animation sequence
+    const tl = gsap.timeline({
+      onComplete: () => {
+        if (!isUnmounted) {
+          localStorage.setItem('heijoIntroPlayed', 'true');
+          setHasAnimated(true);
+          onComplete();
+        }
       }
-    }, 3000);
-    
-    // Show skip button after 1 second
-    const skipTimeout = setTimeout(() => {
+    });
+
+    // Fade in space background
+    tl.fromTo(spaceBgRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 1.5, ease: "power2.out" }
+    );
+
+    // Animate the H logo
+    tl.fromTo(logoRef.current,
+      { scale: 0, rotation: 0, opacity: 0 },
+      { 
+        scale: 1, 
+        rotation: 360, 
+        opacity: 1, 
+        duration: 2, 
+        ease: "back.out(1.7)" 
+      },
+      "-=1"
+    );
+
+    // Animate title text
+    tl.fromTo(titleRef.current,
+      { y: 50, opacity: 0 },
+      { 
+        y: 0, 
+        opacity: 1, 
+        duration: 1.5, 
+        ease: "power3.out" 
+      },
+      "-=0.8"
+    );
+
+    // Show skip button after 2 seconds
+    setTimeout(() => {
       if (!isUnmounted) {
         setShowSkipButton(true);
       }
-    }, 1000);
-    
+    }, 2000);
+
     return () => {
-      clearTimeout(timeout);
-      clearTimeout(skipTimeout);
+      // Clean up GSAP timeline
+      if (tl) {
+        tl.kill();
+      }
+      // Kill any remaining tweens
+      gsap.killTweensOf([logoRef.current, titleRef.current, spaceBgRef.current]);
+      gsap.killTweensOf("*");
       isUnmounted = true;
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
     };

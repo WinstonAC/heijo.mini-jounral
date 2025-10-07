@@ -232,7 +232,7 @@ export default function LoginPage() {
                   }}
                   className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 px-3 py-1 border border-soft-silver rounded"
                 >
-                  🎬 Reset Intro
+                  Reset Intro
                 </button>
                 <button
                   onClick={() => {
@@ -240,7 +240,7 @@ export default function LoginPage() {
                   }}
                   className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 px-3 py-1 border border-soft-silver rounded"
                 >
-                  ✨ Show Intro
+                  Show Intro
                 </button>
               </div>
             </div>
