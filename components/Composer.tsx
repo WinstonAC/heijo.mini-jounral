@@ -451,14 +451,21 @@ ${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
                 setIsUserScrolled(!isAtBottom);
               }}
               placeholder="Type or speak your thoughts..."
-              className={`w-full h-full min-h-[200px] sm:min-h-[250px] p-3 sm:p-4 lg:p-6 journal-input rounded-xl resize-none transition-all duration-300 ${getFontSizeClass()}`}
-              style={{ 
+              className={`w-full resize-none rounded-lg bg-transparent focus:outline-none text-gray-900 dark:text-gray-100 p-3 sm:p-4 lg:p-6 journal-input transition-all duration-300 ${getFontSizeClass()} ${
+                promptState === "hidden"
+                  ? "flex-1 h-full min-h-0" // Fill viewport gracefully
+                  : "min-h-[200px] sm:min-h-[250px]" // Maintain natural height when prompt is active
+              }`}
+              style={{
                 fontFamily: 'Inter, system-ui, sans-serif',
                 lineHeight: '1.8',
                 background: 'var(--graphite-charcoal)',
                 color: 'var(--text-inverse)',
                 border: '1px solid var(--soft-silver)',
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.1)'
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.1)',
+                ...(promptState === "hidden"
+                  ? { height: "calc(100dvh - 14rem)", transition: "height 0.3s ease" }
+                  : undefined)
               }}
             />
             
