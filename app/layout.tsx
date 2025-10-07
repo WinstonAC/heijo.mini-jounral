@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth'
+import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const metadata: Metadata = {
   title: 'Heijō MiniJournal',
@@ -31,9 +32,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-inter min-h-screen bg-gradient-to-b from-heijo-bg-top to-heijo-bg-bottom text-heijo-text">
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+        <ErrorBoundary>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ErrorBoundary>
       </body>
     </html>
   )

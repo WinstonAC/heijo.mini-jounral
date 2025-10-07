@@ -12,8 +12,19 @@ export const isSupabaseConfigured = () => {
   return configured
 }
 
-// Browser client - always create with proper values
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Browser client - create with error handling
+export const supabase = (() => {
+  try {
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Supabase configuration missing:', { supabaseUrl, supabaseAnonKey: supabaseAnonKey ? 'present' : 'missing' });
+      return null;
+    }
+    return createClient(supabaseUrl, supabaseAnonKey);
+  } catch (error) {
+    console.error('Failed to create Supabase client:', error);
+    return null;
+  }
+})()
 
 // Server client (for API routes)
 export const createServerClient = () => {
