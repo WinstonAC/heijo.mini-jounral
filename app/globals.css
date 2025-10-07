@@ -74,6 +74,21 @@
     font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
     color: var(--heijo-text);
     transition: background-color 0.3s ease;
+    position: relative;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3), rgba(200,200,200,0) 70%);
+    mix-blend-mode: overlay;
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 1;
   }
   
   /* Typography System */

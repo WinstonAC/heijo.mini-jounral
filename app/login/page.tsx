@@ -79,7 +79,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-mist-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 flex items-center justify-center p-4">
       <div className="w-[90%] max-w-md mx-auto">
         <div className="bg-white rounded-xl border border-soft-silver p-8 shadow-lg">
           <div className="text-center space-y-8">

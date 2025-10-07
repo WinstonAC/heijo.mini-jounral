@@ -154,8 +154,8 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="h-screen bg-mist-white p-2 sm:p-4 lg:p-6 overflow-hidden">
-      <div className="max-w-7xl mx-auto h-full flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-2 sm:p-4 lg:p-6 overflow-y-auto">
+      <div className="max-w-7xl mx-auto min-h-full flex flex-col">
         {/* Main Journal Panel - Clean white container */}
         <div className="bg-white rounded-xl border border-soft-silver p-3 sm:p-4 lg:p-6 shadow-lg relative flex-1 flex flex-col">
           {/* Header inside journal panel */}
@@ -192,7 +192,7 @@ export default function JournalPage() {
             </div>
           </div>
           
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
             <Composer 
               onSave={handleSave} 
               onExport={handleExport} 
