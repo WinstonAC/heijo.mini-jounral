@@ -156,7 +156,24 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     
     // Add unmount guard to prevent GSAP from running after unmount
     let isUnmounted = false;
-
+    
+    // TEMPORARY: Disable GSAP animations to prevent DOM race conditions
+    // Just show the intro for 3 seconds then complete
+    const timeout = setTimeout(() => {
+      if (!isUnmounted) {
+        localStorage.setItem('heijoIntroPlayed', 'true');
+        setHasAnimated(true);
+        onComplete();
+      }
+    }, 3000);
+    
+    return () => {
+      clearTimeout(timeout);
+      isUnmounted = true;
+      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
+    };
+    
+    /* DISABLED GSAP ANIMATIONS - CAUSING DOM RACE CONDITIONS
     const container = containerRef.current;
     if (!container || hasAnimated) {
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
@@ -391,6 +408,7 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         console.warn('[Heijo][Cleanup] Overlay removal failed:', error);
       }
     };
+    */
   }, [onComplete, hasAnimated]);
 
   return (
