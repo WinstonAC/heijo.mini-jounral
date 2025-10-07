@@ -464,7 +464,13 @@ ${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
                 border: '1px solid var(--soft-silver)',
                 boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.1)',
                 ...(promptState === "hidden"
-                  ? { height: "calc(100dvh - 14rem)", transition: "height 0.3s ease" }
+                  ? {
+                      height:
+                        typeof window !== "undefined" && window.innerWidth < 768
+                          ? "calc(100dvh - 14rem)"  // Mobile (iPhone etc.)
+                          : "calc(100dvh - 17rem)", // Desktop (MacBook / larger screens)
+                      transition: "height 0.3s ease",
+                    }
                   : undefined)
               }}
             />

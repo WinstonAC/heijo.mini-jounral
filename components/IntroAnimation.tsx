@@ -157,68 +157,6 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     // Add unmount guard to prevent GSAP from running after unmount
     let isUnmounted = false;
     
-    // Restore full GSAP animation sequence
-    const tl = gsap.timeline({
-      onComplete: () => {
-        if (!isUnmounted) {
-          localStorage.setItem('heijoIntroPlayed', 'true');
-          setHasAnimated(true);
-          onComplete();
-        }
-      }
-    });
-
-    // Fade in space background
-    tl.fromTo(spaceBgRef.current, 
-      { opacity: 0 },
-      { opacity: 1, duration: 1.5, ease: "power2.out" }
-    );
-
-    // Animate the H logo
-    tl.fromTo(hGlyphRef.current,
-      { scale: 0, rotation: 0, opacity: 0 },
-      { 
-        scale: 1, 
-        rotation: 360, 
-        opacity: 1, 
-        duration: 2, 
-        ease: "back.out(1.7)" 
-      },
-      "-=1"
-    );
-
-    // Animate welcome text
-    tl.fromTo(welcomeRef.current,
-      { y: 50, opacity: 0 },
-      { 
-        y: 0, 
-        opacity: 1, 
-        duration: 1.5, 
-        ease: "power3.out" 
-      },
-      "-=0.8"
-    );
-
-    // Show skip button after 2 seconds
-    setTimeout(() => {
-      if (!isUnmounted) {
-        setShowSkipButton(true);
-      }
-    }, 2000);
-
-    return () => {
-      // Clean up GSAP timeline
-      if (tl) {
-        tl.kill();
-      }
-      // Kill any remaining tweens
-      gsap.killTweensOf([hGlyphRef.current, welcomeRef.current, spaceBgRef.current]);
-      gsap.killTweensOf("*");
-      isUnmounted = true;
-      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
-    };
-    
-    /* DISABLED GSAP ANIMATIONS - CAUSING DOM RACE CONDITIONS
     const container = containerRef.current;
     if (!container || hasAnimated) {
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
@@ -258,10 +196,9 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
 
     window.addEventListener('mousemove', handleMouseMove);
 
-    // Simplified animation timeline - Total duration: ~4s
+    // Full animation timeline - Total duration: ~4s
     const tl = gsap.timeline({
       onComplete: () => {
-        // Check if component is still mounted and not unmounted before completing
         if (!isUnmounted && containerRef.current) {
           localStorage.setItem('heijoIntroPlayed', 'true');
           setHasAnimated(true);
@@ -269,6 +206,152 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         }
       }
     });
+
+    // 1. Video and starfield entry (1s)
+    tl.fromTo(container, 
+      { backgroundColor: '#000000' },
+      { backgroundColor: '#000000', duration: 0.1 }
+    )
+    .fromTo(videoRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: 'power2.out' }
+    )
+    .fromTo(starfieldRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: 'power2.out' }
+    )
+    // Show CSS space background as fallback if video fails
+    .fromTo(spaceBgRef.current, 
+      { opacity: 0 },
+      { opacity: 1, duration: 1, ease: 'power2.out' },
+      '-=1'
+    )
+    .fromTo(starfieldRef.current?.children || [], 
+      { 
+        scale: 0,
+        rotation: Math.random() * 360
+      },
+      { 
+        scale: 1,
+        rotation: 0,
+        duration: 1,
+        stagger: 0.01,
+        ease: 'back.out(1.7)'
+      },
+      '-=0.8'
+    );
+
+    // 2. H glyph emergence (1.5s) - Only the H with light spinning
+    tl.fromTo(hGlyphRef.current,
+      { 
+        scale: 0,
+        rotation: 0,
+        opacity: 0
+      },
+      { 
+        scale: 1,
+        rotation: 360,
+        opacity: 1,
+        duration: 1.2,
+        ease: 'power2.inOut'
+      },
+      '-=0.5'
+    )
+    .to(hGlyphRef.current, {
+      boxShadow: '0 0 40px rgba(192, 192, 192, 0.9), 0 0 80px rgba(192, 192, 192, 0.5)',
+      duration: 0.8,
+      ease: 'power2.inOut'
+    }, '-=0.6')
+    .to(hGlyphRef.current, {
+      boxShadow: '0 0 0px rgba(192, 192, 192, 0)',
+      duration: 0.7,
+      ease: 'power2.inOut'
+    })
+    // Add continuous light spinning (only during intro)
+    .to(hGlyphRef.current, {
+      rotation: '+=180',
+      duration: 4,
+      ease: 'none',
+      repeat: -1
+    }, '-=0.3');
+
+    // 3. Portal transition (1s)
+    tl.fromTo(portalRef.current,
+      { 
+        scale: 0,
+        opacity: 0
+      },
+      { 
+        scale: 1,
+        opacity: 0.3,
+        duration: 0.8,
+        ease: 'power2.out'
+      },
+      '-=0.8'
+    )
+    .to(portalRef.current, {
+      opacity: 0,
+      duration: 0.3,
+      ease: 'power2.inOut'
+    });
+
+    // 4. Welcome state (1s hold)
+    tl.fromTo(welcomeRef.current,
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 0.8, ease: 'power2.out' },
+      '-=0.3'
+    );
+
+    // 5. Login reveal (1s)
+    tl.fromTo(loginRef.current,
+      { 
+        opacity: 0,
+        y: 20,
+        scale: 0.95
+      },
+      { 
+        opacity: 1,
+        y: 0,
+        scale: 1,
+        duration: 0.8,
+        ease: 'back.out(1.7)'
+      }
+    )
+    .fromTo(loginRef.current?.querySelectorAll('input, button') || [],
+      { opacity: 0, y: 20 },
+      { 
+        opacity: 1,
+        y: 0,
+        duration: 0.6,
+        stagger: 0.1,
+        ease: 'power2.out'
+      },
+      '-=0.4'
+    );
+
+    // Show skip button after 2 seconds
+    setTimeout(() => {
+      setShowSkipButton(true);
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      if (tl) {
+        tl.kill();
+      }
+      // Clear all GSAP targets to prevent further DOM manipulation
+      if (containerRef.current) gsap.killTweensOf(containerRef.current);
+      if (hGlyphRef.current) gsap.killTweensOf(hGlyphRef.current);
+      if (starfieldRef.current) gsap.killTweensOf(starfieldRef.current);
+      if (portalRef.current) gsap.killTweensOf(portalRef.current);
+      if (welcomeRef.current) gsap.killTweensOf(welcomeRef.current);
+      if (loginRef.current) gsap.killTweensOf(loginRef.current);
+      
+      // Global GSAP kill to prevent any remaining animations
+      gsap.killTweensOf("*");
+      isUnmounted = true;
+      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
+    };
 
     // 1. Video and starfield entry (1s)
     tl.fromTo(container, 
@@ -453,7 +536,6 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         console.warn('[Heijo][Cleanup] Overlay removal failed:', error);
       }
     };
-    */
   }, [onComplete, hasAnimated]);
 
   return (
