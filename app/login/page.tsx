@@ -164,6 +164,16 @@ export default function LoginPage() {
                     {isLoading ? 'Sending...' : 'Send Magic Link'}
                   </button>
                 </form>
+                
+                {/* Back to Sign In button */}
+                <div className="text-center mt-4">
+                  <button
+                    onClick={() => setShowMagicLink(false)}
+                    className="text-sm text-text-secondary hover:text-graphite-charcoal transition-colors duration-200 underline"
+                  >
+                    ← Back to Sign In with Password
+                  </button>
+                </div>
               )}
 
               {/* Message */}
