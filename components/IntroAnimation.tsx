@@ -196,9 +196,12 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     // Simplified animation timeline - Total duration: ~4s
     const tl = gsap.timeline({
       onComplete: () => {
-        localStorage.setItem('heijoIntroPlayed', 'true');
-        setHasAnimated(true);
-        onComplete();
+        // Check if component is still mounted before completing
+        if (containerRef.current) {
+          localStorage.setItem('heijoIntroPlayed', 'true');
+          setHasAnimated(true);
+          onComplete();
+        }
       }
     });
 
@@ -344,7 +347,23 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     return () => {
       // [Heijo Remediation 2025-01-06] Cleanup with guard reset and overlay removal
       window.removeEventListener('mousemove', handleMouseMove);
-      tl.kill();
+      
+      // Kill all GSAP animations and clear targets to prevent DOM manipulation
+      try {
+        if (tl) {
+          tl.kill();
+        }
+        // Clear all GSAP targets to prevent further DOM manipulation
+        if (containerRef.current) gsap.killTweensOf(containerRef.current);
+        if (hGlyphRef.current) gsap.killTweensOf(hGlyphRef.current);
+        if (starfieldRef.current) gsap.killTweensOf(starfieldRef.current);
+        if (portalRef.current) gsap.killTweensOf(portalRef.current);
+        if (welcomeRef.current) gsap.killTweensOf(welcomeRef.current);
+        if (loginRef.current) gsap.killTweensOf(loginRef.current);
+      } catch (gsapError) {
+        console.warn('[Heijo][Cleanup] GSAP cleanup failed:', gsapError);
+      }
+      
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
       
       // Remove any lingering overlay nodes (with safety checks)
