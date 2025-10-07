@@ -430,21 +430,23 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         perspectiveOrigin: 'center center'
       }}
     >
-      {/* Space Video Background - Fallback to CSS animation if no video */}
-      <video
-        ref={videoRef}
-        className="absolute inset-0 w-full h-full object-cover opacity-0"
-        autoPlay
-        muted
-        playsInline
-        preload="auto"
-        loop
-        style={{ zIndex: 1 }}
-      >
-        <source src="/videos/space.mp4" type="video/mp4" />
-        <source src="/videos/space.webm" type="video/webm" />
-        Your browser does not support the video tag.
-      </video>
+      {/* CSS Animated Space Background - No video files available */}
+      <div 
+        className="absolute inset-0 w-full h-full bg-black"
+        style={{ 
+          zIndex: 1,
+          background: `
+            radial-gradient(2px 2px at 20px 30px, #eee, transparent),
+            radial-gradient(2px 2px at 40px 70px, rgba(255,255,255,0.8), transparent),
+            radial-gradient(1px 1px at 90px 40px, #fff, transparent),
+            radial-gradient(1px 1px at 130px 80px, rgba(255,255,255,0.6), transparent),
+            radial-gradient(2px 2px at 160px 30px, #ddd, transparent),
+            linear-gradient(45deg, #000 0%, #111 50%, #000 100%)
+          `,
+          backgroundSize: '200px 200px, 300px 300px, 400px 400px, 500px 500px, 600px 600px, 100% 100%',
+          animation: 'spaceMove 20s linear infinite'
+        }}
+      />
 
       {/* CSS Animated Space Background (fallback) */}
       <div 
