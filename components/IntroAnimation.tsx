@@ -167,8 +167,16 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
       }
     }, 3000);
     
+    // Show skip button after 1 second
+    const skipTimeout = setTimeout(() => {
+      if (!isUnmounted) {
+        setShowSkipButton(true);
+      }
+    }, 1000);
+    
     return () => {
       clearTimeout(timeout);
+      clearTimeout(skipTimeout);
       isUnmounted = true;
       (window as any).__HEIJO_INTRO_ACTIVE__ = false;
     };
