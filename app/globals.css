@@ -84,11 +84,23 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3), rgba(200,200,200,0) 70%);
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4), rgba(200,200,200,0) 70%);
     mix-blend-mode: overlay;
-    opacity: 0.4;
+    opacity: 0.35;
     pointer-events: none;
     z-index: 1;
+  }
+  
+  /* Iridescent shimmer effect */
+  .iridescent::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.4), rgba(200,200,200,0) 70%);
+    mix-blend-mode: overlay;
+    opacity: 0.35;
+    border-radius: inherit;
   }
   
   /* Typography System */

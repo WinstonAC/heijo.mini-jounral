@@ -79,9 +79,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 overflow-y-auto flex flex-col justify-center pb-12 sm:pb-0 p-4">
       <div className="w-[90%] max-w-md mx-auto">
-        <div className="bg-white rounded-xl border border-soft-silver p-8 shadow-lg">
+        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-8 shadow-lg backdrop-blur-sm iridescent">
           <div className="text-center space-y-8">
             {/* Logo/Title */}
             <div className="space-y-6 fade-in-up">
@@ -95,12 +95,12 @@ export default function LoginPage() {
               </div>
               
               <div>
-                <h1 className="text-5xl brand-hero text-graphite-charcoal mb-2 leading-tight">
+                <h1 className="text-3xl sm:text-5xl brand-hero text-graphite-charcoal mb-2 leading-tight">
                   <span className="word-by-word" style={{ animationDelay: '0.1s' }}>Welcome</span>{' '}
                   <span className="word-by-word" style={{ animationDelay: '0.3s' }}>to</span>{' '}
                   <span className="word-by-word" style={{ animationDelay: '0.5s' }}>
                     <span className="brand-hero">Heijō</span>
-                    <span className="brand-label text-text-secondary ml-2">mini-journal</span>
+                    <span className="block sm:inline brand-label text-text-secondary sm:ml-2">mini-journal</span>
                   </span>
                 </h1>
                 <p className="text-lg body-text text-text-secondary leading-relaxed mt-4">

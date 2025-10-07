@@ -157,7 +157,7 @@ export default function JournalPage() {
     <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-2 sm:p-4 lg:p-6 overflow-y-auto">
       <div className="max-w-7xl mx-auto min-h-full flex flex-col">
         {/* Main Journal Panel - Clean white container */}
-        <div className="bg-white rounded-xl border border-soft-silver p-3 sm:p-4 lg:p-6 shadow-lg relative flex-1 flex flex-col">
+        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-3 sm:p-4 lg:p-6 shadow-lg relative flex-1 flex flex-col backdrop-blur-sm iridescent">
           {/* Header inside journal panel */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-soft-silver flex-shrink-0">
             <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
