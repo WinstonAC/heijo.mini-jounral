@@ -153,6 +153,9 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     // [Heijo Remediation 2025-01-06] Prevent double-mount (StrictMode Safe)
     if ((window as any).__HEIJO_INTRO_ACTIVE__) return;
     (window as any).__HEIJO_INTRO_ACTIVE__ = true;
+    
+    // Add unmount guard to prevent GSAP from running after unmount
+    let isUnmounted = false;
 
     const container = containerRef.current;
     if (!container || hasAnimated) {
@@ -196,8 +199,8 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     // Simplified animation timeline - Total duration: ~4s
     const tl = gsap.timeline({
       onComplete: () => {
-        // Check if component is still mounted before completing
-        if (containerRef.current) {
+        // Check if component is still mounted and not unmounted before completing
+        if (!isUnmounted && containerRef.current) {
           localStorage.setItem('heijoIntroPlayed', 'true');
           setHasAnimated(true);
           onComplete();
@@ -345,6 +348,9 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
     });
 
     return () => {
+      // Mark as unmounted to prevent GSAP callbacks from running
+      isUnmounted = true;
+      
       // [Heijo Remediation 2025-01-06] Cleanup with guard reset and overlay removal
       window.removeEventListener('mousemove', handleMouseMove);
       
@@ -360,6 +366,9 @@ export default function IntroAnimation({ onComplete }: IntroAnimationProps) {
         if (portalRef.current) gsap.killTweensOf(portalRef.current);
         if (welcomeRef.current) gsap.killTweensOf(welcomeRef.current);
         if (loginRef.current) gsap.killTweensOf(loginRef.current);
+        
+        // Global GSAP kill to prevent any remaining animations
+        gsap.killTweensOf("*");
       } catch (gsapError) {
         console.warn('[Heijo][Cleanup] GSAP cleanup failed:', gsapError);
       }
