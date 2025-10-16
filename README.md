@@ -1,6 +1,8 @@
-# Heijō Mini-Journal
+# Heijō Mini-Journal v1.0.0
 
 A **privacy-first journaling application** that combines the nostalgic charm of 1985 PalmPilot aesthetics with modern voice recognition technology. Built with Next.js 14, TypeScript, and enterprise-grade security.
+
+> **🎉 v1.0.0 Stable Release** - Production-ready with bulletproof authentication, data persistence, and preserved UI/UX experience.
 
 ## 🎯 Overview
 
@@ -79,19 +81,23 @@ npm run lint
 
 ### Environment Variables
 
-Create a `.env.local` file for optional Supabase integration:
+Create a `.env.local` file for Supabase integration:
 
 ```env
-# Supabase Configuration (Optional)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
+# Supabase Configuration
+NEXT_PUBLIC_SUPABASE_URL=https://lzeuvaankbnngfjxpycn.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
-# Authentication Settings
-NEXT_PUBLIC_AUTH_REDIRECT_URL=http://localhost:3000/journal
-NEXT_PUBLIC_AUTH_MAGIC_LINK_ENABLED=true
+# Site Configuration
+NEXT_PUBLIC_SITE_URL=https://journal.heijo.io
+NEXT_PUBLIC_SHOW_INTRO=false
+
+# Server-side keys (for seeding)
+SUPABASE_URL=https://lzeuvaankbnngfjxpycn.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
-**Note**: The app works completely offline without these variables. Supabase is only used for optional cloud sync.
+**Note**: The app works completely offline without these variables. Supabase is used for cloud sync and authentication.
 
 ### Supabase Setup (Optional)
 
@@ -155,12 +161,14 @@ heijo-mini-journal/
 ├── components/            # React components
 │   ├── Composer.tsx       # Entry creation interface
 │   ├── MicButton.tsx      # Voice recording button
-│   └── EntryList.tsx      # Entry display and management
+│   ├── EntryList.tsx      # Entry display and management
+│   └── AnalyticsDashboard.tsx # Analytics tracking (v1.0.0)
 ├── lib/                   # Utility libraries
 │   ├── auth.tsx           # Authentication management
 │   ├── encryption.ts      # AES-GCM encryption
 │   ├── voiceToText.ts     # Voice recognition
-│   └── store.ts           # Data storage management
+│   ├── store.ts           # Data storage management
+│   └── analytics.ts       # Analytics tracking (v1.0.0)
 ├── docs/                  # Comprehensive documentation
 │   ├── technical/         # Technical documentation
 │   └── product/           # Product documentation
@@ -234,6 +242,28 @@ heijo-mini-journal/
 - **Caching Strategy**: Intelligent data caching
 - **Bundle Optimization**: Tree shaking and minification
 
+## 🆕 v1.0.0 Release Notes
+
+### New Features
+- **Analytics Dashboard**: Usage tracking and insights
+- **Enhanced Session Persistence**: Bulletproof authentication with localStorage backup
+- **CORS Configuration**: Production-ready security headers
+- **Intro Animation Control**: Environment-based animation disable
+- **Improved Data Sync**: Enhanced user_id linking and sync status tracking
+
+### Stability Improvements
+- **Session Persistence**: Sessions survive page refreshes and redirects
+- **Data Integrity**: All journal entries properly linked to authenticated users
+- **CORS Resolution**: No more cross-origin authentication issues
+- **Magic Link Flow**: Reliable authentication with proper redirect handling
+- **Offline Support**: Complete functionality without internet connection
+
+### Production Ready
+- **Environment Configuration**: Proper production environment variables
+- **Security Headers**: Comprehensive security configuration
+- **Error Handling**: Robust error handling and fallback mechanisms
+- **Performance**: Optimized for production deployment
+
 ## 🌐 Browser Support
 
 ### Supported Browsers
@@ -279,7 +309,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Heijō Mini-Journal** - *Privacy-first journaling with PalmPilot 1985 charm* 🚀
+**Heijō Mini-Journal v1.0.0** - *Privacy-first journaling with PalmPilot 1985 charm* 🚀
+
+> **Production Ready**: Stable build with bulletproof authentication, data persistence, and preserved UI/UX experience.
 
 
 
