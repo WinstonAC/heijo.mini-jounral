@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { gdprManager, ConsentSettings, PrivacyMetrics } from '@/lib/gdpr';
+import { analyticsCollector } from '@/lib/analytics';
+import AnalyticsDashboard from './AnalyticsDashboard';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -42,6 +44,9 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
   const handleExportCSV = async () => {
     setIsExporting(true);
     try {
+      // Track analytics
+      analyticsCollector.trackEvent('export_data');
+      
       if (onExportCSV) {
         await onExportCSV();
       } else {
@@ -57,6 +62,9 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
   const handleDeleteAll = async () => {
     setIsDeleting(true);
     try {
+      // Track analytics
+      analyticsCollector.trackEvent('delete_entry');
+      
       await gdprManager.deleteAllData();
       setShowDeleteConfirm(false);
       onClose();
@@ -176,6 +184,9 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
               </div>
             </div>
           </div>
+
+          {/* Analytics Dashboard - Only show if analytics consent is given */}
+          <AnalyticsDashboard isVisible={consent?.analytics === true} />
 
           {/* Display Settings */}
           <div className="mb-6">

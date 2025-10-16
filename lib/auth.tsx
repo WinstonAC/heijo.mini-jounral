@@ -34,13 +34,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes and persist sessions
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // Persist session to localStorage to prevent session loss
+      if (session) {
+        localStorage.setItem('heijo_session', JSON.stringify(session));
+      } else {
+        localStorage.removeItem('heijo_session');
+      }
     });
 
     return () => subscription?.unsubscribe();
@@ -72,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: `${window.location.origin}/journal`,
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/journal`,
       },
     });
     return { error };

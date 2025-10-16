@@ -6,6 +6,18 @@ import TagPicker from './TagPicker';
 import HeaderClock from './HeaderClock';
 import { JournalEntry } from '@/lib/store';
 import { getPrompt, logPromptHistory } from '@/lib/pickPrompt';
+import { analyticsCollector } from '@/lib/analytics';
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState<boolean>(false);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+  return isMobile;
+};
 
 interface ComposerProps {
   onSave: (entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { sync_status?: 'local_only' | 'synced' }) => Promise<JournalEntry>;
@@ -34,6 +46,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
+  
+  // Mobile detection hook
+  const isMobile = useIsMobile();
   
   // Feature flag to disable FAB
   const ENABLE_FAB = false;
@@ -141,6 +156,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     if (isFinal) {
       console.log('Mic transcription complete, ready for saving');
+      
+      // Track analytics for voice recording
+      analyticsCollector.trackEvent('voice_recording_start');
+      analyticsCollector.trackEvent('voice_to_text_used');
       // Final transcript - add to content with smooth transitions
       setContent(prev => {
         let newContent = prev + (prev ? ' ' : '') + transcript;
@@ -453,8 +472,8 @@ ${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
               placeholder="Type or speak your thoughts..."
               className={`w-full resize-none rounded-lg bg-transparent focus:outline-none text-gray-900 dark:text-gray-100 p-3 sm:p-4 lg:p-6 journal-input transition-all duration-300 ${getFontSizeClass()} ${
                 promptState === "hidden"
-                  ? "flex-1 h-full min-h-0" // Fill viewport gracefully
-                  : "min-h-[200px] sm:min-h-[250px]" // Maintain natural height when prompt is active
+                  ? "flex-1 h-full min-h-0" // Fill space when prompt hidden
+                  : "min-h-[200px] sm:min-h-[250px]" // Standard height when prompt visible
               }`}
               style={{
                 fontFamily: 'Inter, system-ui, sans-serif',
@@ -464,13 +483,21 @@ ${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
                 border: '1px solid var(--soft-silver)',
                 boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.1)',
                 ...(promptState === "hidden"
-                  ? {
-                      height:
-                        typeof window !== "undefined" && window.innerWidth < 768
-                          ? "calc(100dvh - 14rem)"  // Mobile (iPhone etc.)
-                          : "calc(100dvh - 17rem)", // Desktop (MacBook / larger screens)
-                      transition: "height 0.3s ease",
-                    }
+                  ? (
+                      isMobile
+                        ? {
+                            // ✅ MOBILE: current perfect behavior (no change)
+                            height: "calc(100dvh - 14rem)",
+                            transition: "height 0.3s ease",
+                          }
+                        : {
+                            // ✅ DESKTOP (MacBook): balanced and visually centered
+                            //   - leaves just enough space for buttons & rounded base
+                            //   - never too tall or cramped
+                            height: "clamp(360px, calc(100dvh - 21rem), 520px)",
+                            transition: "height 0.3s ease",
+                          }
+                    )
                   : undefined)
               }}
             />

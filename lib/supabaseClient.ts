@@ -12,14 +12,21 @@ export const isSupabaseConfigured = () => {
   return configured
 }
 
-// Browser client - create with error handling
+// Browser client - create with error handling and session persistence
 export const supabase = (() => {
   try {
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Supabase configuration missing:', { supabaseUrl, supabaseAnonKey: supabaseAnonKey ? 'present' : 'missing' });
       return null;
     }
-    return createClient(supabaseUrl, supabaseAnonKey);
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        storageKey: 'heijo_auth',
+      },
+    });
   } catch (error) {
     console.error('Failed to create Supabase client:', error);
     return null;

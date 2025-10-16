@@ -3,6 +3,8 @@
  * Implements performance budgets, metrics collection, and optimization
  */
 
+import { analyticsCollector } from './analytics';
+
 export interface PerformanceMetrics {
   coldStart: number; // milliseconds
   recordButtonReady: number; // milliseconds
@@ -74,6 +76,21 @@ class PerformanceMonitor {
     this.startTime = performance.now();
     await this.setupPerformanceObservers();
     await this.collectInitialMetrics();
+    
+    // Track performance metrics for analytics
+    if (this.metrics) {
+      analyticsCollector.trackEvent('performance_metric', {
+        metric: 'app_start_time',
+        value: this.metrics.coldStart
+      });
+      
+      if (this.metrics.memoryUsage > 0) {
+        analyticsCollector.trackEvent('performance_metric', {
+          metric: 'memory_usage',
+          value: this.metrics.memoryUsage
+        });
+      }
+    }
   }
 
   /**

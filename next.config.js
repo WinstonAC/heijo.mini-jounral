@@ -1,10 +1,23 @@
 /** @type {import('next').NextConfig} */
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://journal.heijo.io'
+];
+
 const nextConfig = {
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: allowedOrigins.join(',')
+          },
+          {
+            key: 'Access-Control-Allow-Credentials',
+            value: 'true'
+          },
           {
             key: 'Content-Security-Policy',
             value: [
@@ -13,7 +26,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Required for Tailwind and Google Fonts
               "img-src 'self' data: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
-              "connect-src 'self' https://*.supabase.co https://*.supabase.io",
+              "connect-src 'self' https://*.supabase.co https://*.supabase.io https://lzeuvaankbnngfjxpycn.supabase.co",
               "media-src 'self' blob:",
               "object-src 'none'",
               "base-uri 'self'",

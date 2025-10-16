@@ -154,21 +154,29 @@ class HybridStorage implements StorageBackend {
       if (!supabase || !isSupabaseConfigured()) return;
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        console.warn('No authenticated user for sync');
+        return;
+      }
 
       const localEntries = await this.localStorage.getEntries();
       const localOnlyEntries = localEntries.filter(entry => entry.sync_status === 'local_only');
 
+      console.log(`Syncing ${localOnlyEntries.length} local entries for user ${user.id}`);
+
       for (const entry of localOnlyEntries) {
         try {
+          // Ensure entry has proper user_id before syncing
+          const entryToSync = {
+            ...entry,
+            user_id: user.id,
+            sync_status: 'synced' as const,
+            last_synced: new Date().toISOString()
+          };
+
           const { data, error } = await supabase
             .from('journal_entries')
-            .insert([{ 
-              ...entry, 
-              user_id: user.id,
-              sync_status: 'synced',
-              last_synced: new Date().toISOString()
-            }])
+            .insert([entryToSync])
             .select()
             .single();
           
@@ -179,6 +187,9 @@ class HybridStorage implements StorageBackend {
               sync_status: 'synced',
               last_synced: new Date().toISOString()
             });
+            console.log(`Successfully synced entry ${entry.id}`);
+          } else {
+            console.warn(`Failed to sync entry ${entry.id}:`, error);
           }
         } catch (error) {
           console.warn('Failed to sync entry:', entry.id, error);

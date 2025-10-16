@@ -12,6 +12,7 @@ import { gdprManager } from '@/lib/gdpr';
 import { performanceMonitor } from '@/lib/performance';
 import { rateLimiter } from '@/lib/rateLimiter';
 import { useAuth } from '@/lib/auth';
+import { analyticsCollector } from '@/lib/analytics';
 import Settings from '@/components/Settings';
 
 export default function JournalPage() {
@@ -36,6 +37,9 @@ export default function JournalPage() {
       if (user) {
         // Initialize performance monitoring
         await performanceMonitor.initialize();
+        
+        // Initialize analytics
+        await analyticsCollector.initialize();
         
         // Initialize rate limiting
         await rateLimiter.initialize();
@@ -91,6 +95,19 @@ export default function JournalPage() {
         : await storage.saveEntry(entry);
       
       setEntries(prev => [savedEntry, ...prev]);
+      
+      // Track analytics
+      if (entry.source === 'voice') {
+        analyticsCollector.trackEvent('voice_recording_complete', {
+          length: entry.content.length,
+          latency: performance.now() // This would be more accurate with actual latency
+        });
+      } else {
+        analyticsCollector.trackEvent('text_entry_save', {
+          length: entry.content.length
+        });
+      }
+      
       return savedEntry;
     } catch (error) {
       console.error('Failed to save entry:', error);

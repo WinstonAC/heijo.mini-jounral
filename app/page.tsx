@@ -14,8 +14,11 @@ export default function HomePage() {
   useEffect(() => {
     trace('HomePage mounted', { hasSeenIntro: hasSeenIntro() });
     
-    // Check if intro has been shown before
-    if (hasSeenIntro()) {
+    // Check environment variable to disable intro animation
+    const showIntroAnimation = process.env.NEXT_PUBLIC_SHOW_INTRO === 'true';
+    
+    // Check if intro has been shown before OR if disabled via env var
+    if (hasSeenIntro() || !showIntroAnimation) {
       // Skip intro and go directly to login
       trace('Skipping intro, redirecting to login');
       router.push('/login');
