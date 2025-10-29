@@ -276,12 +276,13 @@ class GDPRManager {
 
   /**
    * Get default consent settings
+   * Default to true for local-first app - all data stays on device
    */
   private getDefaultConsent(): ConsentSettings {
     return {
-      microphone: false,
-      dataStorage: false,
-      analytics: false,
+      microphone: false, // Still requires user permission for mic access
+      dataStorage: true, // Auto-granted for local storage
+      analytics: false, // Opt-in only
       lastUpdated: new Date().toISOString(),
       version: this.VERSION
     };

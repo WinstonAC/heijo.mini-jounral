@@ -33,14 +33,6 @@ test.describe('Journal basics', () => {
       await page.waitForTimeout(500);
     }
     
-    // Close GDPR consent Settings modal if it auto-opened (test accounts might not have consent)
-    const settingsModal = page.locator('[role="dialog"]').or(page.locator('.modal')).first();
-    const settingsClose = settingsModal.getByRole('button', { name: /close|×/i }).first();
-    if (await settingsClose.isVisible({ timeout: 2000 }).catch(() => false)) {
-      await settingsClose.click();
-      await page.waitForTimeout(500);
-    }
-    
     // Then wait for Composer textarea - it might need to scroll into view
     const textarea = page.getByPlaceholder('Type or speak your thoughts...');
     await expect(textarea).toBeVisible({ timeout: 15000 });

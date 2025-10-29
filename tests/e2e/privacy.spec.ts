@@ -32,21 +32,20 @@ test.describe('Privacy export/delete', () => {
       await page.waitForTimeout(500);
     }
     
-    // Check if Settings modal is already open (GDPR consent modal auto-opens if no consent)
-    // Try to find any modal/dialog that might be open
-    const settingsModalOpen = await page.locator('text=/Settings|Privacy|Export|Delete/i').first().isVisible({ timeout: 2000 }).catch(() => false);
-    
-    if (!settingsModalOpen) {
-      // Settings modal not open, so click Settings button to open it
-      const settingsBtn = page.getByRole('button', { name: 'Settings', exact: true });
+    // Find and click Settings button to open Settings modal
+    // Try multiple selectors for Settings button
+    let settingsBtn;
+    try {
+      settingsBtn = page.getByRole('button', { name: 'Settings', exact: true });
       await expect(settingsBtn).toBeVisible({ timeout: 10000 });
-      await settingsBtn.scrollIntoViewIfNeeded();
-      await settingsBtn.click();
-      await page.waitForTimeout(1000);
-    } else {
-      // Settings modal already open (GDPR consent), just wait a bit for it to be ready
-      await page.waitForTimeout(1000);
+    } catch {
+      // Fallback: find button by text content
+      settingsBtn = page.locator('button').filter({ hasText: /^Settings$/ });
+      await expect(settingsBtn).toBeVisible({ timeout: 10000 });
     }
+    await settingsBtn.scrollIntoViewIfNeeded();
+    await settingsBtn.click();
+    await page.waitForTimeout(1000);
 
     // Export CSV (Settings modal only has CSV export)
     const exportCsvBtn = page.getByRole('button', { name: /export.*csv/i });

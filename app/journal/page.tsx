@@ -44,11 +44,8 @@ export default function JournalPage() {
         // Initialize rate limiting
         await rateLimiter.initialize();
         
-        // Check GDPR consent
-        const hasConsent = gdprManager.hasDataStorageConsent();
-        if (!hasConsent) {
-          setShowSettings(true);
-        }
+        // GDPR consent check removed - local-first app, no consent blocking needed
+        // Users can still access Settings manually to configure preferences
         
         loadEntries();
         
