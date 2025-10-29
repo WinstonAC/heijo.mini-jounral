@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { resetIntro, forceShowIntro } from '@/lib/introUtils';
 import { trace } from '@/lib/diagnostics/routeTrace';
 
 export default function LoginPage() {
@@ -19,11 +18,7 @@ export default function LoginPage() {
   useEffect(() => {
     trace('LoginPage mounted');
     
-    // [Heijo Remediation 2025-01-06] Auth redirect race protection
-    if (window.location.pathname === '/login' && (window as any).__HEIJO_INTRO_ACTIVE__) {
-      console.log('[Heijo][Splash] Preventing redundant redirect');
-      (window as any).__HEIJO_INTRO_ACTIVE__ = false;
-    }
+    // Intro removed; guard no longer relevant
     
     return () => trace('LoginPage unmounted');
   }, []);
@@ -221,29 +216,7 @@ export default function LoginPage() {
               </p>
             </div>
 
-            {/* Debug controls - only show in development */}
-            {/* Debug buttons - always visible for testing */}
-            <div className="pt-4 border-t border-soft-silver">
-              <div className="flex gap-2 justify-center">
-                <button
-                  onClick={() => {
-                    resetIntro();
-                    window.location.href = '/';
-                  }}
-                  className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 px-3 py-1 border border-soft-silver rounded"
-                >
-                  Reset Intro
-                </button>
-                <button
-                  onClick={() => {
-                    forceShowIntro();
-                  }}
-                  className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 px-3 py-1 border border-soft-silver rounded"
-                >
-                  Show Intro
-                </button>
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>

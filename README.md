@@ -90,7 +90,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key_here
 
 # Site Configuration
 NEXT_PUBLIC_SITE_URL=https://journal.heijo.io
-NEXT_PUBLIC_SHOW_INTRO=false
 
 # Server-side keys (for seeding)
 SUPABASE_URL=https://lzeuvaankbnngfjxpycn.supabase.co
@@ -154,7 +153,7 @@ CREATE POLICY "Prompts are public" ON prompts
 - **Authentication**: Supabase Auth with magic link support
 - **Voice Recognition**: Web Speech API (browser-native)
 - **Encryption**: Web Crypto API (AES-GCM)
-- **Animations**: GSAP for smooth transitions
+- **Animations**: Subtle CSS-based transitions
 
 ### Project Structure
 ```
@@ -227,7 +226,7 @@ heijo-mini-journal/
 - **Color Palette**: Authentic 1985 PalmPilot colors
 - **Typography**: Orbitron font for UI, Inter for content
 - **Layout**: 8-point grid system with consistent spacing
-- **Animations**: Subtle, purposeful animations
+- **Animations**: Subtle, purposeful animations (no intro animation)
 
 ### Design Principles
 - **Dieter Rams Inspired**: Clean, functional, unobtrusive
@@ -256,7 +255,7 @@ heijo-mini-journal/
 - **Analytics Dashboard**: Usage tracking and insights
 - **Enhanced Session Persistence**: Bulletproof authentication with localStorage backup
 - **CORS Configuration**: Production-ready security headers
-- **Intro Animation Control**: Environment-based animation disable
+ 
 - **Improved Data Sync**: Enhanced user_id linking and sync status tracking
 
 ### Stability Improvements
