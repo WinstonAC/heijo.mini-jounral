@@ -21,8 +21,25 @@ test.describe('Journal basics', () => {
     
     await page.waitForURL(/\/journal/, { timeout: 15000 });
     await page.waitForLoadState('networkidle');
+    
+    // Wait for any onboarding modal to close if present
+    await page.waitForTimeout(1000);
+    const onboardingClose = page.getByRole('button', { name: /close|got it/i });
+    if (await onboardingClose.isVisible().catch(() => false)) {
+      await onboardingClose.click();
+      await page.waitForTimeout(500);
+    }
 
-    // Wait for journal page to fully load and Composer to appear
+    // Wait for journal page to fully load - try multiple selectors
+    // Settings button might take time, or try finding textarea directly
+    try {
+      await expect(page.getByRole('button', { name: /settings/i })).toBeVisible({ timeout: 5000 });
+    } catch {
+      // Fallback: look for any text that confirms journal loaded
+      await expect(page.getByText(/Journal|Heijō|mini-journal/i)).toBeVisible({ timeout: 15000 });
+    }
+    
+    // Then wait for Composer textarea
     await expect(page.getByPlaceholder('Type or speak your thoughts...')).toBeVisible({ timeout: 15000 });
 
     // Create entry using textarea with placeholder

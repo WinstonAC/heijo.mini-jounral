@@ -21,24 +21,30 @@ test.describe('Privacy export/delete', () => {
     
     await page.waitForURL(/\/journal/, { timeout: 15000 });
     await page.waitForLoadState('networkidle');
+    
+    // Wait for any onboarding modal to close if present
+    await page.waitForTimeout(1000);
+    const onboardingClose = page.getByRole('button', { name: /close|got it/i });
+    if (await onboardingClose.isVisible().catch(() => false)) {
+      await onboardingClose.click();
+      await page.waitForTimeout(500);
+    }
 
-    // Open Settings modal - Settings button should be visible
-    await expect(page.getByRole('button', { name: /settings/i })).toBeVisible({ timeout: 10000 });
-    await page.getByRole('button', { name: /settings/i }).click();
+    // Wait for journal to fully load - try to find Settings button or page content
+    const settingsBtn = page.getByRole('button', { name: /settings/i });
+    if (await settingsBtn.isVisible().catch(() => false)) {
+      await settingsBtn.click();
+    } else {
+      // Fallback: try getByText with exact "Settings"
+      await page.getByText('Settings', { exact: true }).click({ timeout: 15000 });
+    }
     await page.waitForTimeout(1000);
 
-    // Export JSON
-    const exportJsonBtn = page.getByRole('button', { name: /export.*json/i });
-    if (await exportJsonBtn.isVisible().catch(() => false)) {
-      await exportJsonBtn.click();
-      await page.waitForTimeout(1000);
-    }
-    
-    // Export CSV
+    // Export CSV (Settings modal only has CSV export)
     const exportCsvBtn = page.getByRole('button', { name: /export.*csv/i });
     if (await exportCsvBtn.isVisible().catch(() => false)) {
       await exportCsvBtn.click();
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(2000);
     }
 
     // Delete all data (with confirmation dialog)
