@@ -186,6 +186,7 @@ heijo-mini-journal/
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Security and performance implementation details
 - **[Tester Onboarding](docs/TESTER_ONBOARDING.md)** - How to join and what to expect
 - **[What To Test](docs/WHAT_TO_TEST.md)** - 1‑page test checklist
+- **[Test Accounts](docs/TEST_ACCOUNTS.md)** - Shared test credentials and management
 - **[Extension Packaging](docs/technical/EXTENSION_PACKAGING.md)** - Build and load instructions for Chrome and O365 (add‑in)
 
 ### Technical Documentation
@@ -338,6 +339,27 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - QA Matrix (implemented features): `docs/QA_MATRIX.md`
  - Extension Packaging Guide: `docs/technical/EXTENSION_PACKAGING.md`
 
+### End-to-end Tests (Playwright)
+1. Install Playwright (first time):
+   ```bash
+   npm i -D @playwright/test
+   npx playwright install --with-deps
+   ```
+2. Set environment variables:
+   ```bash
+   export BASE_URL=https://journal.heijo.io
+   export TEST_EMAIL=testrunner+01@heijo.io
+   export TEST_PASSWORD=Heijo-Test-2025!
+   ```
+3. Run tests:
+   ```bash
+   npx playwright test
+   ```
+4. Open HTML report:
+   ```bash
+   npx playwright show-report
+   ```
+
 ## 📦 Versioning & Changelog
 
 - Semantic versioning is used for releases.
@@ -355,7 +377,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Documentation**: [Full Documentation](docs/)
 - **Issues (Report a bug)**: https://github.com/WinstonAC/heijo.mini-jounral/issues
-- **Email**: support@heijo.io
+- **Email**: [support@heijo.io](mailto:support@heijo.io)
 - **Discussions**: https://github.com/WinstonAC/heijo.mini-jounral/discussions
 
 ---

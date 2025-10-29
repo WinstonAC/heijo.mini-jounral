@@ -88,8 +88,8 @@ export default function PrivacyPage() {
 
             <h2 className="text-xl font-medium text-[#1A1A1A] mb-4">Contact</h2>
             <p className="text-[#6A6A6A] mb-4">
-              If you have any questions about this privacy policy or how we handle your data, 
-              please contact us through the app settings or visit our support page.
+              If you have any questions about this privacy policy or how we handle your data, contact us at 
+              <a href="mailto:support@heijo.io" className="underline">support@heijo.io</a>.
             </p>
 
             <div className="mt-8 pt-6 border-t border-[#C7C7C7]">

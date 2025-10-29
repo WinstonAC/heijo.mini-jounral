@@ -5,6 +5,7 @@ Validate core journaling, auth, privacy export/delete, and basic UX across commo
 
 ### Access
 - Web URL: set by maintainer (Vercel/host). Share this with testers.
+- Optional: Shared test account(s) listed in `docs/TEST_ACCOUNTS.md`
 
 ### Sign in
 1. Open the site URL

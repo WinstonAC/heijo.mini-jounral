@@ -253,13 +253,20 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
             </button>
           </div>
 
-          {/* Privacy Policy Link */}
-          <div className="text-center">
+          {/* Legal Links */}
+          <div className="text-center flex items-center justify-center gap-4">
             <a
               href="/privacy"
               className="text-xs text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors"
             >
-              View Privacy Policy
+              Privacy Policy
+            </a>
+            <span className="text-[#B8B8B8]">•</span>
+            <a
+              href="/terms"
+              className="text-xs text-[#6A6A6A] hover:text-[#1A1A1A] transition-colors"
+            >
+              Terms of Service
             </a>
           </div>
         </div>

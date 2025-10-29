@@ -248,13 +248,20 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
             </button>
           </div>
 
-          {/* Privacy Policy Link */}
-          <div className="text-center">
+          {/* Legal Links */}
+          <div className="text-center flex items-center justify-center gap-4">
             <a
               href="/privacy"
               className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors"
             >
-              View Privacy Policy
+              Privacy Policy
+            </a>
+            <span className="text-soft-silver">•</span>
+            <a
+              href="/terms"
+              className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors"
+            >
+              Terms of Service
             </a>
           </div>
         </div>
