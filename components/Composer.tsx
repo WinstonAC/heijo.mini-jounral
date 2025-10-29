@@ -660,7 +660,7 @@ ${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
       {/* Toast Notifications */}
       {showToast && (
         <div className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-          Saved to Heijo Cloud
+          Saved locally
         </div>
       )}
 

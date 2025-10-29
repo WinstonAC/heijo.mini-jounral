@@ -81,7 +81,7 @@ npm run lint
 
 ### Environment Variables
 
-Create a `.env.local` file for Supabase integration:
+Create a `.env.local` file for Supabase integration (or copy from `.env.example`):
 
 ```env
 # Supabase Configuration
@@ -98,6 +98,11 @@ SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
 **Note**: The app works completely offline without these variables. Supabase is used for cloud sync and authentication.
+
+#### Environment Validation
+- If `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are omitted, the app runs in local‑only mode (no cloud sync/auth).
+- When provided, the app will attempt background sync to Supabase and persist sessions; failures surface non‑blocking toasts.
+- `SUPABASE_SERVICE_ROLE_KEY` is only used for local seeding/scripts and must never be exposed in client bundles.
 
 ### Supabase Setup (Optional)
 
@@ -180,6 +185,7 @@ heijo-mini-journal/
 ### Main Documentation
 - **[README.md](README.md)** - Complete project overview and setup
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Security and performance implementation details
+ - **[Extension Packaging](docs/technical/EXTENSION_PACKAGING.md)** - Build and load instructions for Chrome and O365 (add‑in)
 
 ### Technical Documentation
 - **[Database Architecture](docs/technical/DATABASE.md)** - Database schema and data management patterns
@@ -187,6 +193,8 @@ heijo-mini-journal/
 - **[Security](docs/technical/SECURITY.md)** - Security features and privacy implementation
 - **[Frontend Architecture](docs/technical/FRONTEND.md)** - React components and UI architecture
 - **[API & Integrations](docs/technical/API.md)** - External service integrations
+ - **[Architecture Overview](docs/technical/ARCHITECTURE.md)** - System context and diagram notes
+ - **[Deployment & CI/CD](docs/technical/DEPLOYMENT.md)** - Deployment paths and CI notes
 
 ### Product Documentation
 - **[Features](docs/product/FEATURES.md)** - Comprehensive feature overview
@@ -292,6 +300,47 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🔧 Troubleshooting
+
+- Build error: Unsupported Server Component type on `/debug/mic`
+  - Cause: Static prerender of a diagnostics page.
+  - Fix: Already resolved by marking `/debug/mic` as dynamic. If you still see it, ensure you’re on latest main and rebuild.
+
+- Voice recognition not working
+  - Ensure your browser supports Web Speech API (Chrome, Edge, Safari 14+).
+  - Grant microphone permission; reload the page after granting.
+  - If using HTTPS locally, use `http://localhost:3000` or a trusted certificate.
+
+- Supabase sync not working
+  - Fill `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
+  - Confirm RLS policies and `journal_entries` schema match `docs/technical/DATABASE.md`.
+  - The app works offline without these; only cloud sync depends on them.
+
+- Clear local data (reset app state)
+  - Use the Privacy page export/delete controls (`/privacy`) or clear browser Site Data.
+
+- iCloud duplicate files in repo
+  - `Library/` is ignored. If tracked earlier, run the cleanup steps committed in main.
+
+- Extension build issues (Chrome)
+  - Ensure `manifest.json` matches your build output paths and CSP. See `docs/technical/EXTENSION_PACKAGING.md`.
+  - Service workers require HTTPS or `localhost`; use Chrome’s extension dev mode.
+
+- Outlook (O365) add‑in load issues
+  - Validate `manifest.xml` against Office Add‑in validator.
+  - If blocked by CSP, ensure resources are bundled or allowed by add‑in policies.
+
+## 🧪 QA Resources
+
+- Testing Readiness Report: `docs/TESTING_READINESS.md`
+- QA Matrix (implemented features): `docs/QA_MATRIX.md`
+ - Extension Packaging Guide: `docs/technical/EXTENSION_PACKAGING.md`
+
+## 📦 Versioning & Changelog
+
+- Semantic versioning is used for releases.
+- See `CHANGELOG.md` for notable changes.
 
 ## 🙏 Acknowledgments
 

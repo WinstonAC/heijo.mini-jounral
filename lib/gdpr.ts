@@ -160,6 +160,32 @@ class GDPRManager {
   }
 
   /**
+   * Import data from a previously exported JSON file
+   */
+  async importFromJSON(file: File): Promise<{ imported: number }>{
+    const text = await file.text();
+    const parsed = JSON.parse(text) as DataExport | { entries: JournalEntry[] };
+    const entries: JournalEntry[] = (parsed as any).entries || [];
+
+    let imported = 0;
+    for (const entry of entries) {
+      try {
+        await secureStorage.saveEntry({
+          content: entry.content,
+          created_at: entry.created_at,
+          source: entry.source,
+          tags: entry.tags || [],
+          user_id: entry.user_id
+        } as any);
+        imported++;
+      } catch (e) {
+        console.warn('Failed to import entry', entry.id, e);
+      }
+    }
+    return { imported };
+  }
+
+  /**
    * Export data as CSV file
    */
   async exportAsCSV(): Promise<void> {

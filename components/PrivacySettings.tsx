@@ -14,6 +14,8 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileInputId = 'heijo-import-file-input';
 
   useEffect(() => {
     if (isOpen) {
@@ -55,6 +57,20 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
       console.error('Export failed:', error);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleImportJSON = async (file: File) => {
+    setIsImporting(true);
+    try {
+      const { imported } = await gdprManager.importFromJSON(file);
+      await loadData();
+      alert(`Imported ${imported} entries from backup.`);
+    } catch (error) {
+      console.error('Import failed:', error);
+      alert('Import failed. Please verify the file format.');
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -184,7 +200,7 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
           {/* Data Export */}
           <div className="mb-6">
             <h3 className="text-sm font-medium text-[#1A1A1A] mb-4">Export Your Data</h3>
-            <div className="flex gap-3">
+            <div className="flex gap-3 flex-wrap items-center">
               <button
                 onClick={handleExportJSON}
                 disabled={isExporting || metrics.totalEntries === 0}
@@ -199,6 +215,26 @@ export default function PrivacySettings({ isOpen, onClose }: PrivacySettingsProp
               >
                 {isExporting ? 'Exporting...' : 'Export as CSV'}
               </button>
+              <div className="relative">
+                <input
+                  id={fileInputId}
+                  type="file"
+                  accept=".json,application/json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files && e.target.files[0];
+                    if (f) handleImportJSON(f);
+                    (e.target as HTMLInputElement).value = '';
+                  }}
+                />
+                <button
+                  onClick={() => document.getElementById(fileInputId)?.click()}
+                  disabled={isImporting}
+                  className="px-4 py-2 text-sm font-light border border-[#B8B8B8] text-[#6A6A6A] hover:bg-[#F0F0F0] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded"
+                >
+                  {isImporting ? 'Importing...' : 'Restore from Backup (JSON)'}
+                </button>
+              </div>
             </div>
           </div>
 
