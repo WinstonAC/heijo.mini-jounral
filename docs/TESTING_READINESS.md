@@ -33,7 +33,7 @@ For each feature: how it works (flow, logic, data path) + readiness.
   - Consent/settings: `lib/gdpr.ts` uses `localStorage` key `heijo-consent-settings` for microphone, data storage, and analytics consent.
   - Session: Supabase session also persisted in `localStorage` as `heijo_session` in `lib/auth.tsx`.
   - Persistence across sessions: Yes, via `localStorage` and IndexedDB; cloud sync optional via Supabase.
-  - Privacy/deletion: `gdprManager.deleteAllData()` clears secure data and consent keys; export JSON/CSV supported.
+  - Privacy/deletion: `gdprManager.deleteAllData()` clears secure data and consent keys; export JSON/CSV supported. Import/restore from JSON backup now available via Privacy Settings.
 - Readiness: ✅ Works.
 
 #### Analytics / Usage Tracking
@@ -55,21 +55,21 @@ For each feature: how it works (flow, logic, data path) + readiness.
 ### 📄 2) Documentation & Technical Specs
 - Architecture/tech docs: Present under `docs/technical` and `docs/product`. No Google/Microsoft integration docs (not implemented).
 - `.env.example`: Present for Supabase keys only; no calendar credentials (not applicable).
-- Extension build/packaging (Chrome + O365): Not present.
+- Extension build/packaging (Chrome + O365): Present (`docs/technical/EXTENSION_PACKAGING.md`).
 - Database schema/auth rules: Included in README and `docs/technical/DATABASE.md`; RLS policies documented.
 - QA matrices: Not found.
 
-Gaps: Extension packaging, OAuth provider docs, QA matrix.
+Gaps: OAuth provider docs, QA matrix.
 
 ---
 
 ### 📘 3) README Verification
 - Overview, stack, install, dev: Present.
-- Extension build/load: Missing.
-- Local storage & privacy explanation: Present at high level; detailed behavior exists in `docs/technical/SECURITY.md`, `gdpr.ts`.
-- Testing commands/troubleshooting: Lint/build scripts present; no explicit troubleshooting section.
+- Extension build/load: Present (linked to `docs/technical/EXTENSION_PACKAGING.md`).
+- Local storage & privacy explanation: Present; backup/restore described in Privacy Settings and `gdpr.ts`.
+- Testing commands/troubleshooting: Present (expanded troubleshooting section).
 
-Gaps: Extension instructions, troubleshooting.
+Gaps: None critical for current scope.
 
 ---
 
@@ -77,8 +77,8 @@ Gaps: Extension instructions, troubleshooting.
 - Linting/formatting: ESLint config present; Tailwind configured.
 - Build: Next.js 14 project; standard `build`/`start` scripts.
 - Env validation: Supabase URL/key required when sync is enabled; offline mode works without.
-- CI/CD: Vercel config present; no CI pipelines documented.
-- Versions/changelog: Versions in `package.json`; release notes in README; no CHANGELOG file.
+- CI/CD: Vercel config present; CI guidance added (`docs/technical/DEPLOYMENT.md`).
+- Versions/changelog: Versions in `package.json`; release notes in README; CHANGELOG present (`CHANGELOG.md`).
 
 ---
 
@@ -109,7 +109,6 @@ Gaps: Extension instructions, troubleshooting.
 
 ### ⚙️ Incomplete / Partial Areas
 - Google/Microsoft OAuth, calendar free/busy, scheduling/reminders, meditation modalities, premium gating, enterprise dashboard: ❌ Missing.
-- Extension build/packaging guides (Chrome + O365): ❌ Missing.
 - QA matrix: ❌ Missing.
 
 ---
