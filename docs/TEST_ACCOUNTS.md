@@ -12,15 +12,18 @@ Use these accounts for smoke tests and demos. Replace placeholders with real val
 - Temporary password: Heijo-Test-2025!
 
 ### How to create these accounts
-Option A — Via app (preferred):
-1. Visit the deployed site: https://journal.heijo.io/login
-2. Click “Sign up” and create the account(s) above
-3. Record the password(s) here after creation
-
-Option B — Supabase Dashboard:
+Option A — Supabase Dashboard (recommended for test accounts):
 1. Open your Supabase project → Authentication → Users
-2. Click “Add user” → enter email and set a temporary password
-3. Ensure email confirmations are handled per your project settings
+2. Click "Add user" → enter email and set a temporary password
+3. **IMPORTANT**: After creating, click the user → "Confirm email" button to verify the account
+   - Without confirmation, login will fail with "Email not confirmed" error
+   - Test accounts must have `email_confirmed_at` set for automated tests to work
+
+Option B — Via app:
+1. Visit the deployed site: https://journal.heijo.io/login
+2. Click "Sign up" and create the account(s) above
+3. Check email and confirm the account link
+4. Record the password(s) here after creation
 
 ### Data reset
 - Use `/privacy` → “Delete all data” to clear test entries for the currently signed‑in user
