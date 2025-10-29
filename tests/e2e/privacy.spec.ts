@@ -20,25 +20,33 @@ test.describe('Privacy export/delete', () => {
     await page.getByRole('button', { name: /sign in/i }).click({ force: true });
     
     await page.waitForURL(/\/journal/, { timeout: 15000 });
-    await page.waitForLoadState('networkidle');
+    
+    // Wait for loading states to complete - wait for header text which appears when page loads
+    await expect(page.getByText(/Heijō/i).first()).toBeVisible({ timeout: 15000 });
     
     // Wait for any onboarding modal to close if present
     await page.waitForTimeout(1000);
-    const onboardingClose = page.getByRole('button', { name: /close|got it/i });
+    const onboardingClose = page.getByRole('button', { name: /close|got it|got it!/i });
     if (await onboardingClose.isVisible().catch(() => false)) {
       await onboardingClose.click();
       await page.waitForTimeout(500);
     }
-
-    // Wait for journal page content first
-    await expect(page.getByText(/Heijō|mini-journal/i).first()).toBeVisible({ timeout: 15000 });
     
-    // Wait for journal to fully load - try to find Settings button
-    // Look in header area where Settings button should be
-    const settingsBtn = page.locator('button').filter({ hasText: /Settings/i });
-    await expect(settingsBtn).toBeVisible({ timeout: 10000 });
-    await settingsBtn.click();
-    await page.waitForTimeout(1000);
+    // Check if Settings modal is already open (GDPR consent modal auto-opens if no consent)
+    // Try to find any modal/dialog that might be open
+    const settingsModalOpen = await page.locator('text=/Settings|Privacy|Export|Delete/i').first().isVisible({ timeout: 2000 }).catch(() => false);
+    
+    if (!settingsModalOpen) {
+      // Settings modal not open, so click Settings button to open it
+      const settingsBtn = page.getByRole('button', { name: 'Settings', exact: true });
+      await expect(settingsBtn).toBeVisible({ timeout: 10000 });
+      await settingsBtn.scrollIntoViewIfNeeded();
+      await settingsBtn.click();
+      await page.waitForTimeout(1000);
+    } else {
+      // Settings modal already open (GDPR consent), just wait a bit for it to be ready
+      await page.waitForTimeout(1000);
+    }
 
     // Export CSV (Settings modal only has CSV export)
     const exportCsvBtn = page.getByRole('button', { name: /export.*csv/i });
