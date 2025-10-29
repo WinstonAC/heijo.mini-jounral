@@ -30,14 +30,14 @@ test.describe('Privacy export/delete', () => {
       await page.waitForTimeout(500);
     }
 
-    // Wait for journal to fully load - try to find Settings button or page content
-    const settingsBtn = page.getByRole('button', { name: /settings/i });
-    if (await settingsBtn.isVisible().catch(() => false)) {
-      await settingsBtn.click();
-    } else {
-      // Fallback: try getByText with exact "Settings"
-      await page.getByText('Settings', { exact: true }).click({ timeout: 15000 });
-    }
+    // Wait for journal page content first
+    await expect(page.getByText(/Heijō|mini-journal/i).first()).toBeVisible({ timeout: 15000 });
+    
+    // Wait for journal to fully load - try to find Settings button
+    // Look in header area where Settings button should be
+    const settingsBtn = page.locator('button').filter({ hasText: /Settings/i });
+    await expect(settingsBtn).toBeVisible({ timeout: 10000 });
+    await settingsBtn.click();
     await page.waitForTimeout(1000);
 
     // Export CSV (Settings modal only has CSV export)

@@ -35,8 +35,8 @@ test.describe('Journal basics', () => {
     try {
       await expect(page.getByRole('button', { name: /settings/i })).toBeVisible({ timeout: 5000 });
     } catch {
-      // Fallback: look for any text that confirms journal loaded
-      await expect(page.getByText(/Journal|Heijō|mini-journal/i)).toBeVisible({ timeout: 15000 });
+      // Fallback: look for any text that confirms journal loaded (use first match)
+      await expect(page.getByText(/Journal|Heijō|mini-journal/i).first()).toBeVisible({ timeout: 15000 });
     }
     
     // Then wait for Composer textarea
