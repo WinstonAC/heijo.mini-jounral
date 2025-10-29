@@ -184,7 +184,9 @@ heijo-mini-journal/
 ### Main Documentation
 - **[README.md](README.md)** - Complete project overview and setup
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Security and performance implementation details
- - **[Extension Packaging](docs/technical/EXTENSION_PACKAGING.md)** - Build and load instructions for Chrome and O365 (add‑in)
+- **[Tester Onboarding](docs/TESTER_ONBOARDING.md)** - How to join and what to expect
+- **[What To Test](docs/WHAT_TO_TEST.md)** - 1‑page test checklist
+- **[Extension Packaging](docs/technical/EXTENSION_PACKAGING.md)** - Build and load instructions for Chrome and O365 (add‑in)
 
 ### Technical Documentation
 - **[Database Architecture](docs/technical/DATABASE.md)** - Database schema and data management patterns
@@ -352,8 +354,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - **Documentation**: [Full Documentation](docs/)
-- **Issues**: [GitHub Issues](https://github.com/WinstonAC/heijo.mini-jounral/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/WinstonAC/heijo.mini-jounral/discussions)
+- **Issues (Report a bug)**: https://github.com/WinstonAC/heijo.mini-jounral/issues
+- **Email**: support@heijo.io
+- **Discussions**: https://github.com/WinstonAC/heijo.mini-jounral/discussions
 
 ---
 

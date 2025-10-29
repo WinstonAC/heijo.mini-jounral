@@ -69,6 +69,10 @@ Gaps: OAuth provider docs, QA matrix.
 - Local storage & privacy explanation: Present; backup/restore described in Privacy Settings and `gdpr.ts`.
 - Testing commands/troubleshooting: Present (expanded troubleshooting section).
 
+Additional beta docs for testers:
+- Tester Onboarding: `docs/TESTER_ONBOARDING.md`
+- What To Test: `docs/WHAT_TO_TEST.md`
+
 Gaps: None critical for current scope.
 
 ---
@@ -121,10 +125,10 @@ Gaps: None critical for current scope.
 ---
 
 ### 🚀 Next Steps Before QA Launch
-- Decide scope: Confirm whether calendar/OAuth/meditation/premium/enterprise are in vNext or to be removed from QA scope.
-- Author extension packaging docs if Chrome/O365 extension is in scope.
-- Add QA test matrix covering implemented features (auth, journaling, local storage, GDPR, analytics local-only).
-- Optional: tighten CSP when feasible; add troubleshooting section to README.
+- Environment & RLS: Ensure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set; verify RLS policies per `docs/technical/DATABASE.md`.
+- Capacity: Confirm Supabase project and hosting plan can handle ~100 light users (auth requests, bandwidth, storage).
+- Documentation: Share `docs/TESTER_ONBOARDING.md` and `docs/WHAT_TO_TEST.md` with testers.
+- Feedback: Direct testers to GitHub Issues for bug reports.
 
 ---
 
