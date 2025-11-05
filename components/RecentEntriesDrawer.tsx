@@ -13,6 +13,8 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
   const [isOpen, setIsOpen] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Listen for custom event to open drawer
   useEffect(() => {
@@ -102,8 +104,18 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
     setExpandedWeeks(newExpanded);
   };
 
-  const groups = groupEntriesByTime(entries);
-  const hasEntries = entries.length > 0;
+  // Filter entries by search and tag
+  const filteredEntries = entries.filter(entry => {
+    const matchesSearch = entry.content.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesTag = !selectedTag || entry.tags.includes(selectedTag);
+    return matchesSearch && matchesTag;
+  });
+
+  // Get all unique tags from entries
+  const allTags = Array.from(new Set(entries.flatMap(entry => entry.tags))).sort();
+
+  const groups = groupEntriesByTime(filteredEntries);
+  const hasEntries = filteredEntries.length > 0;
 
   return (
     <>
@@ -151,11 +163,54 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Search and Filter */}
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="Search entries..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-3 py-2 text-sm bg-white border border-heijo-border rounded-lg focus:ring-1 focus:ring-heijo-press focus:outline-none text-graphite-charcoal"
+                />
+                
+                {allTags.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setSelectedTag(null)}
+                      className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                        selectedTag === null
+                          ? 'bg-heijo-press text-white border-heijo-press'
+                          : 'bg-white text-heijo-text border-heijo-border hover:border-heijo-press'
+                      }`}
+                    >
+                      All
+                    </button>
+                    {allTags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setSelectedTag(tag)}
+                        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                          selectedTag === tag
+                            ? 'bg-heijo-press text-white border-heijo-press'
+                            : 'bg-white text-heijo-text border-heijo-border hover:border-heijo-press'
+                        }`}
+                      >
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Empty State */}
               {!hasEntries && (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <p className="text-sm text-text-secondary mb-2">No journal entries yet</p>
-                  <p className="text-xs text-text-caption">Start writing to see your history here</p>
+                  <p className="text-sm text-text-secondary mb-2">
+                    {searchTerm || selectedTag ? 'No entries match your filters' : 'No journal entries yet'}
+                  </p>
+                  <p className="text-xs text-text-caption">
+                    {searchTerm || selectedTag ? 'Try adjusting your search or filter' : 'Start writing to see your history here'}
+                  </p>
                 </div>
               )}
               

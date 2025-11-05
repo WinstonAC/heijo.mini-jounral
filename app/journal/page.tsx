@@ -7,7 +7,6 @@ import EntryList from '@/components/EntryList';
 import RecentEntriesDrawer from '@/components/RecentEntriesDrawer';
 import OnboardingModal from '@/components/OnboardingModal';
 import { storage, JournalEntry } from '@/lib/store';
-import { secureStorage } from '@/lib/secureStorage';
 import { gdprManager } from '@/lib/gdpr';
 import { performanceMonitor } from '@/lib/performance';
 import { rateLimiter } from '@/lib/rateLimiter';
@@ -85,11 +84,10 @@ export default function JournalPage() {
         throw new Error(rateLimitCheck.reason || 'Rate limit exceeded');
       }
 
-      // Use secure storage if consent is given
-      const hasConsent = gdprManager.hasDataStorageConsent();
-      const savedEntry = hasConsent 
-        ? await secureStorage.saveEntry(entry)
-        : await storage.saveEntry(entry);
+      // Always use regular storage (localStorage) for consistency
+      // secureStorage uses IndexedDB which is separate from localStorage
+      // This ensures entries are always accessible via localStorage
+      const savedEntry = await storage.saveEntry(entry);
       
       setEntries(prev => [savedEntry, ...prev]);
       

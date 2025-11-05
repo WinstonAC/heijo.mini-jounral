@@ -388,6 +388,14 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
               Terms of Service
             </button>
           </div>
+
+          {/* Branding */}
+          <div className="mt-6 pt-6 border-t border-soft-silver text-center">
+            <div className="text-[10px] text-text-caption caption-text">
+              <div className="brand-hero">Heijō mini-journal</div>
+              <div className="mt-1">Micro-moments. Macro-clarity.</div>
+            </div>
+          </div>
         </div>
       </div>
 

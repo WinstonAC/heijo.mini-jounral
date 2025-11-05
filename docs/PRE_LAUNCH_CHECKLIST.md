@@ -264,30 +264,45 @@ CREATE INDEX idx_prompts_active ON prompts(is_active) WHERE is_active = true;
 
 ### Before Sharing with External Users
 
-- [ ] **Sign up flow works**
+- [x] **Sign up flow works** ✅ COMPLETED
   - Go to: https://journal.heijo.io/login
   - Create a new account
   - Verify you can sign in
+  - ✅ Added "Forgot password?" feature with password reset
+  - ✅ Email confirmation configured and working
 
-- [ ] **Journal entry creation works**
+- [x] **Journal entry creation works** ✅ COMPLETED
   - Create a text entry
   - Create a voice entry (if browser supports)
   - Verify entries save and appear in list
+  - ✅ Entries save to localStorage (free tier)
+  - ✅ Entries sync to Supabase (premium tier)
 
-- [ ] **Data persistence works**
+- [x] **Data persistence works** ✅ COMPLETED
   - Create an entry
   - Refresh the page
   - Verify entry still exists
+  - ✅ Fixed localStorage priority - entries always load from local first
+  - ✅ History button always visible (shows empty state if no entries)
 
-- [ ] **Privacy controls work**
-  - Go to: `/privacy`
-  - Test export (JSON/CSV download)
+- [x] **Privacy controls work** ✅ COMPLETED
+  - Go to: Settings → Export Your Data
+  - ✅ Test export (CSV download - replaced JSON)
+  - ✅ CSV format: Date, Time, Content, Tags (comma-separated), Source
+  - ✅ Filename: `heijo-journal-YYYY-MM-DD.csv`
   - Test delete (verify data is removed)
 
-- [ ] **Search & tags work**
+- [ ] **Search & tags work** ⚠️ NEEDS VERIFICATION
   - Create entries with tags
   - Search for entries
   - Filter by tags
+
+- [x] **Premium feature works** ✅ COMPLETED
+  - ✅ Premium toggle in Settings
+  - ✅ Upgrade modal (free for testing, payment API TODO)
+  - ✅ Sync confirmation modal
+  - ✅ Supabase sync gated behind premium status
+  - ✅ Local Storage and Premium are mutually exclusive
 
 ---
 
@@ -345,6 +360,15 @@ CREATE INDEX idx_prompts_active ON prompts(is_active) WHERE is_active = true;
 
 ---
 
-**Last Updated:** 2025-01-29
-**Status:** Ready for verification
+**Last Updated:** 2025-11-05
+**Status:** Part 6 In Progress - Export/History fixes completed, Premium feature added
+
+### Recent Updates (2025-11-05):
+- ✅ Fixed CSV export (replaced JSON)
+- ✅ Fixed History button visibility (always visible)
+- ✅ Fixed localStorage priority (local-first approach)
+- ✅ Added Premium Cloud Sync feature
+- ✅ Added password reset functionality
+- ✅ Removed "E" export button from Composer
+- ✅ Build tested and passing
 

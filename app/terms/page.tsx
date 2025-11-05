@@ -66,7 +66,7 @@ export default function TermsPage() {
 
             <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">5. Service Availability</h2>
             <p className="text-text-secondary mb-4 body-text">
-              The app is provided on a best-effort, &quot;as-is&quot; basis. Offline functionality is supported; no uptime is guaranteed for optional cloud sync.
+              The app is provided on a best-effort, &ldquo;as-is&rdquo; basis. Offline functionality is supported; no uptime is guaranteed for optional cloud sync.
             </p>
 
             <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">6. Intellectual Property</h2>

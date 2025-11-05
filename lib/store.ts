@@ -12,7 +12,7 @@ export interface JournalEntry {
 }
 
 export interface StorageBackend {
-  saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { sync_status?: 'local_only' | 'synced' }): Promise<JournalEntry>;
+  saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { sync_status?: JournalEntry['sync_status']; last_synced?: string; id?: string }): Promise<JournalEntry>;
   getEntries(): Promise<JournalEntry[]>;
   getEntry(id: string): Promise<JournalEntry | null>;
   deleteEntry(id: string): Promise<void>;
@@ -56,9 +56,10 @@ class HybridStorage implements StorageBackend {
               .single();
             
             if (!error && data) {
-              // Update localStorage with synced version
+              // Update localStorage with synced version (use existing ID to update, not create new)
               await this.localStorage.saveEntry({
                 ...data,
+                id: data.id, // Include ID so it updates instead of creating new
                 sync_status: 'synced',
                 last_synced: new Date().toISOString()
               });
@@ -218,9 +219,10 @@ class HybridStorage implements StorageBackend {
             .single();
           
           if (!error && data) {
-            // Update localStorage with synced version
+            // Update localStorage with synced version (use existing ID to update, not create new)
             await this.localStorage.saveEntry({
               ...data,
+              id: data.id, // Include ID so it updates instead of creating new
               sync_status: 'synced',
               last_synced: new Date().toISOString()
             });
@@ -318,15 +320,35 @@ class LocalStorage implements StorageBackend {
     return 'heijo-journal-entries';
   }
 
-  async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'>): Promise<JournalEntry> {
+  async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { id?: string; sync_status?: JournalEntry['sync_status']; last_synced?: string }): Promise<JournalEntry> {
+    const existing = this.getStoredEntries();
+    
+    // If entry has an ID, check if it already exists and update it
+    if (entry.id) {
+      const existingIndex = existing.findIndex(e => e.id === entry.id);
+      if (existingIndex !== -1) {
+        // Update existing entry
+        const updatedEntry: JournalEntry = {
+          ...existing[existingIndex],
+          ...entry,
+          id: entry.id,
+          sync_status: entry.sync_status || existing[existingIndex].sync_status,
+          last_synced: entry.last_synced || existing[existingIndex].last_synced
+        };
+        existing[existingIndex] = updatedEntry;
+        localStorage.setItem(this.getStorageKey(), JSON.stringify(existing));
+        return updatedEntry;
+      }
+    }
+    
+    // Create new entry
     const newEntry: JournalEntry = {
       ...entry,
-      id: crypto.randomUUID(),
-      sync_status: 'local_only',
-      last_synced: undefined
+      id: entry.id || crypto.randomUUID(),
+      sync_status: entry.sync_status || 'local_only',
+      last_synced: entry.last_synced || undefined
     };
     
-    const existing = this.getStoredEntries();
     const updated = [newEntry, ...existing];
     localStorage.setItem(this.getStorageKey(), JSON.stringify(updated));
     
