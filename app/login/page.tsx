@@ -13,8 +13,9 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [message, setMessage] = useState('');
   const [showMagicLink, setShowMagicLink] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const router = useRouter();
-  const { signIn, signUp, signInWithMagicLink } = useAuth();
+  const { signIn, signUp, signInWithMagicLink, resetPassword } = useAuth();
 
   useEffect(() => {
     trace('LoginPage mounted');
@@ -76,6 +77,31 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
+
+    if (!email) {
+      setMessage('❌ Please enter your email address');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await resetPassword(email);
+      if (error) {
+        setMessage(error.message);
+      } else {
+        setMessage('✅ Password reset email sent! Check your inbox and click the link to reset your password.');
+      }
+    } catch (error) {
+      setMessage('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 overflow-y-auto flex flex-col justify-center pb-12 sm:pb-0 p-4">
       <div className="w-[90%] max-w-md mx-auto">
@@ -109,7 +135,38 @@ export default function LoginPage() {
 
             {/* Auth Forms */}
             <div className="space-y-6">
-              {!showMagicLink ? (
+              {showForgotPassword ? (
+                <form onSubmit={handleForgotPassword} className="space-y-6">
+                  <div>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Enter your email"
+                      className="w-full px-6 py-4 text-base border border-soft-silver rounded-lg bg-mist-white focus:border-soft-silver focus:outline-none focus:ring-0 focus:bg-white transition-all duration-300 text-graphite-charcoal placeholder-text-caption body-text"
+                      required
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading || !email}
+                    className="w-full px-8 py-5 text-lg font-medium silver-button text-graphite-charcoal rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
+                  >
+                    {isLoading ? 'Sending...' : 'Send Reset Link'}
+                  </button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(false)}
+                      className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 underline"
+                    >
+                      ← Back to Sign In
+                    </button>
+                  </div>
+                </form>
+              ) : !showMagicLink ? (
                 <form onSubmit={handleEmailAuth} className="space-y-6">
                   <div>
                     <input
@@ -150,9 +207,21 @@ export default function LoginPage() {
                     </button>
                   </div>
 
+                  {!isSignUp && (
+                    <div className="text-right">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 underline"
+                      >
+                        Forgot password?
+                      </button>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    disabled={isLoading || !email || !password}
+                    disabled={isLoading || !email || (!isSignUp && !password)}
                     className="w-full px-8 py-5 text-lg font-medium silver-button text-graphite-charcoal rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
                   >
                     {isLoading ? 'Please wait...' : (isSignUp ? 'Create Account' : 'Sign In')}
