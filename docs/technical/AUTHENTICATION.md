@@ -436,4 +436,10 @@ The application includes enhanced CORS error handling to provide clear feedback 
 - Redirect URLs must include your production domain with wildcards
 - Changes may take 1-2 minutes to propagate
 
+**Error Handling Improvements:**
+- Enhanced CORS error detection in `lib/auth.tsx`
+- User-friendly error messages in `app/login/page.tsx`
+- Debug logging in `lib/supabaseClient.ts` to help troubleshoot origin mismatches
+- Automatic detection of CORS-related fetch failures with specific remediation guidance
+
 This authentication system ensures **secure**, **privacy-first**, and **user-friendly** access to the Heijō Mini-Journal application while maintaining offline functionality and data isolation.

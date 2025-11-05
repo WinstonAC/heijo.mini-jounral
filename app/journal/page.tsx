@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Composer from '@/components/Composer';
 import EntryList from '@/components/EntryList';
 import RecentEntriesDrawer from '@/components/RecentEntriesDrawer';
-import OnboardingModal from '@/components/OnboardingModal';
 import { storage, JournalEntry } from '@/lib/store';
 import { gdprManager } from '@/lib/gdpr';
 import { performanceMonitor } from '@/lib/performance';
@@ -17,7 +16,6 @@ import Settings from '@/components/Settings';
 export default function JournalPage() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{ id: string; text: string } | null>(null);
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
@@ -53,30 +51,8 @@ export default function JournalPage() {
           console.warn('Failed to sync local entries:', error);
         });
         
-        // Check if this is the first visit (new user)
-        // Check localStorage first (fallback)
-        const hasSeenOnboardingLocal = localStorage.getItem('heijo-has-seen-onboarding');
-        
-        // Check Supabase user metadata (preferred)
-        let hasSeenOnboarding = hasSeenOnboardingLocal === 'true';
-        
-        if (user) {
-          // Check if user is new (signed up in last 24 hours)
-          const userCreatedAt = user.created_at ? new Date(user.created_at) : null;
-          const isNewUser = userCreatedAt && 
-            (Date.now() - userCreatedAt.getTime()) < 24 * 60 * 60 * 1000; // 24 hours
-          
-          // Check user metadata
-          const metadataSeen = user.user_metadata?.has_seen_onboarding === true;
-          
-          // Show onboarding if: new user AND hasn't seen it
-          if (isNewUser && !metadataSeen && !hasSeenOnboarding) {
-            setShowOnboarding(true);
-          }
-        } else if (!hasSeenOnboarding) {
-          // Fallback for non-authenticated users (shouldn't happen, but safety check)
-          setShowOnboarding(true);
-        }
+        // Welcome overlay is now handled inside Composer component
+        // No modal logic needed here
       }
     };
 
@@ -233,12 +209,6 @@ export default function JournalPage() {
         onExportAll={handleExport}
       />
 
-      {/* Onboarding modal */}
-      <OnboardingModal
-        isOpen={showOnboarding}
-        onClose={() => setShowOnboarding(false)}
-        userId={user?.id || ''}
-      />
 
       {/* Privacy Settings modal */}
       <Settings

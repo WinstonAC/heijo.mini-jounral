@@ -123,9 +123,10 @@ export class NotificationManager {
     }
 
     try {
+      const keyArray = this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: this.urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        applicationServerKey: keyArray.buffer as ArrayBuffer,
       });
 
       // Save subscription to preferences
@@ -282,11 +283,12 @@ export class NotificationManager {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        this.preferences = {
+        const preferences = {
           ...this.getDefaultPreferences(),
           ...parsed,
         };
-        return this.preferences;
+        this.preferences = preferences;
+        return preferences;
       } catch (error) {
         console.error('Error parsing preferences:', error);
       }
@@ -298,7 +300,7 @@ export class NotificationManager {
       const { supabase } = await import('./supabaseClient');
       
       const premium = await checkPremiumStatus();
-      if (premium.isPremium) {
+      if (premium.isPremium && supabase) {
         const { data, error } = await supabase
           .from('user_notification_preferences')
           .select('*')
@@ -353,7 +355,7 @@ export class NotificationManager {
       const { supabase } = await import('./supabaseClient');
       
       const premium = await checkPremiumStatus();
-      if (premium.isPremium) {
+      if (premium.isPremium && supabase) {
         const { error } = await supabase
           .from('user_notification_preferences')
           .upsert({
@@ -408,6 +410,9 @@ export class NotificationManager {
    * Load preferences from localStorage
    */
   private loadPreferences(): void {
+    if (typeof window === 'undefined') {
+      return; // Skip on server-side
+    }
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {

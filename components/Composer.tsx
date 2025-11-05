@@ -46,6 +46,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
+  const [hasSeenWelcome, setHasSeenWelcome] = useState(true); // Default to true, will check localStorage
   
   // Mobile detection hook
   const isMobile = useIsMobile();
@@ -53,8 +55,24 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Feature flag to disable FAB
   const ENABLE_FAB = false;
 
-  // Check if we've shown a prompt today
+  // Check if user has seen welcome overlay (first-time user detection)
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const hasSeen = localStorage.getItem('heijo_hasSeenWelcome');
+    if (hasSeen !== 'true') {
+      setHasSeenWelcome(false);
+      setShowWelcomeOverlay(true);
+    } else {
+      setHasSeenWelcome(true);
+    }
+  }, []);
+
+  // Delay prompt logic until welcome overlay is dismissed
+  useEffect(() => {
+    // Only check for prompts if welcome has been seen
+    if (!hasSeenWelcome || showWelcomeOverlay) return;
+    
     const today = new Date().toDateString();
     const lastShown = localStorage.getItem('heijo-prompt-shown');
     if (lastShown === today) {
@@ -64,13 +82,48 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       // Show prompt question on load if not shown today
       setPromptState('ticking');
     }
-  }, []);
+  }, [hasSeenWelcome, showWelcomeOverlay]);
 
   // Reset prompt for testing - remove this in production
   useEffect(() => {
     // Uncomment the line below to reset prompts for testing
     localStorage.removeItem('heijo-prompt-shown');
   }, []);
+
+  // Handle welcome overlay dismissal
+  const handleDismissWelcome = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('heijo_hasSeenWelcome', 'true');
+      // Also update Supabase user metadata if available
+      if (userId) {
+        import('@/lib/supabaseClient').then(({ supabase }) => {
+          if (supabase) {
+            supabase.auth.getUser().then(({ data: { user } }) => {
+              if (user) {
+                supabase.auth.updateUser({
+                  data: { has_seen_onboarding: true }
+                }).catch(err => console.error('Error updating user metadata:', err));
+              }
+            });
+          }
+        });
+      }
+      // Track analytics
+      analyticsCollector.trackEvent('onboarding_completed', {
+        timestamp: new Date().toISOString(),
+        userId: userId,
+      });
+    }
+    setShowWelcomeOverlay(false);
+    setHasSeenWelcome(true);
+  }, [userId]);
+
+  // Handle typing - dismiss welcome if user starts typing
+  useEffect(() => {
+    if (showWelcomeOverlay && content.trim().length > 0) {
+      handleDismissWelcome();
+    }
+  }, [content, showWelcomeOverlay, handleDismissWelcome]);
 
   const handleAutoSave = useCallback(async () => {
     if (!content.trim()) return;
@@ -456,6 +509,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   ? "flex-1 h-full min-h-0" // Fill space when prompt hidden
                   : "min-h-[200px] sm:min-h-[250px]" // Standard height when prompt visible
               }`}
+              disabled={showWelcomeOverlay}
               style={{
                 fontFamily: 'Inter, system-ui, sans-serif',
                 lineHeight: '1.8',
@@ -482,6 +536,122 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   : undefined)
               }}
             />
+
+            {/* Welcome Overlay - appears inside journal editor on first visit */}
+            {showWelcomeOverlay && (
+              <div 
+                className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10 cursor-default"
+                style={{
+                  background: 'var(--graphite-charcoal)',
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  lineHeight: '1.8',
+                  color: 'var(--text-inverse)',
+                  animation: 'fadeInSlide 0.5s ease-out',
+                }}
+                onClick={(e) => {
+                  // Only dismiss on button click, not overlay click
+                  e.stopPropagation();
+                }}
+              >
+                <style jsx>{`
+                  @keyframes fadeInSlide {
+                    from {
+                      opacity: 0;
+                      transform: translateX(-16px);
+                    }
+                    to {
+                      opacity: 1;
+                      transform: translateX(0);
+                    }
+                  }
+                `}</style>
+                
+                <div className="max-w-2xl w-full space-y-6 text-center">
+                  {/* Welcome Header */}
+                  <h1 
+                    className={`font-semibold ${fontSize === 'small' ? 'text-xl' : fontSize === 'large' ? 'text-3xl' : 'text-2xl'}`}
+                    style={{
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      lineHeight: '1.8',
+                      color: 'var(--text-inverse)',
+                    }}
+                  >
+                    Welcome to Heijō
+                  </h1>
+                  
+                  {/* Tagline */}
+                  <p 
+                    className={`italic ${getFontSizeClass()}`}
+                    style={{
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      lineHeight: '1.8',
+                      color: 'var(--text-inverse)',
+                      opacity: 0.9,
+                    }}
+                  >
+                    Micro-moments. Macro clarity.
+                  </p>
+                  
+                  {/* Privacy Promise */}
+                  <p 
+                    className={getFontSizeClass()}
+                    style={{
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      lineHeight: '1.8',
+                      color: 'var(--text-inverse)',
+                    }}
+                  >
+                    Your data is yours. Entries stay on your device unless you turn on cloud sync.
+                  </p>
+                  
+                  {/* Instructions */}
+                  <p 
+                    className={getFontSizeClass()}
+                    style={{
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      lineHeight: '1.8',
+                      color: 'var(--text-inverse)',
+                    }}
+                  >
+                    To adjust reminders and preferences, click the Settings button at the top of the page.
+                  </p>
+                  
+                  {/* Optional final line */}
+                  <p 
+                    className={`${getFontSizeClass()} opacity-80`}
+                    style={{
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      lineHeight: '1.8',
+                      color: 'var(--text-inverse)',
+                    }}
+                  >
+                    When you&apos;re ready, start by typing or speaking your first reflection.
+                  </p>
+                  
+                  {/* Get Started Button */}
+                  <button
+                    onClick={handleDismissWelcome}
+                    className="mt-8 px-6 py-2 text-sm font-medium rounded-lg transition-all duration-300"
+                    style={{
+                      background: 'var(--soft-silver)',
+                      color: 'var(--graphite-charcoal)',
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      border: '1px solid var(--soft-silver)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--text-inverse)';
+                      e.currentTarget.style.opacity = '0.9';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--soft-silver)';
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                  >
+                    Get started
+                  </button>
+                </div>
+              </div>
+            )}
             
             {/* Jump to live button */}
             {isUserScrolled && isVoiceActive && (

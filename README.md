@@ -322,9 +322,20 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔧 Troubleshooting
 
+- **CORS Authentication Errors**
+  - **Error**: "Access to fetch at '...supabase.co/auth/v1/token' has been blocked by CORS policy"
+  - **Cause**: Supabase Site URL doesn't match your production domain
+  - **Fix**: 
+    1. Go to Supabase Dashboard → Authentication → URL Configuration
+    2. Set Site URL to your production domain (e.g., `https://journal.heijo.io`)
+    3. Add Redirect URLs: `https://journal.heijo.io/**` and `https://journal.heijo.io/*`
+    4. Click "Save changes" and wait 1-2 minutes for propagation
+    5. Clear browser cache and try again
+  - The app now shows clear error messages with specific instructions if CORS issues occur
+
 - Build error: Unsupported Server Component type on `/debug/mic`
   - Cause: Static prerender of a diagnostics page.
-  - Fix: Already resolved by marking `/debug/mic` as dynamic. If you still see it, ensure you’re on latest main and rebuild.
+  - Fix: Already resolved by marking `/debug/mic` as dynamic. If you still see it, ensure you're on latest main and rebuild.
 
 - Voice recognition not working
   - Ensure your browser supports Web Speech API (Chrome, Edge, Safari 14+).
@@ -335,6 +346,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - Fill `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
   - Confirm RLS policies and `journal_entries` schema match `docs/technical/DATABASE.md`.
   - The app works offline without these; only cloud sync depends on them.
+
+- Build errors (TypeScript/linting)
+  - All TypeScript type errors have been resolved
+  - Server-side rendering issues fixed (localStorage access properly guarded)
+  - ESLint warnings resolved (useCallback for hooks, apostrophe escaping)
+  - Run `npm run build` locally before pushing to verify
 
 - Clear local data (reset app state)
   - Use the Privacy page export/delete controls (`/privacy`) or clear browser Site Data.
