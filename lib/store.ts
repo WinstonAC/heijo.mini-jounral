@@ -36,36 +36,40 @@ class HybridStorage implements StorageBackend {
     // Always save to localStorage first for immediate feedback
     const localEntry = await this.localStorage.saveEntry(entry);
 
-    // Try to save to Supabase only if configured
+    // Try to save to Supabase only if user has premium and is authenticated
     if (supabase && isSupabaseConfigured()) {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data, error } = await supabase
-            .from('journal_entries')
-            .insert([{ 
-              ...entry, 
-              user_id: user.id,
-              sync_status: 'synced',
-              last_synced: new Date().toISOString()
-            }])
-            .select()
-            .single();
-          
-          if (!error && data) {
-            // Update localStorage with synced version
-            await this.localStorage.saveEntry({
-              ...data,
-              sync_status: 'synced',
-              last_synced: new Date().toISOString()
-            });
-            return data;
-          } else if (error) {
-            // Check for specific conflict errors
-            if (error.code === '23505' || error.message.includes('duplicate key')) {
-              console.warn('Supabase conflict detected (duplicate key), keeping local entry:', error);
-            } else {
-              console.warn('Supabase insert failed:', error);
+          // Check premium status
+          const premium = user.user_metadata?.premium;
+          if (premium === true) {
+            const { data, error } = await supabase
+              .from('journal_entries')
+              .insert([{ 
+                ...entry, 
+                user_id: user.id,
+                sync_status: 'synced',
+                last_synced: new Date().toISOString()
+              }])
+              .select()
+              .single();
+            
+            if (!error && data) {
+              // Update localStorage with synced version
+              await this.localStorage.saveEntry({
+                ...data,
+                sync_status: 'synced',
+                last_synced: new Date().toISOString()
+              });
+              return data;
+            } else if (error) {
+              // Check for specific conflict errors
+              if (error.code === '23505' || error.message.includes('duplicate key')) {
+                console.warn('Supabase conflict detected (duplicate key), keeping local entry:', error);
+              } else {
+                console.warn('Supabase insert failed:', error);
+              }
             }
           }
         }
@@ -74,26 +78,52 @@ class HybridStorage implements StorageBackend {
       }
     }
 
-    // Return local entry if Supabase fails
+    // Return local entry if Supabase fails or not premium
     return localEntry;
   }
 
   async getEntries(): Promise<JournalEntry[]> {
+    // Always prioritize localStorage first (local-first approach)
+    const localEntries = await this.localStorage.getEntries();
+
+    // Try to get from Supabase only if user has premium and is authenticated
     try {
-      // Try to get from Supabase first
       if (supabase && isSupabaseConfigured()) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data, error } = await supabase
-            .from('journal_entries')
-            .select('*')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-          
-          if (!error && data) {
-            // Merge with local entries and sync
-            await this.syncLocalEntries();
-            return data;
+          // Check premium status
+          const premium = user.user_metadata?.premium;
+          if (premium === true) {
+            const { data, error } = await supabase
+              .from('journal_entries')
+              .select('*')
+              .eq('user_id', user.id)
+              .order('created_at', { ascending: false });
+            
+            if (!error && data && data.length > 0) {
+              // Merge Supabase and localStorage entries
+              // Combine both sources, removing duplicates by id
+              const mergedEntries = new Map<string, JournalEntry>();
+              
+              // Add local entries first (prioritize local)
+              localEntries.forEach(entry => {
+                mergedEntries.set(entry.id, entry);
+              });
+              
+              // Add Supabase entries (will overwrite local if same id, but prefer local)
+              data.forEach(entry => {
+                if (!mergedEntries.has(entry.id)) {
+                  mergedEntries.set(entry.id, entry);
+                }
+              });
+              
+              // Sync local-only entries to Supabase
+              await this.syncLocalEntries();
+              
+              return Array.from(mergedEntries.values()).sort((a, b) => 
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+              );
+            }
           }
         }
       }
@@ -101,8 +131,8 @@ class HybridStorage implements StorageBackend {
       console.warn('Failed to load from Supabase, using localStorage:', error);
     }
 
-    // Fallback to localStorage
-    return this.localStorage.getEntries();
+    // Return localStorage entries (always available)
+    return localEntries;
   }
 
   async getEntry(id: string): Promise<JournalEntry | null> {
@@ -156,6 +186,13 @@ class HybridStorage implements StorageBackend {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         console.warn('No authenticated user for sync');
+        return;
+      }
+
+      // Check premium status
+      const premium = user.user_metadata?.premium;
+      if (premium !== true) {
+        console.log('User does not have premium, skipping Supabase sync');
         return;
       }
 

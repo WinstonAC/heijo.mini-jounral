@@ -256,43 +256,24 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
 
     try {
-      // Create a single entry object with current content
-      const currentEntry = {
-        content: content.trim(),
-        tags: selectedTags,
-        source,
-        created_at: new Date().toISOString(),
-        user_id: userId || 'anonymous'
-      };
+      // Import CSV export function
+      import('@/lib/csvExport').then(({ exportEntriesAsCSV }) => {
+        // Create a single entry object with current content
+        const currentEntry = {
+          id: crypto.randomUUID(),
+          content: content.trim(),
+          tags: selectedTags,
+          source,
+          created_at: new Date().toISOString(),
+          user_id: userId || 'anonymous',
+          sync_status: 'local_only' as const,
+          last_synced: undefined
+        };
 
-      // Generate filename with timestamp
-      const now = new Date();
-      const timestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const filename = `heijo-entry-${timestamp}.txt`;
-
-      // Create and download the file
-      const contentText = `Heijo Journal Entry
-Date: ${now.toLocaleDateString()}
-Time: ${now.toLocaleTimeString()}
-Source: ${source}
-
-Content:
-${currentEntry.content}
-
-${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
-
-      const blob = new Blob([contentText], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-
-      console.info(`Current entry exported as ${filename}`);
+        // Export as CSV
+        exportEntriesAsCSV([currentEntry]);
+        console.info('Current entry exported as CSV');
+      });
     } catch (error) {
       console.error('Failed to export current entry:', error);
     }
@@ -620,19 +601,6 @@ ${selectedTags.length > 0 ? `Tags: ${selectedTags.join(', ')}` : ''}`;
               </button>
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                 Save
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
-              </div>
-            </div>
-            <div className="relative group">
-              <button
-                onClick={handleExportCurrentEntry}
-                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
-                style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
-              >
-                E
-              </button>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
-                Export Current
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
               </div>
             </div>

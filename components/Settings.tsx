@@ -4,6 +4,9 @@ import { useState, useEffect } from 'react';
 import { gdprManager, ConsentSettings, PrivacyMetrics } from '@/lib/gdpr';
 import { analyticsCollector } from '@/lib/analytics';
 import AnalyticsDashboard from './AnalyticsDashboard';
+import { checkPremiumStatus, activatePremium, deactivatePremium } from '@/lib/premium';
+import { useAuth } from '@/lib/auth';
+import { storage } from '@/lib/store';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -19,6 +22,12 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
   const [isExporting, setIsExporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [isLoadingPremium, setIsLoadingPremium] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     if (isOpen) {
@@ -31,6 +40,10 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
     const metricsData = await gdprManager.getPrivacyMetrics();
     setConsent(consentData);
     setMetrics(metricsData);
+    
+    // Load premium status
+    const premiumStatus = await checkPremiumStatus();
+    setIsPremium(premiumStatus.isPremium);
   };
 
   const handleConsentChange = (key: keyof ConsentSettings, value: boolean) => {
@@ -50,13 +63,98 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
       if (onExportCSV) {
         await onExportCSV();
       } else {
-        await gdprManager.exportAsCSV();
+        const { exportEntriesAsCSV } = await import('@/lib/csvExport');
+        const entries = await storage.exportEntries();
+        exportEntriesAsCSV(entries);
       }
     } catch (error) {
       console.error('Export failed:', error);
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const handlePremiumToggle = async (enabled: boolean) => {
+    if (enabled) {
+      // User wants to enable premium
+      if (!isPremium) {
+        // Show upgrade modal
+        setShowUpgradeModal(true);
+      } else {
+        // Already premium, enable sync
+        setShowSyncConfirm(true);
+      }
+    } else {
+      // User wants to disable premium - show warning
+      const confirmed = window.confirm(
+        'You have 24 hours to export your data. Access to cloud storage will be revoked after that. Do you want to continue?'
+      );
+      if (!confirmed) return;
+
+      setIsLoadingPremium(true);
+      const { error } = await deactivatePremium();
+      if (error) {
+        console.error('Failed to deactivate premium:', error);
+        alert('Failed to deactivate premium. Please try again.');
+      } else {
+        setIsPremium(false);
+        // Update consent to enable local storage when premium is disabled
+        if (consent) {
+          handleConsentChange('dataStorage', true);
+        }
+      }
+      setIsLoadingPremium(false);
+    }
+  };
+
+  const handleUpgradeConfirm = async () => {
+    setIsLoadingPremium(true);
+    setShowUpgradeModal(false);
+    
+    // TODO: Future Development - Replace with actual payment API
+    // For now, activate premium for free (testing only)
+    const { error } = await activatePremium();
+    if (error) {
+      console.error('Failed to activate premium:', error);
+      alert('Failed to activate premium. Please try again.');
+      setIsLoadingPremium(false);
+    } else {
+      setIsPremium(true);
+      // Disable local storage when premium is enabled
+      if (consent) {
+        handleConsentChange('dataStorage', false);
+      }
+      setIsLoadingPremium(false);
+      // Show sync confirmation
+      setShowSyncConfirm(true);
+    }
+  };
+
+  const handleSyncConfirm = async (shouldSync: boolean) => {
+    setShowSyncConfirm(false);
+    
+    if (shouldSync) {
+      setIsSyncing(true);
+      try {
+        // Sync all local entries to Supabase
+        await storage.syncLocalEntries();
+        alert('Your entries have been synced to the cloud!');
+      } catch (error) {
+        console.error('Failed to sync entries:', error);
+        alert('Failed to sync entries. They will sync automatically as you create new entries.');
+      } finally {
+        setIsSyncing(false);
+      }
+    }
+  };
+
+  const handleLocalStorageToggle = (enabled: boolean) => {
+    if (enabled && isPremium) {
+      // Can't enable local storage when premium is active
+      alert('Please disable Premium Cloud Sync first to use Local Data Storage.');
+      return;
+    }
+    handleConsentChange('dataStorage', enabled);
   };
 
   const handleDeleteAll = async () => {
@@ -159,8 +257,28 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={consent.dataStorage}
-                    onChange={(e) => handleConsentChange('dataStorage', e.target.checked)}
+                    checked={consent.dataStorage && !isPremium}
+                    onChange={(e) => handleLocalStorageToggle(e.target.checked)}
+                    disabled={isPremium}
+                    className="sr-only peer"
+                  />
+                  <div className={`w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal ${isPremium ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
+                </label>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm font-medium text-graphite-charcoal">Premium Cloud Sync</div>
+                  <div className="text-xs text-text-secondary">
+                    {isPremium ? 'Premium: Active' : 'Sync across all your devices'}
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isPremium}
+                    onChange={(e) => handlePremiumToggle(e.target.checked)}
+                    disabled={isLoadingPremium}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal"></div>
@@ -294,6 +412,75 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
                 className="px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded-lg"
               >
                 {isDeleting ? 'Deleting...' : 'Delete All'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-75 flex items-center justify-center z-60">
+          <div className="bg-mist-white border border-soft-silver rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-medium text-graphite-charcoal mb-4 subheading">Upgrade to Premium</h3>
+            <p className="text-sm text-text-secondary mb-4">
+              Premium Cloud Sync enables:
+            </p>
+            <ul className="text-sm text-text-secondary mb-6 space-y-2 list-disc list-inside">
+              <li>Sync across all your devices</li>
+              <li>Cloud backup and restore</li>
+              <li>Access your journal anywhere</li>
+            </ul>
+            <p className="text-xs text-text-caption mb-6">
+              {/* TODO: Future Development - Replace with actual payment API (Chrome Web Store / App Store) */}
+              For testing: Premium is currently free. Payment integration coming soon.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="px-4 py-2 text-sm font-medium outline-button rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpgradeConfirm}
+                disabled={isLoadingPremium}
+                className="px-4 py-2 text-sm font-medium bg-graphite-charcoal text-white hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded-lg"
+              >
+                {isLoadingPremium ? 'Activating...' : 'Activate Premium'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sync Confirmation Modal */}
+      {showSyncConfirm && (
+        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-75 flex items-center justify-center z-60">
+          <div className="bg-mist-white border border-soft-silver rounded-lg p-6 max-w-md mx-4">
+            <h3 className="text-lg font-medium text-graphite-charcoal mb-4 subheading">Sync Your Entries?</h3>
+            <p className="text-sm text-text-secondary mb-6">
+              Would you like to sync your existing {metrics?.totalEntries || 0} entries to the cloud? This will enable access across all your devices.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => handleSyncConfirm(false)}
+                className="px-4 py-2 text-sm font-medium outline-button rounded-lg"
+              >
+                Skip
+              </button>
+              <button
+                onClick={() => handleSyncConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-text-secondary hover:text-graphite-charcoal rounded-lg"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleSyncConfirm(true)}
+                disabled={isSyncing}
+                className="px-4 py-2 text-sm font-medium bg-graphite-charcoal text-white hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded-lg"
+              >
+                {isSyncing ? 'Syncing...' : 'Sync Now'}
               </button>
             </div>
           </div>

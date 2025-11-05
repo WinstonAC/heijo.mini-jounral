@@ -134,17 +134,8 @@ export default function JournalPage() {
   const handleExport = async () => {
     try {
       const allEntries = await storage.exportEntries();
-      const dataStr = JSON.stringify(allEntries, null, 2);
-      const dataBlob = new Blob([dataStr], { type: 'application/json' });
-      
-      const url = URL.createObjectURL(dataBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `heijo-journal-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      const { exportEntriesAsCSV } = await import('@/lib/csvExport');
+      exportEntriesAsCSV(allEntries);
     } catch (error) {
       console.error('Failed to export entries:', error);
       alert('Failed to export entries. Please try again.');

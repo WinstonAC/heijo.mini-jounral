@@ -105,10 +105,6 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
   const groups = groupEntriesByTime(entries);
   const hasEntries = entries.length > 0;
 
-  if (!hasEntries) {
-    return null;
-  }
-
   return (
     <>
       {/* Drawer Overlay */}
@@ -155,6 +151,14 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              {/* Empty State */}
+              {!hasEntries && (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <p className="text-sm text-text-secondary mb-2">No journal entries yet</p>
+                  <p className="text-xs text-text-caption">Start writing to see your history here</p>
+                </div>
+              )}
+              
               {/* Today */}
               {groups.today.length > 0 && (
                 <div>
