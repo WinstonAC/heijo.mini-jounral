@@ -102,7 +102,18 @@ SUPABASE_URL=https://lzeuvaankbnngfjxpycn.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key_here
 ```
 
-**Note**: The app works completely offline without these variables. Supabase is used for cloud sync and authentication.
+**Note**: The app works completely offline without these variables. Supabase is used for cloud sync (Premium tier) and authentication.
+
+### Premium Features (Testing)
+
+For testing premium features:
+1. Sign in to the app
+2. Go to **Settings** → **Consent Settings**
+3. Toggle **"Premium Cloud Sync"** ON
+4. Click **"Activate Premium"** (free for testing)
+5. Premium status is saved to `user_metadata.premium`
+
+See [Premium Features Documentation](docs/PREMIUM_FEATURES.md) for complete details.
 
 #### Environment Validation
 - If `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are omitted, the app runs in local‑only mode (no cloud sync/auth).
