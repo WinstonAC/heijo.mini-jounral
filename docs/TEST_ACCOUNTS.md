@@ -1,5 +1,11 @@
 ## Heijō Mini‑Journal — Test Accounts
 
+> **Note:** Test accounts are **optional** and only needed if:
+> - Running E2E tests (`npm run test:e2e`)
+> - Onboarding beta testers who need shared credentials
+> 
+> For personal use, you can simply use your own account. No test accounts required.
+
 Use these accounts for smoke tests and demos. Replace placeholders with real values once created.
 
 ### Primary test account (recommended)
