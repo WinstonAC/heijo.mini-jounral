@@ -207,18 +207,6 @@ export default function LoginPage() {
                     </button>
                   </div>
 
-                  {!isSignUp && (
-                    <div className="text-right">
-                      <button
-                        type="button"
-                        onClick={() => setShowForgotPassword(true)}
-                        className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 underline"
-                      >
-                        Forgot password?
-                      </button>
-                    </div>
-                  )}
-
                   <button
                     type="submit"
                     disabled={isLoading || !email || (!isSignUp && !password)}
@@ -286,6 +274,15 @@ export default function LoginPage() {
                 >
                   {showMagicLink ? 'Use password instead' : 'Use magic link instead'}
                 </button>
+                
+                {!isSignUp && !showMagicLink && !showForgotPassword && (
+                  <button
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-text-caption hover:text-graphite-charcoal transition-colors duration-200 block w-full py-2 caption-text"
+                  >
+                    Forgot password?
+                  </button>
+                )}
               </div>
             </div>
 
