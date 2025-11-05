@@ -7,6 +7,7 @@ import AnalyticsDashboard from './AnalyticsDashboard';
 import { checkPremiumStatus, activatePremium, deactivatePremium } from '@/lib/premium';
 import { useAuth } from '@/lib/auth';
 import { storage } from '@/lib/store';
+import NotificationSettings from './NotificationSettings';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -332,6 +333,11 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Notification Settings */}
+          <div className="mb-6 border-t border-ui-warm-silver pt-6">
+            <NotificationSettings />
           </div>
 
           {/* Data Export */}

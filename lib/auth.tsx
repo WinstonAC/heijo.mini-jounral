@@ -57,11 +57,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     if (!supabase) return { error: new Error('Supabase not configured') };
     
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { error };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      // Provide clearer error messages for CORS issues
+      if (error && (error.message?.includes('CORS') || error.message?.includes('fetch') || error.message?.includes('Failed to fetch'))) {
+        return { 
+          error: new Error('CORS Error: Please check Supabase dashboard settings. Ensure "https://journal.heijo.io" is added to Site URL and Redirect URLs in Authentication → URL Configuration.') 
+        };
+      }
+      
+      return { error };
+    } catch (err: any) {
+      const errorMessage = err?.message || String(err);
+      if (errorMessage.includes('CORS') || errorMessage.includes('fetch') || errorMessage.includes('Failed to fetch') || errorMessage.includes('Access-Control')) {
+        return { 
+          error: new Error('CORS Error: Please check Supabase dashboard settings. Ensure "https://journal.heijo.io" is added to Site URL and Redirect URLs in Authentication → URL Configuration.') 
+        };
+      }
+      return { error: err };
+    }
   };
 
   const signUp = async (email: string, password: string) => {

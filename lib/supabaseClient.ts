@@ -19,6 +19,13 @@ export const supabase = (() => {
       console.error('Supabase configuration missing:', { supabaseUrl, supabaseAnonKey: supabaseAnonKey ? 'present' : 'missing' });
       return null;
     }
+    
+    // Log current origin for debugging CORS issues
+    if (typeof window !== 'undefined') {
+      console.log('[Supabase] Client initialized with origin:', window.location.origin);
+      console.log('[Supabase] Supabase URL:', supabaseUrl);
+    }
+    
     return createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,

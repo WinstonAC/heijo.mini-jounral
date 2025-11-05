@@ -37,7 +37,9 @@ export default function LoginPage() {
 
       if (error) {
         // Provide helpful guidance for common auth errors
-        if (error.message?.includes('Invalid login credentials')) {
+        if (error.message?.includes('CORS')) {
+          setMessage('❌ Configuration Error: CORS settings in Supabase need to be updated. Please ensure "https://journal.heijo.io" is added to Site URL and Redirect URLs in your Supabase dashboard (Authentication → URL Configuration).');
+        } else if (error.message?.includes('Invalid login credentials')) {
           setMessage('❌ Invalid credentials. Try creating an account first or check your email/password.');
         } else if (error.message?.includes('Email not confirmed') || error.message?.includes('email not confirmed')) {
           setMessage('📧 Please check your email and click the confirmation link before signing in.');

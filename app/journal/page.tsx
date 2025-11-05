@@ -53,11 +53,29 @@ export default function JournalPage() {
           console.warn('Failed to sync local entries:', error);
         });
         
-        // Check if this is the first visit
-        const hasVisited = localStorage.getItem('heijo-has-visited');
-        if (!hasVisited) {
+        // Check if this is the first visit (new user)
+        // Check localStorage first (fallback)
+        const hasSeenOnboardingLocal = localStorage.getItem('heijo-has-seen-onboarding');
+        
+        // Check Supabase user metadata (preferred)
+        let hasSeenOnboarding = hasSeenOnboardingLocal === 'true';
+        
+        if (user) {
+          // Check if user is new (signed up in last 24 hours)
+          const userCreatedAt = user.created_at ? new Date(user.created_at) : null;
+          const isNewUser = userCreatedAt && 
+            (Date.now() - userCreatedAt.getTime()) < 24 * 60 * 60 * 1000; // 24 hours
+          
+          // Check user metadata
+          const metadataSeen = user.user_metadata?.has_seen_onboarding === true;
+          
+          // Show onboarding if: new user AND hasn't seen it
+          if (isNewUser && !metadataSeen && !hasSeenOnboarding) {
+            setShowOnboarding(true);
+          }
+        } else if (!hasSeenOnboarding) {
+          // Fallback for non-authenticated users (shouldn't happen, but safety check)
           setShowOnboarding(true);
-          localStorage.setItem('heijo-has-visited', 'true');
         }
       }
     };
@@ -219,6 +237,7 @@ export default function JournalPage() {
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
+        userId={user?.id || ''}
       />
 
       {/* Privacy Settings modal */}

@@ -38,7 +38,17 @@ These must be set in Vercel for the app to work with authentication and cloud sy
      - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
      - **anon/public key** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-5. **Redeploy After Adding**
+5. **Configure Supabase CORS Settings** ⚠️ **CRITICAL**
+   - Go to: Supabase Dashboard → **Authentication** → **URL Configuration**
+   - **Site URL**: Must be set to `https://journal.heijo.io` (or your production domain)
+   - **Redirect URLs**: Must include:
+     - `https://journal.heijo.io/**`
+     - `https://journal.heijo.io/*`
+     - `http://localhost:3000` (for local development)
+   - **Important**: CORS errors will occur if the Site URL doesn't match your production domain
+   - Click **Save changes** after updating
+
+6. **Redeploy After Adding**
    - After adding env vars, trigger a new deployment
    - Vercel → Deployments → Click "Redeploy" on latest deployment
    - Or push a new commit to trigger auto-deploy

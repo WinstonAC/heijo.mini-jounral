@@ -423,4 +423,17 @@ export const supabase = supabaseUrl && supabaseAnonKey
 4. **Consistent UI patterns** across authentication flows
 5. **Accessibility compliance** for all authentication components
 
+### CORS Configuration
+
+The application includes enhanced CORS error handling to provide clear feedback when authentication fails due to Supabase configuration issues:
+
+- **Error Detection**: Automatically detects CORS-related errors during authentication
+- **User-Friendly Messages**: Displays specific instructions for fixing Supabase URL configuration
+- **Debug Logging**: Logs origin information to console for troubleshooting
+
+**Required Supabase Settings:**
+- Site URL must match your production domain (e.g., `https://journal.heijo.io`)
+- Redirect URLs must include your production domain with wildcards
+- Changes may take 1-2 minutes to propagate
+
 This authentication system ensures **secure**, **privacy-first**, and **user-friendly** access to the Heijō Mini-Journal application while maintaining offline functionality and data isolation.
