@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { notificationManager, NotificationPreferences } from '@/lib/notifications';
 import { useAuth } from '@/lib/auth';
 
@@ -16,11 +16,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
   const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default');
   const [isSupported, setIsSupported] = useState(false);
 
-  useEffect(() => {
-    loadPreferences();
-  }, []);
-
-  const loadPreferences = async () => {
+  const loadPreferences = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
@@ -35,7 +31,11 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    loadPreferences();
+  }, [loadPreferences]);
 
   const handleToggle = async (key: keyof NotificationPreferences, value: boolean) => {
     if (!user || !prefs) return;
@@ -135,7 +135,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
       {!isSupported && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
           <p className="text-sm text-yellow-800">
-            Your browser doesn't support push notifications. Email reminders are still available.
+            Your browser doesn&apos;t support push notifications. Email reminders are still available.
           </p>
         </div>
       )}
@@ -270,7 +270,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
               <div>
                 <div className="text-sm font-medium text-graphite-charcoal">Smart Skip</div>
                 <div className="text-xs text-text-secondary">
-                  Skip reminder if you've already journaled today
+                  Skip reminder if you&apos;ve already journaled today
                 </div>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
@@ -290,7 +290,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
                 <div>
                   <div className="text-sm font-medium text-graphite-charcoal">Quiet Hours</div>
                   <div className="text-xs text-text-secondary">
-                    Don't send notifications during these hours
+                    Don&apos;t send notifications during these hours
                   </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
