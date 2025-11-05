@@ -250,19 +250,25 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
 
           {/* Legal Links */}
           <div className="text-center flex items-center justify-center gap-4">
-            <a
-              href="/privacy"
+            <button
+              onClick={() => {
+                onClose();
+                window.location.href = '/privacy';
+              }}
               className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors"
             >
               Privacy Policy
-            </a>
+            </button>
             <span className="text-soft-silver">•</span>
-            <a
-              href="/terms"
+            <button
+              onClick={() => {
+                onClose();
+                window.location.href = '/terms';
+              }}
               className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors"
             >
               Terms of Service
-            </a>
+            </button>
           </div>
         </div>
       </div>

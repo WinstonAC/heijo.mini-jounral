@@ -30,6 +30,10 @@ yarn-error.log*
 # local env files
 .env*.local
 
+# sensitive credentials (never commit)
+.smtp-credentials.local
+*.credentials.local
+
 # vercel
 .vercel
 
