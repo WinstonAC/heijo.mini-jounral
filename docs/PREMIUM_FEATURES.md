@@ -1,10 +1,47 @@
-# Premium Features Documentation
+# Premium Features & Pricing Documentation
 
-## Overview
+**Last Updated**: 2025-11-05  
+**Status**: Implemented & Testing  
+**Audience**: Product Managers, Developers, Users
 
-Heijō Mini-Journal offers a **freemium model** with two tiers:
-- **Free Tier**: Local storage only (privacy-first, offline-first)
-- **Premium Tier**: Cloud sync across all devices (optional upgrade)
+---
+
+## 📊 Quick Reference (For Product Managers)
+
+### Pricing Model
+- **Free Tier**: $0/year - Complete functionality, local storage only
+- **Premium Tier**: $5/year - Cloud sync across all devices
+- **Testing**: Currently free for testing (manual activation)
+
+### Implementation Status
+- ✅ Premium toggle in Settings UI
+- ✅ Upgrade modal and sync confirmation flow
+- ✅ Cloud sync gated behind premium status
+- ⏳ Payment integration (Chrome Web Store / App Store) - Coming soon
+
+### Revenue Model
+- **ARPU**: $5/year per premium user
+- **Target conversion**: 5-10% free-to-paid
+- **Market position**: Privacy-first, local-first alternative
+
+---
+
+## Business Model
+
+**Freemium SaaS model** with one premium tier focused on cloud sync and multi-device access.
+
+### Market Positioning
+- Privacy-first alternative to mainstream journaling apps
+- Local-first by default (differentiates from competitors)
+- Premium upsell focused on convenience (multi-device), not core features
+- Low-friction upgrade path without restricting free functionality
+
+### Projected Metrics (Year 1)
+- Free Users: 10,000-50,000
+- Premium Conversion: 5-10% (500-5,000 paying users)
+- Annual Revenue: $30,000-$300,000
+
+---
 
 ## Free Tier (Local Storage)
 
@@ -41,7 +78,7 @@ Perfect for users who:
 
 ---
 
-## Premium Tier (Cloud Sync)
+## Premium Tier (Cloud Sync) - $5/year
 
 ### Pricing
 - **$5/year** (one-time annual payment)
@@ -77,20 +114,22 @@ Perfect for users who:
 4. Choose to sync existing entries or skip
 5. New entries automatically sync to cloud
 
-### Technical Details
+---
 
-#### Premium Status Storage
+## Technical Details
+
+### Premium Status Storage
 - **Location**: Supabase `user_metadata.premium` (boolean)
 - **Testing**: Manual toggle updates `user_metadata.premium = true`
 - **Future**: Platform receipt verification (Chrome/App Store)
 
-#### Sync Behavior
+### Sync Behavior
 - **Local-first**: Entries always save to `localStorage` first
 - **Cloud sync**: Only if premium is active
 - **Merge strategy**: Local entries prioritized, cloud merged
 - **Conflict resolution**: Local version takes precedence
 
-#### Data Migration
+### Data Migration
 When upgrading to premium:
 - User is prompted: "Sync your existing X entries to the cloud?"
 - Options:
@@ -98,41 +137,12 @@ When upgrading to premium:
   - **Skip**: Only new entries will sync
   - **Cancel**: Premium activation cancelled
 
-#### Deactivation
+### Deactivation
 When disabling premium:
 - **Warning**: "You have 24 hours to export your data. Access will be revoked after that."
 - **Data**: Cloud data remains for 24 hours, then deleted
 - **Local**: localStorage entries remain (no deletion)
 - **Fallback**: Automatically switches back to local-only mode
-
----
-
-## Testing Premium Features
-
-### Manual Activation (Testing Only)
-
-**For Development/Testing:**
-1. Sign in to the app
-2. Go to **Settings** → **Consent Settings**
-3. Toggle **"Premium Cloud Sync"** ON
-4. Click **"Activate Premium"** in the modal
-5. Premium status is saved to `user_metadata.premium = true`
-
-**Note**: This is for testing only. Production will use payment API verification.
-
-### Testing Checklist
-
-- [ ] Toggle premium ON → Upgrade modal appears
-- [ ] Activate premium → Status updates to "Premium: Active"
-- [ ] Create entry → Saves to localStorage AND Supabase
-- [ ] Sign in on different device → Entries appear
-- [ ] Sync existing entries → All localStorage entries uploaded
-- [ ] Toggle premium OFF → Warning appears, data export recommended
-- [ ] Local storage disabled when premium is ON (mutually exclusive)
-
----
-
-## Implementation Details
 
 ### Code Location
 - **Premium utilities**: `lib/premium.ts`
@@ -224,6 +234,40 @@ if (premium === true) {
 
 ---
 
+## Testing Premium Features
+
+### Manual Activation (Testing Only)
+
+**For Development/Testing:**
+1. Sign in to the app
+2. Go to **Settings** → **Consent Settings**
+3. Toggle **"Premium Cloud Sync"** ON
+4. Click **"Activate Premium"** in the modal
+5. Premium status is saved to `user_metadata.premium = true`
+
+**Note**: This is for testing only. Production will use payment API verification.
+
+### Testing Checklist
+- [ ] Toggle premium ON → Upgrade modal appears
+- [ ] Activate premium → Status updates to "Premium: Active"
+- [ ] Create entry → Saves to localStorage AND Supabase
+- [ ] Sign in on different device → Entries appear
+- [ ] Sync existing entries → All localStorage entries uploaded
+- [ ] Toggle premium OFF → Warning appears, data export recommended
+- [ ] Local storage disabled when premium is ON (mutually exclusive)
+
+---
+
+## Key Decisions Made
+
+1. **Mutually Exclusive Storage**: Local Storage and Premium cannot be ON at the same time
+2. **Local-First Approach**: Entries always save locally first, then sync to cloud
+3. **Free Testing**: Premium activation is free during testing phase
+4. **24-Hour Grace Period**: Users have 24 hours to export data when disabling premium
+5. **Pricing**: $5/year (simple, affordable, annual payment)
+
+---
+
 ## FAQ
 
 ### Q: Can I switch between free and premium?
@@ -254,6 +298,6 @@ For questions about premium features:
 
 ---
 
-**Last Updated**: 2025-11-05  
-**Status**: Premium features implemented, testing phase active
-
+**Related Documentation**:
+- Product Features: `docs/product/FEATURES.md`
+- Architecture: `docs/technical/ARCHITECTURE.md`

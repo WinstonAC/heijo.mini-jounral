@@ -313,8 +313,8 @@ CREATE INDEX idx_prompts_active ON prompts(is_active) WHERE is_active = true;
   - Contains: URL, sign-in steps, what to test
 
 - [ ] **Testing checklist is ready**
-  - File: `docs/WHAT_TO_TEST.md`
-  - Contains: Browser support, test scenarios
+  - File: `docs/TESTING_READINESS.md`
+  - Contains: Browser support, test scenarios, QA matrix
 
 - [ ] **Feedback channels are set up**
   - GitHub Issues: https://github.com/WinstonAC/heijo.mini-jounral/issues

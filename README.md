@@ -202,7 +202,7 @@ heijo-mini-journal/
 - **[README.md](README.md)** - Complete project overview and setup
 - **[Implementation Summary](IMPLEMENTATION_SUMMARY.md)** - Security and performance implementation details
 - **[Tester Onboarding](docs/TESTER_ONBOARDING.md)** - How to join and what to expect
-- **[What To Test](docs/WHAT_TO_TEST.md)** - 1‑page test checklist
+- **[Testing Readiness](docs/TESTING_READINESS.md)** - Complete testing guide and QA matrix
 - **[Test Accounts](docs/TEST_ACCOUNTS.md)** - Shared test credentials and management
 - **[Extension Packaging](docs/technical/EXTENSION_PACKAGING.md)** - Build and load instructions for Chrome and O365 (add‑in)
 
@@ -353,7 +353,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🧪 QA Resources
 
 - Testing Readiness Report: `docs/TESTING_READINESS.md`
-- QA Matrix (implemented features): `docs/QA_MATRIX.md`
+- Testing & QA: `docs/TESTING_READINESS.md`
  - Extension Packaging Guide: `docs/technical/EXTENSION_PACKAGING.md`
 
 ### End-to-end Tests (Playwright)
