@@ -97,7 +97,25 @@ const handleTagAdd = (tag: string) => {
 - **Tag Statistics**: View most used tags
 - **Bulk Operations**: Apply tags to multiple entries
 
-### 4. Privacy-First Architecture
+### 4. Premium & Storage Tiers
+
+#### Free Tier (Local Storage)
+- **Complete functionality**: All journaling features available
+- **Local storage only**: Data stored in browser (`localStorage`)
+- **Privacy-first**: Data never leaves your device
+- **Unlimited**: No limits on entries or storage
+- **Offline-first**: Works completely without internet
+
+#### Premium Tier (Cloud Sync) - $5/year
+- **All free features**: Plus cloud sync
+- **Multi-device access**: Access entries from any device
+- **Cloud backup**: Automatic backup to Supabase
+- **Automatic sync**: Real-time synchronization
+- **Testing**: Currently free for testing (manual activation)
+
+See [Premium Features Documentation](../PREMIUM_FEATURES.md) for complete details.
+
+### 5. Privacy-First Architecture
 
 #### Local Storage
 - **Encrypted Storage**: AES-GCM encryption for all data

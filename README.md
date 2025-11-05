@@ -17,6 +17,12 @@ Heijō Mini-Journal is designed with **privacy-first principles**, offering a co
 - **Zero-Network Mode**: Voice recognition and data storage work without internet
 - **Rate Limiting**: 100 requests/hour per device with anti-automation protection
 
+### 💎 Premium Features (Optional)
+- **Free Tier**: Complete local storage, all features included
+- **Premium Tier**: $5/year for cloud sync across all devices
+- **Testing**: Premium currently free for testing (manual activation)
+- See [Premium Features Documentation](docs/PREMIUM_FEATURES.md) for details
+
 ### 🎤 Voice & Text Input
 - **Streaming Voice Recognition**: Real-time transcription with <300ms latency
 - **Web Speech API**: Browser-native voice recognition for privacy

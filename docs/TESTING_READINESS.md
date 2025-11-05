@@ -43,8 +43,10 @@ For each feature: how it works (flow, logic, data path) + readiness.
 - Readiness: ✅ Works (local‑only).
 
 #### Premium Tier Logic
-- How it works: Not present. No gating flags, upgrade flow, or entitlement checks.
-- Readiness: ❌ Missing.
+- How it works: Premium status stored in `user_metadata.premium` (boolean). Cloud sync gated behind premium check in `lib/store.ts`. Premium toggle in Settings (`components/Settings.tsx`). Manual activation for testing (free). Upgrade modal and sync confirmation flow implemented.
+- Code location: `lib/premium.ts` (utilities), `lib/store.ts` (storage gating), `components/Settings.tsx` (UI)
+- Readiness: ✅ Implemented (testing phase)
+- Documentation: See `docs/PREMIUM_FEATURES.md`
 
 #### Enterprise Dashboard
 - How it works: Not present. No admin/SSO/roles. The included `components/AnalyticsDashboard.tsx` is per‑user local data, not enterprise aggregation.
