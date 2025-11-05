@@ -46,8 +46,8 @@ export default function EntryPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl w-full mx-auto">
-        <div className="bg-[var(--ui-screen)] rounded-lg card-border p-8">
+      <div className="max-w-2xl w-full mx-auto p-4 sm:p-6">
+        <div className="bg-[var(--ui-screen)] rounded-lg card-border p-4 sm:p-6 lg:p-8">
           <div className="text-center text-[var(--ui-graphite)]">
             <p>Loading entry...</p>
           </div>
@@ -58,8 +58,8 @@ export default function EntryPage() {
 
   if (error || !entry) {
     return (
-      <div className="max-w-2xl w-full mx-auto">
-        <div className="bg-[var(--ui-screen)] rounded-lg card-border p-8">
+      <div className="max-w-2xl w-full mx-auto p-4 sm:p-6">
+        <div className="bg-[var(--ui-screen)] rounded-lg card-border p-4 sm:p-6 lg:p-8">
           <div className="text-center text-[var(--ui-graphite)]">
             <p>{error || 'Entry not found'}</p>
             <button
@@ -75,8 +75,8 @@ export default function EntryPage() {
   }
 
   return (
-    <div className="max-w-2xl w-full mx-auto">
-      <div className="bg-[var(--ui-screen)] rounded-lg card-border p-6">
+    <div className="max-w-2xl w-full mx-auto p-4 sm:p-6">
+      <div className="bg-[var(--ui-screen)] rounded-lg card-border p-4 sm:p-6">
         <EntryDetail entry={entry} onDelete={handleDelete} />
       </div>
     </div>

@@ -29,19 +29,19 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <Link
           href="/journal"
-          className="text-sm text-[var(--ui-graphite)] hover:text-[var(--ui-press)] transition-colors"
+          className="text-xs sm:text-sm text-[var(--ui-graphite)] hover:text-[var(--ui-press)] transition-colors"
         >
           ← Back to Journal
         </Link>
         {onDelete && (
           <button
             onClick={handleDelete}
-            className="text-sm text-red-600 hover:text-red-800 transition-colors"
+            className="text-xs sm:text-sm text-red-600 hover:text-red-800 transition-colors"
           >
             Delete
           </button>
@@ -49,26 +49,26 @@ export default function EntryDetail({ entry, onDelete }: EntryDetailProps) {
       </div>
 
       {/* Entry content */}
-      <div className="bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom rounded-lg border border-heijo-border p-6 shadow-sm">
-        <div className="space-y-4">
+      <div className="bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom rounded-lg border border-heijo-border p-4 sm:p-6 shadow-sm">
+        <div className="space-y-3 sm:space-y-4">
           {/* Metadata */}
-          <div className="flex items-center justify-between text-sm text-text-secondary">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs sm:text-sm text-text-secondary">
             <div className="flex items-center gap-2">
               <span>
                 {entry.source === 'voice' ? '🎤 Voice' : '✏️ Text'}
               </span>
               <span>•</span>
-              <span>{formatDateTime(entry.created_at)}</span>
+              <span className="break-words">{formatDateTime(entry.created_at)}</span>
             </div>
           </div>
 
           {/* Tags */}
           {entry.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 sm:gap-2">
               {entry.tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-3 py-1 text-sm bg-soft-silver text-text-secondary rounded-full"
+                  className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-soft-silver text-text-secondary rounded-full"
                 >
                   {tag}
                 </span>

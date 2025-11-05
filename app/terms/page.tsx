@@ -12,9 +12,9 @@ export default function TermsPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-4">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-8 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-4 sm:p-6 lg:p-8 shadow-lg backdrop-blur-sm">
           {/* Back Button */}
           <div className="mb-6">
             <button
@@ -35,56 +35,56 @@ export default function TermsPage() {
             </button>
           </div>
 
-          <h1 className="text-3xl font-light text-graphite-charcoal mb-8 brand-hero">Terms of Service</h1>
+          <h1 className="text-2xl sm:text-3xl font-light text-graphite-charcoal mb-6 sm:mb-8 brand-hero">Terms of Service</h1>
 
           <div className="prose prose-sm max-w-none">
             <p className="text-text-secondary mb-6 body-text">
               <strong>Last updated:</strong> {new Date().toLocaleDateString()}
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">1. Acceptance of Terms</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">1. Acceptance of Terms</h2>
             <p className="text-text-secondary mb-4 body-text">
               By using Heijō, you agree to these Terms of Service. If you do not agree, do not use the app.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">2. Description of Service</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">2. Description of Service</h2>
             <p className="text-text-secondary mb-4 body-text">
               Heijō is a privacy-first journaling application with local-first storage and optional cloud sync via Supabase when configured.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">3. User Responsibilities</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">3. User Responsibilities</h2>
             <ul className="list-disc list-inside text-text-secondary mb-4 space-y-2 body-text">
               <li>Do not use the app for illegal activities or abuse.</li>
               <li>Maintain the security of your device and data exports.</li>
               <li>Comply with applicable laws in your jurisdiction.</li>
             </ul>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">4. Privacy</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">4. Privacy</h2>
             <p className="text-text-secondary mb-4 body-text">
               Your use is also governed by our <a href="/privacy" className="underline hover:text-graphite-charcoal transition-colors">Privacy Policy</a> describing how data is stored locally and how you can export or delete it.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">5. Service Availability</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">5. Service Availability</h2>
             <p className="text-text-secondary mb-4 body-text">
               The app is provided on a best-effort, &ldquo;as-is&rdquo; basis. Offline functionality is supported; no uptime is guaranteed for optional cloud sync.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">6. Intellectual Property</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">6. Intellectual Property</h2>
             <p className="text-text-secondary mb-4 body-text">
               You retain rights to your content. You grant us any limited rights necessary to display and store your content if you enable cloud sync.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">7. Limitation of Liability</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">7. Limitation of Liability</h2>
             <p className="text-text-secondary mb-4 body-text">
               To the maximum extent permitted by law, Heijō is not liable for indirect, incidental, or consequential damages, including data loss. Use export/backups as needed.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">8. Changes to Terms</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">8. Changes to Terms</h2>
             <p className="text-text-secondary mb-4 body-text">
               We may update these Terms from time to time. Continued use after changes constitutes acceptance. The last updated date will be shown at the top of this page.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">9. Contact</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">9. Contact</h2>
             <p className="text-text-secondary mb-4 body-text">
               Questions about these Terms? Contact us at <a href="mailto:support@heijo.io" className="underline hover:text-graphite-charcoal transition-colors">support@heijo.io</a>.
             </p>

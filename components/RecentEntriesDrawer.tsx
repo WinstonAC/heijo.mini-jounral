@@ -126,15 +126,15 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
           onClick={() => setIsOpen(false)}
         >
         <div 
-          className="fixed left-0 top-0 h-full w-full max-w-md bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out"
+          className="fixed left-0 top-0 h-full w-full sm:w-[90%] md:max-w-md bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-heijo-border">
-            <h2 className="text-lg font-light text-heijo-text" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-heijo-border">
+            <h2 className="text-base sm:text-lg font-light text-heijo-text" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Journal History
             </h2>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               {onExportAll && (
                 <div className="relative group">
                   <button
@@ -162,7 +162,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
           </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
               {/* Search and Filter */}
               <div className="space-y-4">
                 <input
@@ -225,7 +225,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                       <div key={entry.id}>
                         <div
                           onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}
-                          className="p-3 bg-[#2A2A2A] border border-[#C7C7C7] hover:border-[#E8E8E8] cursor-pointer transition-colors duration-200"
+                          className="p-2.5 sm:p-3 bg-[#2A2A2A] border border-[#C7C7C7] hover:border-[#E8E8E8] cursor-pointer transition-colors duration-200"
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                         
                         {/* Expanded Entry Content */}
                         {expandedEntry === entry.id && (
-                          <div className="mt-2 p-4 bg-[#1C1C1C] border border-[#C7C7C7] animate-fade-in">
+                          <div className="mt-2 p-3 sm:p-4 bg-[#1C1C1C] border border-[#C7C7C7] animate-fade-in">
                             <div className="space-y-3">
                               <div className="text-sm text-[#E8E8E8] leading-relaxed whitespace-pre-wrap">
                                 {entry.content}
@@ -302,7 +302,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                               setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
                             }
                           }}
-                          className={`p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
+                          className={`p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
                             entry.content.length > 200 ? 'cursor-pointer' : 'cursor-default'
                           }`}
                         >
@@ -407,7 +407,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                                         setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
                                       }
                                     }}
-                                    className={`p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
+                                    className={`p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
                                       entry.content.length > 200 ? 'cursor-pointer' : 'cursor-default'
                                     }`}
                                   >

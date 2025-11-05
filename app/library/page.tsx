@@ -44,8 +44,8 @@ export default function LibraryPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-2xl w-full mx-auto">
-        <div className="bg-[var(--ui-screen)] rounded-lg card-border p-8">
+      <div className="max-w-2xl w-full mx-auto p-4 sm:p-6">
+        <div className="bg-[var(--ui-screen)] rounded-lg card-border p-4 sm:p-6 lg:p-8">
           <div className="text-center text-[var(--ui-graphite)]">
             <p>Loading your library...</p>
           </div>
@@ -55,21 +55,21 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="max-w-2xl w-full mx-auto">
+    <div className="max-w-2xl w-full mx-auto p-4 sm:p-6">
       <div className="bg-[var(--ui-screen)] rounded-lg card-border">
         {/* Header */}
-        <div className="h-12 px-4 flex items-center justify-between border-b border-[var(--ui-warm-silver)]">
+        <div className="h-12 px-3 sm:px-4 flex items-center justify-between border-b border-[var(--ui-warm-silver)]">
           <Link
             href="/journal"
-            className="text-sm text-[var(--ui-graphite)] hover:text-[var(--ui-press)] transition-colors"
+            className="text-xs sm:text-sm text-[var(--ui-graphite)] hover:text-[var(--ui-press)] transition-colors"
           >
             ← Back to Journal
           </Link>
-          <h1 className="lcd">LIBRARY</h1>
+          <h1 className="lcd text-sm sm:text-base">LIBRARY</h1>
         </div>
 
         {/* Main content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Search and filters */}
           <div className="space-y-4">
             <input
@@ -125,7 +125,7 @@ export default function LibraryPage() {
                 <Link
                   key={entry.id}
                   href={`/entry/${entry.id}`}
-                  className="block p-4 bg-white rounded-lg border border-[var(--ui-warm-silver)] hover:border-[var(--ui-silver)] transition-colors"
+                  className="block p-3 sm:p-4 bg-white rounded-lg border border-[var(--ui-warm-silver)] hover:border-[var(--ui-silver)] transition-colors"
                 >
                   <div className="space-y-2">
                     <div className="flex items-start justify-between">

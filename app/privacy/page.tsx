@@ -12,9 +12,9 @@ export default function PrivacyPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-4">
+    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-8 shadow-lg backdrop-blur-sm">
+        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-4 sm:p-6 lg:p-8 shadow-lg backdrop-blur-sm">
           {/* Back Button */}
           <div className="mb-6">
             <button
@@ -35,21 +35,21 @@ export default function PrivacyPage() {
             </button>
           </div>
 
-          <h1 className="text-3xl font-light text-graphite-charcoal mb-8 brand-hero">Privacy Policy</h1>
+          <h1 className="text-2xl sm:text-3xl font-light text-graphite-charcoal mb-6 sm:mb-8 brand-hero">Privacy Policy</h1>
           
           <div className="prose prose-sm max-w-none">
             <p className="text-text-secondary mb-6 body-text">
                 <strong>Last updated:</strong> {new Date().toLocaleDateString()}
               </p>
               
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Data Collection & Storage</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Data Collection & Storage</h2>
             <p className="text-text-secondary mb-4 body-text">
               Heijō is designed with privacy-first principles. All your journal entries, voice recordings, 
               and personal data are stored locally on your device using AES-GCM encryption. We do not 
               collect, store, or transmit your personal content to our servers.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Local Data Storage</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Local Data Storage</h2>
             <ul className="list-disc list-inside text-text-secondary mb-4 space-y-2 body-text">
               <li>All journal entries are encrypted using device-specific keys</li>
               <li>Voice recordings are processed locally and not stored unless you opt-in</li>
@@ -57,35 +57,35 @@ export default function PrivacyPage() {
               <li>No data is transmitted to external servers without your explicit consent</li>
             </ul>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Microphone Access</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Microphone Access</h2>
             <p className="text-text-secondary mb-4 body-text">
               Microphone access is requested only when you tap the record button. Voice data is processed 
               locally using your browser&apos;s speech recognition API and is not transmitted to external servers. 
               You can revoke microphone access at any time through your browser settings.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Data Export & Deletion</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Data Export & Deletion</h2>
             <p className="text-text-secondary mb-4 body-text">
               You have full control over your data. You can export all your journal entries in JSON or CSV 
               format at any time. You can also delete all your data with a single tap. All data deletion 
               is permanent and cannot be undone.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Analytics & Telemetry</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Analytics & Telemetry</h2>
             <p className="text-text-secondary mb-4 body-text">
               Analytics and telemetry are completely optional and disabled by default. If you choose to 
               enable them, only anonymous usage statistics are collected (app performance, feature usage). 
               No personal content or journal entries are ever included in analytics data.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Data Retention</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Data Retention</h2>
             <p className="text-text-secondary mb-4 body-text">
               Your data is retained locally on your device indefinitely unless you choose to delete it. 
               We implement automatic cleanup of old entries after 1 year to prevent excessive storage usage, 
               but this can be disabled in settings.
             </p>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Security</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Security</h2>
             <p className="text-text-secondary mb-4 body-text">
               We implement industry-standard security measures including:
             </p>
@@ -97,7 +97,7 @@ export default function PrivacyPage() {
               <li>No external dependencies that could compromise privacy</li>
             </ul>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Your Rights (GDPR)</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Your Rights (GDPR)</h2>
             <p className="text-text-secondary mb-4 body-text">
               Under GDPR, you have the right to:
             </p>
@@ -110,7 +110,7 @@ export default function PrivacyPage() {
               <li>Object to processing (disable analytics)</li>
             </ul>
 
-            <h2 className="text-xl font-medium text-graphite-charcoal mb-4 subheading">Contact</h2>
+            <h2 className="text-lg sm:text-xl font-medium text-graphite-charcoal mb-3 sm:mb-4 subheading">Contact</h2>
             <p className="text-text-secondary mb-4 body-text">
               If you have any questions about this privacy policy or how we handle your data, contact us at 
               <a href="mailto:support@heijo.io" className="underline hover:text-graphite-charcoal transition-colors">support@heijo.io</a>.
