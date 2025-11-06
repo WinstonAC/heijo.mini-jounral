@@ -7,6 +7,7 @@ import HeaderClock from './HeaderClock';
 import { JournalEntry } from '@/lib/store';
 import { getPrompt, logPromptHistory } from '@/lib/pickPrompt';
 import { analyticsCollector } from '@/lib/analytics';
+import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -55,18 +56,78 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Feature flag to disable FAB
   const ENABLE_FAB = false;
 
-  // Check if user has seen welcome overlay (first-time user detection)
+  // Check if user has seen welcome overlay (account-based, Supabase-first)
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    const hasSeen = localStorage.getItem('heijo_hasSeenWelcome');
-    if (hasSeen !== 'true') {
-      setHasSeenWelcome(false);
-      setShowWelcomeOverlay(true);
-    } else {
-      setHasSeenWelcome(true);
-    }
-  }, []);
+    const checkOnboardingStatus = async () => {
+      // First, check Supabase user metadata (account-based)
+      if (supabase && isSupabaseConfigured() && userId) {
+        try {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          
+          if (!error && user) {
+            const hasSeenOnboarding = user.user_metadata?.has_seen_onboarding === true;
+            
+            if (hasSeenOnboarding) {
+              // User has completed onboarding - don't show overlay
+              setHasSeenWelcome(true);
+              setShowWelcomeOverlay(false);
+              
+              // Sync localStorage for fast future checks
+              try {
+                localStorage.setItem('heijo_hasSeenWelcome', 'true');
+              } catch (e) {
+                // localStorage may be blocked, that's okay
+              }
+              
+              if (process.env.NODE_ENV === 'development') {
+                console.log('Onboarding state: using Supabase metadata (completed)');
+              }
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to check Supabase onboarding status:', error);
+          // Fall through to localStorage check
+        }
+      }
+      
+      // Fallback to localStorage check (for speed + pre-existing data)
+      const hasSeenLocal = localStorage.getItem('heijo_hasSeenWelcome');
+      
+      if (hasSeenLocal === 'true') {
+        // LocalStorage says onboarding is done
+        setHasSeenWelcome(true);
+        setShowWelcomeOverlay(false);
+        
+        // Queue update to Supabase if user exists
+        if (supabase && isSupabaseConfigured() && userId) {
+          supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user && user.user_metadata?.has_seen_onboarding !== true && supabase) {
+              supabase.auth.updateUser({
+                data: { has_seen_onboarding: true }
+              }).catch(err => console.warn('Failed to sync onboarding to Supabase:', err));
+            }
+          });
+        }
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Onboarding state: using localStorage fallback (completed)');
+        }
+      } else {
+        // Show welcome overlay for new users
+        setHasSeenWelcome(false);
+        setShowWelcomeOverlay(true);
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Onboarding state: showing welcome overlay');
+        }
+      }
+    };
+    
+    checkOnboardingStatus();
+  }, [userId]);
 
   // Delay prompt logic until welcome overlay is dismissed
   useEffect(() => {
@@ -93,27 +154,33 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Handle welcome overlay dismissal
   const handleDismissWelcome = useCallback(() => {
     if (typeof window !== 'undefined') {
-      localStorage.setItem('heijo_hasSeenWelcome', 'true');
-      // Also update Supabase user metadata if available
-      if (userId) {
-        import('@/lib/supabaseClient').then(({ supabase }) => {
-          if (supabase) {
-            supabase.auth.getUser().then(({ data: { user } }) => {
-              if (user) {
-                supabase.auth.updateUser({
-                  data: { has_seen_onboarding: true }
-                }).catch(err => console.error('Error updating user metadata:', err));
-              }
-            });
+      // Update localStorage (wrapped in try/catch for safety)
+      try {
+        localStorage.setItem('heijo_hasSeenWelcome', 'true');
+      } catch (error) {
+        console.warn('Failed to update localStorage:', error);
+        // Continue even if localStorage fails
+      }
+      
+      // Update Supabase user metadata (account-based)
+      if (supabase && isSupabaseConfigured() && userId) {
+        supabase.auth.getUser().then(({ data: { user }, error }) => {
+          if (!error && user && supabase) {
+            supabase.auth.updateUser({
+              data: { has_seen_onboarding: true }
+            }).catch(err => console.error('Error updating user metadata:', err));
           }
         });
       }
+      
       // Track analytics
       analyticsCollector.trackEvent('onboarding_completed', {
         timestamp: new Date().toISOString(),
         userId: userId,
       });
     }
+    
+    // Update local state
     setShowWelcomeOverlay(false);
     setHasSeenWelcome(true);
   }, [userId]);
@@ -540,7 +607,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             {/* Welcome Overlay - appears inside journal editor on first visit */}
             {showWelcomeOverlay && (
               <div 
-                className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10 cursor-default"
+                className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10 cursor-pointer"
                 style={{
                   background: 'var(--graphite-charcoal)',
                   fontFamily: 'Inter, system-ui, sans-serif',
@@ -548,10 +615,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   color: 'var(--text-inverse)',
                   animation: 'fadeInSlide 0.5s ease-out',
                 }}
-                onClick={(e) => {
-                  // Only dismiss on button click, not overlay click
-                  e.stopPropagation();
-                }}
+                onClick={handleDismissWelcome}
               >
                 <style jsx>{`
                   @keyframes fadeInSlide {
@@ -592,31 +656,19 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                     Micro-moments. Macro clarity.
                   </p>
                   
+                  {/* Settings Instructions */}
+                  <p 
+                    className={getFontSizeClass()}
+                    style={{
+                      fontFamily: 'Inter, system-ui, sans-serif',
+                      lineHeight: '1.8',
+                      color: 'var(--text-inverse)',
+                    }}
+                  >
+                    To set up your experience, click the Settings icon at the top of the screen. There you can adjust how often Heijō checks your calendar and configure reminders to match your rhythm.
+                  </p>
+                  
                   {/* Privacy Promise */}
-                  <p 
-                    className={getFontSizeClass()}
-                    style={{
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      lineHeight: '1.8',
-                      color: 'var(--text-inverse)',
-                    }}
-                  >
-                    Your data is yours. Entries stay on your device unless you turn on cloud sync.
-                  </p>
-                  
-                  {/* Instructions */}
-                  <p 
-                    className={getFontSizeClass()}
-                    style={{
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      lineHeight: '1.8',
-                      color: 'var(--text-inverse)',
-                    }}
-                  >
-                    To adjust reminders and preferences, click the Settings button at the top of the page.
-                  </p>
-                  
-                  {/* Optional final line */}
                   <p 
                     className={`${getFontSizeClass()} opacity-80`}
                     style={{
@@ -625,30 +677,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                       color: 'var(--text-inverse)',
                     }}
                   >
-                    When you&apos;re ready, start by typing or speaking your first reflection.
+                    Your data is yours. Entries stay on your device unless you turn on cloud sync.
                   </p>
-                  
-                  {/* Get Started Button */}
-                  <button
-                    onClick={handleDismissWelcome}
-                    className="mt-8 px-6 py-2 text-sm font-medium rounded-lg transition-all duration-300"
-                    style={{
-                      background: 'var(--soft-silver)',
-                      color: 'var(--graphite-charcoal)',
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      border: '1px solid var(--soft-silver)',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'var(--text-inverse)';
-                      e.currentTarget.style.opacity = '0.9';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'var(--soft-silver)';
-                      e.currentTarget.style.opacity = '1';
-                    }}
-                  >
-                    Get started
-                  </button>
                 </div>
               </div>
             )}
