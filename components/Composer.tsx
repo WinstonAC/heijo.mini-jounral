@@ -780,20 +780,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             )}
           </div>
 
-          {/* Mobile: Full-width Save button at bottom */}
-          <div className="sm:hidden fixed inset-x-0 bottom-0 bg-white border-t border-soft-silver p-4 safe-area-bottom z-20">
-            <button
-              onClick={handleManualSave}
-              disabled={!content.trim() || isAutoSaving}
-              className="w-full py-3 px-4 rounded-lg text-base font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed silver-button text-graphite-charcoal"
-              style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
-            >
-              {isAutoSaving ? 'Saving...' : 'Save Entry'}
-            </button>
-          </div>
-
-          {/* Desktop: Compact buttons */}
-          <div className="hidden sm:flex items-center gap-2">
+          {/* Compact buttons - visible on all screen sizes */}
+          <div className="flex items-center gap-2">
             <div className="relative group">
               <button
                 onClick={handleManualSave}
