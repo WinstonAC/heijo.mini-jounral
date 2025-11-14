@@ -27,9 +27,10 @@ interface ComposerProps {
   userId?: string;
   fontSize: 'small' | 'medium' | 'large';
   setFontSize: (size: 'small' | 'medium' | 'large') => void;
+  entryCount?: number; // Number of entries for this user
 }
 
-export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize }: ComposerProps) {
+export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize, entryCount = 0 }: ComposerProps) {
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [source, setSource] = useState<'text' | 'voice'>('text');
@@ -57,10 +58,18 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const ENABLE_FAB = false;
 
   // Check if user has seen welcome overlay (account-based, Supabase-first)
+  // Show onboarding only if user has zero entries
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const checkOnboardingStatus = async () => {
+      // Only show onboarding if user has zero entries
+      if (entryCount > 0) {
+        setHasSeenWelcome(true);
+        setShowWelcomeOverlay(false);
+        return;
+      }
+      
       // First, check Supabase user metadata (account-based)
       if (supabase && isSupabaseConfigured() && userId) {
         try {
@@ -116,18 +125,18 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           console.log('Onboarding state: using localStorage fallback (completed)');
         }
       } else {
-        // Show welcome overlay for new users
+        // Show welcome overlay for new users with zero entries
         setHasSeenWelcome(false);
         setShowWelcomeOverlay(true);
         
         if (process.env.NODE_ENV === 'development') {
-          console.log('Onboarding state: showing welcome overlay');
+          console.log('Onboarding state: showing welcome overlay (zero entries)');
         }
       }
     };
     
     checkOnboardingStatus();
-  }, [userId]);
+  }, [userId, entryCount]);
 
   // Delay prompt logic until welcome overlay is dismissed
   useEffect(() => {
@@ -552,7 +561,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       </div>
 
       {/* Journal entry section - Full width dominant */}
-      <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 flex flex-col min-h-0 pb-20 sm:pb-0">
         {/* Graphite charcoal typing area with silver focus */}
         <div className="relative flex-1">
           <div className="relative w-full h-full">
@@ -607,78 +616,60 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             {/* Welcome Overlay - appears inside journal editor on first visit */}
             {showWelcomeOverlay && (
               <div 
-                className="absolute inset-0 flex flex-col items-center justify-center p-8 z-10 cursor-pointer"
+                className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 z-10"
                 style={{
                   background: 'var(--graphite-charcoal)',
                   fontFamily: 'Inter, system-ui, sans-serif',
-                  lineHeight: '1.8',
                   color: 'var(--text-inverse)',
                   animation: 'fadeInSlide 0.5s ease-out',
                 }}
-                onClick={handleDismissWelcome}
               >
                 <style jsx>{`
                   @keyframes fadeInSlide {
                     from {
                       opacity: 0;
-                      transform: translateX(-16px);
+                      transform: translateY(20px);
                     }
                     to {
                       opacity: 1;
-                      transform: translateX(0);
+                      transform: translateY(0);
                     }
                   }
                 `}</style>
                 
-                <div className="max-w-2xl w-full space-y-6 text-center">
+                <div className="max-w-lg w-full space-y-6 text-center px-4">
                   {/* Welcome Header */}
                   <h1 
-                    className={`font-semibold ${fontSize === 'small' ? 'text-xl' : fontSize === 'large' ? 'text-3xl' : 'text-2xl'}`}
+                    className="text-2xl sm:text-3xl font-semibold body-text"
                     style={{
                       fontFamily: 'Inter, system-ui, sans-serif',
-                      lineHeight: '1.8',
                       color: 'var(--text-inverse)',
                     }}
                   >
                     Welcome to Heijō
                   </h1>
                   
-                  {/* Tagline */}
-                  <p 
-                    className={`italic ${getFontSizeClass()}`}
-                    style={{
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      lineHeight: '1.8',
-                      color: 'var(--text-inverse)',
-                      opacity: 0.9,
-                    }}
-                  >
-                    Micro-moments. Macro clarity.
-                  </p>
+                  {/* Instructions */}
+                  <div className="space-y-4 body-text">
+                    <p 
+                      className="text-base sm:text-lg leading-relaxed"
+                      style={{
+                        fontFamily: 'Inter, system-ui, sans-serif',
+                        color: 'var(--text-inverse)',
+                      }}
+                    >
+                      Type or speak your thoughts, tag today&apos;s vibe, then tap Save.
+                    </p>
+                  </div>
                   
-                  {/* Settings Instructions */}
-                  <p 
-                    className={getFontSizeClass()}
-                    style={{
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      lineHeight: '1.8',
-                      color: 'var(--text-inverse)',
-                    }}
+                  {/* CTA Button */}
+                  <button
+                    onClick={handleDismissWelcome}
+                    className="w-full sm:w-auto px-8 py-3 text-base font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 hover:bg-tactile-taupe"
+                    style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
                   >
-                    To set up your experience, click the Settings icon at the top of the screen. There you can adjust how often Heijō checks your calendar and configure reminders to match your rhythm.
-                  </p>
-                  
-                  {/* Privacy Promise */}
-                  <p 
-                    className={`${getFontSizeClass()} opacity-80`}
-                    style={{
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      lineHeight: '1.8',
-                      color: 'var(--text-inverse)',
-                    }}
-                  >
-                    Your data is yours. Entries stay on your device unless you turn on cloud sync.
-                  </p>
+                    Tap to get started
+                  </button>
                 </div>
               </div>
             )}
@@ -789,17 +780,31 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             )}
           </div>
 
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+          {/* Mobile: Full-width Save button at bottom */}
+          <div className="sm:hidden fixed inset-x-0 bottom-0 bg-white border-t border-soft-silver p-4 safe-area-bottom z-20">
+            <button
+              onClick={handleManualSave}
+              disabled={!content.trim() || isAutoSaving}
+              className="w-full py-3 px-4 rounded-lg text-base font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed silver-button text-graphite-charcoal"
+              style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+            >
+              {isAutoSaving ? 'Saving...' : 'Save Entry'}
+            </button>
+          </div>
+
+          {/* Desktop: Compact buttons */}
+          <div className="hidden sm:flex items-center gap-2">
             <div className="relative group">
               <button
                 onClick={handleManualSave}
                 disabled={!content.trim()}
-                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
                 style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
               >
                 S
               </button>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+              {/* Tooltip - hidden on mobile to prevent off-screen issues */}
+              <div className="hidden sm:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                 Save
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
               </div>
@@ -811,12 +816,13 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   const event = new CustomEvent('openJournalHistory');
                   window.dispatchEvent(event);
                 }}
-                className="w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
+                className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
                 style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
               >
                 H
               </button>
-              <div className="absolute bottom-full right-0 transform translate-x-0 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+              {/* Tooltip - hidden on mobile to prevent off-screen issues */}
+              <div className="hidden sm:block absolute bottom-full right-0 transform translate-x-0 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
                 History
                 <div className="absolute top-full right-4 transform translate-x-0 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
               </div>

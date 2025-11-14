@@ -86,10 +86,26 @@ class HybridStorage implements StorageBackend {
   async getEntries(): Promise<JournalEntry[]> {
     // Always prioritize localStorage first (local-first approach)
     const localEntries = await this.localStorage.getEntries();
+    
+    // Get current user ID for filtering
+    let currentUserId: string | undefined;
+    try {
+      if (supabase && isSupabaseConfigured()) {
+        const { data: { user } } = await supabase.auth.getUser();
+        currentUserId = user?.id;
+      }
+    } catch (error) {
+      console.warn('Failed to get current user ID:', error);
+    }
+    
+    // Filter local entries to only those belonging to current user (safety check)
+    const filteredLocalEntries = currentUserId
+      ? localEntries.filter(entry => !entry.user_id || entry.user_id === currentUserId)
+      : localEntries;
 
     // Try to get from Supabase only if user has premium and is authenticated
     try {
-      if (supabase && isSupabaseConfigured()) {
+      if (supabase && isSupabaseConfigured() && currentUserId) {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           // Check premium status
@@ -107,16 +123,22 @@ class HybridStorage implements StorageBackend {
               const mergedEntries = new Map<string, JournalEntry>();
               
               // Add local entries first (prioritize local)
-              localEntries.forEach(entry => {
-                mergedEntries.set(entry.id, entry);
-              });
-              
-              // Add Supabase entries (will overwrite local if same id, but prefer local)
-              data.forEach(entry => {
-                if (!mergedEntries.has(entry.id)) {
+              filteredLocalEntries.forEach(entry => {
+                // Double-check user_id matches
+                if (!entry.user_id || entry.user_id === currentUserId) {
                   mergedEntries.set(entry.id, entry);
                 }
               });
+              
+              // Add Supabase entries (will overwrite local if same id, but prefer local)
+              // Filter to ensure user_id matches
+              data
+                .filter(entry => entry.user_id === currentUserId)
+                .forEach(entry => {
+                  if (!mergedEntries.has(entry.id)) {
+                    mergedEntries.set(entry.id, entry);
+                  }
+                });
               
               // Sync local-only entries to Supabase
               await this.syncLocalEntries();
@@ -132,8 +154,8 @@ class HybridStorage implements StorageBackend {
       console.warn('Failed to load from Supabase, using localStorage:', error);
     }
 
-    // Return localStorage entries (always available)
-    return localEntries;
+    // Return filtered localStorage entries (always available)
+    return filteredLocalEntries;
   }
 
   async getEntry(id: string): Promise<JournalEntry | null> {
@@ -316,12 +338,32 @@ class SupabaseStorage implements StorageBackend {
 
 // Local storage backend
 class LocalStorage implements StorageBackend {
-  private getStorageKey() {
+  private getStorageKey(userId?: string): string {
+    // Scope localStorage by userId to prevent cross-account data leakage
+    if (userId) {
+      return `heijo-journal-entries:${userId}`;
+    }
+    // Fallback for anonymous/legacy entries (will be migrated on first save with userId)
     return 'heijo-journal-entries';
+  }
+  
+  private async getCurrentUserId(): Promise<string | undefined> {
+    try {
+      if (supabase && isSupabaseConfigured()) {
+        const { data: { user } } = await supabase.auth.getUser();
+        return user?.id;
+      }
+    } catch (error) {
+      console.warn('Failed to get current user ID:', error);
+    }
+    return undefined;
   }
 
   async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { id?: string; sync_status?: JournalEntry['sync_status']; last_synced?: string }): Promise<JournalEntry> {
-    const existing = this.getStoredEntries();
+    // Get userId from entry or current user
+    const userId = entry.user_id || await this.getCurrentUserId();
+    const storageKey = this.getStorageKey(userId);
+    const existing = this.getStoredEntries(userId);
     
     // If entry has an ID, check if it already exists and update it
     if (entry.id) {
@@ -332,11 +374,12 @@ class LocalStorage implements StorageBackend {
           ...existing[existingIndex],
           ...entry,
           id: entry.id,
+          user_id: userId || entry.user_id,
           sync_status: entry.sync_status || existing[existingIndex].sync_status,
           last_synced: entry.last_synced || existing[existingIndex].last_synced
         };
         existing[existingIndex] = updatedEntry;
-        localStorage.setItem(this.getStorageKey(), JSON.stringify(existing));
+        localStorage.setItem(storageKey, JSON.stringify(existing));
         return updatedEntry;
       }
     }
@@ -345,52 +388,105 @@ class LocalStorage implements StorageBackend {
     const newEntry: JournalEntry = {
       ...entry,
       id: entry.id || crypto.randomUUID(),
+      user_id: userId || entry.user_id,
       sync_status: entry.sync_status || 'local_only',
       last_synced: entry.last_synced || undefined
     };
     
     const updated = [newEntry, ...existing];
-    localStorage.setItem(this.getStorageKey(), JSON.stringify(updated));
+    localStorage.setItem(storageKey, JSON.stringify(updated));
     
     return newEntry;
   }
 
   async getEntries(): Promise<JournalEntry[]> {
-    return this.getStoredEntries();
+    const userId = await this.getCurrentUserId();
+    return this.getStoredEntries(userId);
   }
 
   async getEntry(id: string): Promise<JournalEntry | null> {
-    const entries = this.getStoredEntries();
+    const userId = await this.getCurrentUserId();
+    const entries = this.getStoredEntries(userId);
     return entries.find(entry => entry.id === id) || null;
   }
 
   async deleteEntry(id: string): Promise<void> {
-    const entries = this.getStoredEntries();
+    const userId = await this.getCurrentUserId();
+    const storageKey = this.getStorageKey(userId);
+    const entries = this.getStoredEntries(userId);
     const updated = entries.filter(entry => entry.id !== id);
-    localStorage.setItem(this.getStorageKey(), JSON.stringify(updated));
+    localStorage.setItem(storageKey, JSON.stringify(updated));
   }
 
   async exportEntries(): Promise<JournalEntry[]> {
-    return this.getStoredEntries();
+    const userId = await this.getCurrentUserId();
+    return this.getStoredEntries(userId);
   }
 
   async syncLocalEntries(): Promise<void> {
     // No-op for localStorage only
   }
 
-  private getStoredEntries(): JournalEntry[] {
+  private getStoredEntries(userId?: string): JournalEntry[] {
     if (typeof window === 'undefined') return [];
     
-    const stored = localStorage.getItem(this.getStorageKey());
-    if (!stored) return [];
+    const storageKey = this.getStorageKey(userId);
+    const stored = localStorage.getItem(storageKey);
+    if (!stored) {
+      // If no scoped entries found and we have a userId, try legacy key for migration
+      if (userId) {
+        const legacyKey = 'heijo-journal-entries';
+        const legacyStored = localStorage.getItem(legacyKey);
+        if (legacyStored) {
+          try {
+            const legacyEntries = JSON.parse(legacyStored);
+            // Filter legacy entries to only those belonging to this user (STRICT: must have matching user_id)
+            const userEntries = legacyEntries.filter((entry: any) => entry.user_id === userId);
+            if (userEntries.length > 0) {
+              // Migrate to scoped key
+              localStorage.setItem(storageKey, JSON.stringify(userEntries));
+              // Clean up legacy key after successful migration (only if all entries migrated)
+              const remainingEntries = legacyEntries.filter((entry: any) => entry.user_id && entry.user_id !== userId);
+              if (remainingEntries.length === 0) {
+                // No other users' entries remain, safe to delete legacy key
+                localStorage.removeItem(legacyKey);
+              } else {
+                // Other users' entries remain, keep legacy key but remove migrated entries
+                localStorage.setItem(legacyKey, JSON.stringify(remainingEntries));
+              }
+            }
+            return userEntries.map((entry: any) => ({
+              ...entry,
+              sync_status: entry.sync_status || 'local_only',
+              last_synced: entry.last_synced || undefined
+            }));
+          } catch (e) {
+            console.warn('Failed to parse legacy entries:', e);
+          }
+        }
+      }
+      return [];
+    }
     
-    const entries = JSON.parse(stored);
-    // Ensure all entries have sync_status field for backward compatibility
-    return entries.map((entry: any) => ({
-      ...entry,
-      sync_status: entry.sync_status || 'local_only',
-      last_synced: entry.last_synced || undefined
-    }));
+    try {
+      const entries = JSON.parse(stored);
+      // STRICT FILTERING: Only show entries that belong to this specific user
+      // Do NOT show entries without user_id (they could be from other accounts)
+      const userEntries = userId 
+        ? entries.filter((entry: any) => entry.user_id === userId)
+        : entries.filter((entry: any) => !entry.user_id); // Only show anonymous entries if no userId
+      
+      // Ensure all entries have sync_status field for backward compatibility
+      return userEntries.map((entry: any) => ({
+        ...entry,
+        user_id: entry.user_id || userId,
+        sync_status: entry.sync_status || 'local_only',
+        last_synced: entry.last_synced || undefined
+      }));
+    } catch (e) {
+      console.warn('Failed to parse stored entries:', e);
+      return [];
+    }
   }
 }
 

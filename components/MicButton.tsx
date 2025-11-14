@@ -291,8 +291,8 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         </svg>
       </button>
       
-      {/* Tooltip */}
-      <div className="absolute bottom-full right-0 mb-2 px-2 py-1 bg-graphite-charcoal text-text-inverse text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10 max-w-xs">
+      {/* Tooltip - hidden on mobile to prevent off-screen issues */}
+      <div className="hidden sm:block absolute bottom-full right-0 mb-2 px-2 py-1 bg-graphite-charcoal text-text-inverse text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10 max-w-xs">
         {getTooltipText()}
         <div className="absolute top-full right-4 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-graphite-charcoal"></div>
       </div>

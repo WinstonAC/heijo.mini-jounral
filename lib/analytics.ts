@@ -188,6 +188,12 @@ class AnalyticsCollector {
       case 'voice_recording_complete':
         this.analyticsData.totalVoiceRecordings++;
         this.analyticsData.totalEntries++;
+        // Also increment feature counter when recording completes (not just on start)
+        // This ensures featuresUsed.voiceRecording matches actual completed recordings
+        if (this.analyticsData.featuresUsed.voiceRecording === 0 || 
+            this.analyticsData.featuresUsed.voiceRecording < this.analyticsData.totalVoiceRecordings) {
+          this.analyticsData.featuresUsed.voiceRecording = this.analyticsData.totalVoiceRecordings;
+        }
         if (event.data.latency) {
           this.updateAverageLatency(event.data.latency);
         }
@@ -196,6 +202,7 @@ class AnalyticsCollector {
       case 'text_entry_save':
         this.analyticsData.totalTextEntries++;
         this.analyticsData.totalEntries++;
+        this.analyticsData.featuresUsed.textEntry++; // Increment text entry feature counter
         if (event.data.length) {
           this.updateEntryLengthStats(event.data.length);
         }

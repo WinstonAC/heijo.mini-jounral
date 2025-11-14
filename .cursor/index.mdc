@@ -1,0 +1,158 @@
+# Heijō Journal - Cursor Rules & Requirements
+
+## Project Overview
+Heijō Mini-Journal is a privacy-first journaling application built with Next.js 14, React 18, TypeScript, and Supabase. The app uses a hybrid storage architecture (localStorage + Supabase) with mobile-first design.
+
+## Tech Stack Requirements
+
+### Frontend
+- **Framework**: Next.js 14 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS (mobile-first)
+- **UI Components**: Custom components built with Tailwind CSS
+  - **Do NOT use Shadcn/UI or other component libraries**
+  - **Do NOT add components/ui/ directory**
+  - All UI components are custom-built with Tailwind CSS
+
+### Backend & Database
+- **Database**: Supabase (PostgreSQL)
+- **Storage**: Hybrid (localStorage + Supabase)
+- **Authentication**: Supabase Auth
+
+## Database Schema Requirements
+
+### Supabase Tables
+
+#### `journal_entries`
+**Required Fields:**
+- `id` (uuid, primary key)
+- `user_id` (uuid, foreign key to auth.users)
+- `created_at` (timestamp with time zone)
+- `content` (text, not null)
+- `source` (text, check: 'text' | 'voice')
+- `tags` (text array, default: '{}')
+- `sync_status` (text, check: 'synced' | 'syncing' | 'failed')
+- `last_synced` (timestamp with time zone, nullable)
+- `encrypted_data` (text, nullable)
+- `created_at_local` (timestamp with time zone, nullable)
+
+#### `prompts`
+**Required Fields:**
+- `id` (uuid, primary key)
+- `text` (text, not null)
+- `category` (text, not null)
+- `day_number` (integer, not null)
+- `created_at` (timestamp with time zone)
+- `is_active` (boolean, default: true)
+
+
+## Component Requirements
+
+### Schema Matching
+1. **All frontend components must match the Supabase schema fields exactly**
+   - Components must use correct field names: `id`, `user_id`, `created_at`, `content`, `source`, `tags`, `sync_status`, `last_synced`
+   - TypeScript interfaces must match schema types
+   - Example: `Composer.tsx` correctly uses `journal_entries` schema fields
+
+2. **If a prop mismatch is found, auto-suggest a fix but do not apply it without confirmation**
+
+### Design Requirements
+1. **Mobile-First Layout**: All components must be mobile-first responsive
+   - ✅ Components use `useIsMobile()` hook and responsive Tailwind classes
+   - ✅ Mobile breakpoints: `sm:` (768px), `lg:` (1024px)
+
+2. **Design System**: PalmPilot 1985-inspired aesthetic
+   - ✅ Uses custom color palette (graphite-charcoal, soft-silver, tactile-taupe, etc.)
+   - ✅ Custom typography (Inter font family)
+   - ✅ Custom button styles (silver-button, outline-button)
+
+3. **Component Libraries**: 
+   - **Use only Tailwind CSS for styling**
+   - **Do NOT add Shadcn/UI or any other component libraries**
+   - **Do NOT create components/ui/ directory**
+   - All components must be custom-built with Tailwind CSS classes
+
+### Layout & Structure Rules
+1. **Never change layout, delete props, or rename files unless explicitly requested**
+2. **Maintain existing mobile-first layout and design structure**
+3. **Preserve component hierarchy and prop interfaces**
+4. **Do NOT modify existing UI components without explicit instruction**
+5. **Do NOT add new UI libraries or component frameworks**
+
+## Code Quality Requirements
+
+### TypeScript
+- All components must be properly typed
+- Use interfaces for props (e.g., `ComposerProps`)
+- Match TypeScript types with Supabase schema types
+
+### State Management
+- Use React hooks (useState, useEffect, useCallback, useRef)
+- Local state for component-specific data
+- Supabase client for data operations
+
+### Error Handling
+- Graceful degradation when Supabase is unavailable
+- Fallback to localStorage for offline functionality
+- User-friendly error messages
+
+## File Structure Rules
+
+### When Initializing New Repo or "init docs"
+1. Ask one short question if tech stack is unknown (frontend, backend, db, hosting)
+2. Use placeholders like `[FRONTEND_STACK]`, `[BACKEND_STACK]`, `[DB]`, `[HOSTING]`, `[PROJECT_NAME]` when not specified
+3. Only create/update files explicitly listed by the project initializer
+4. Do NOT invent extra files or folders
+5. If a listed file exists, update in place and preserve headings/tables
+6. Keep Markdown Notion-friendly (no weird HTML)
+
+## Critical Rules Summary
+
+### ✅ Current Implementation
+- Mobile-first responsive design with Tailwind CSS
+- Custom-built UI components (no external component libraries)
+- Schema matching: `journal_entries` and `prompts` tables
+- TypeScript typing throughout
+- Hybrid storage (localStorage + Supabase)
+
+### 🚫 Do NOT
+- **Do NOT add Shadcn/UI or any component library**
+- **Do NOT create components/ui/ directory**
+- **Do NOT change existing UI/layout without explicit instruction**
+- **Do NOT reference podcast app schemas (comments, episodes, shows)**
+- **Do NOT modify component props or file names without approval**
+
+## Development Guidelines
+
+### Adding New Components
+1. Match Supabase schema fields exactly (`journal_entries` or `prompts`)
+2. Use mobile-first Tailwind classes (no external component libraries)
+3. Follow existing component patterns (custom Tailwind components)
+4. Use TypeScript interfaces for props
+5. Implement error handling and loading states
+6. **Do NOT use Shadcn/UI or create components/ui/ directory**
+
+### Modifying Existing Components
+1. Never change layout without explicit instruction
+2. Never delete props without confirmation
+3. Never rename files without approval
+4. Preserve existing functionality
+5. Maintain backward compatibility
+
+### Database Changes
+1. Always verify schema matches TypeScript interfaces
+2. Update `lib/store.ts` JournalEntry interface if schema changes
+3. Update component props if schema fields change
+4. Test with both Supabase and localStorage backends
+
+## Testing Requirements
+- E2E tests with Playwright
+- Test both authenticated and unauthenticated states
+- Test offline functionality (localStorage fallback)
+- Test mobile and desktop layouts
+
+## Security Requirements
+- Row Level Security (RLS) enabled on all Supabase tables
+- User-specific data isolation
+- Encrypted local storage support
+- GDPR compliance (export/delete functionality)

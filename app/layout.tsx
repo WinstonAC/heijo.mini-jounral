@@ -14,6 +14,11 @@ export const metadata: Metadata = {
     shortcut: '/favicon.svg',
     apple: '/icon-192.svg',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Heijō',
+  },
 }
 
 export const viewport: Viewport = {
@@ -21,7 +26,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: '#F8F8F8',
+  themeColor: '#1A1A1A', // Match graphite-charcoal for consistent icon color
 }
 
 export default function RootLayout({

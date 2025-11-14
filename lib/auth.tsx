@@ -107,6 +107,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = async () => {
     if (!supabase) return;
     
+    // Clear user-specific localStorage data on sign out
+    // This prevents data leakage when switching accounts
+    try {
+      const session = await supabase.auth.getSession();
+      const userId = session.data.session?.user?.id;
+      
+      if (userId) {
+        // Clear user-scoped storage key
+        localStorage.removeItem(`heijo-journal-entries:${userId}`);
+        // Clear analytics data (if user-specific)
+        localStorage.removeItem('heijo_analytics');
+        // Clear notification preferences (if user-specific)
+        localStorage.removeItem('heijo_notification_preferences');
+      }
+      
+      // Clear session
+      localStorage.removeItem('heijo_session');
+    } catch (error) {
+      console.warn('Error clearing localStorage on sign out:', error);
+    }
+    
     await supabase.auth.signOut();
   };
 

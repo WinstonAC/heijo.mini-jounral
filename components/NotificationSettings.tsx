@@ -15,6 +15,8 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
   const [isSaving, setIsSaving] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default');
   const [isSupported, setIsSupported] = useState(false);
+  const [showSaveConfirmation, setShowSaveConfirmation] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const loadPreferences = useCallback(async () => {
     if (!user) return;
@@ -37,12 +39,35 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
     loadPreferences();
   }, [loadPreferences]);
 
-  const handleToggle = async (key: keyof NotificationPreferences, value: boolean) => {
+  const handleToggle = (key: keyof NotificationPreferences, value: boolean) => {
     if (!user || !prefs) return;
 
-    // Special handling for push notifications
-    if (key === 'push_enabled' && value) {
-      // Request permission first
+    const updated = { ...prefs, [key]: value };
+    setPrefs(updated);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleTimeChange = (key: 'reminder_time' | 'quiet_hours_start' | 'quiet_hours_end', value: string) => {
+    if (!user || !prefs) return;
+    
+    const updated = { ...prefs, [key]: value };
+    setPrefs(updated);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleFrequencyChange = (frequency: 'daily' | 'weekly' | 'off') => {
+    if (!user || !prefs) return;
+    
+    const updated = { ...prefs, reminder_frequency: frequency, reminder_enabled: frequency !== 'off' };
+    setPrefs(updated);
+    setHasUnsavedChanges(true);
+  };
+
+  const handleSaveReminderSettings = async () => {
+    if (!user || !prefs) return;
+
+    // Special handling for push notifications if enabling
+    if (prefs.push_enabled && permissionStatus !== 'granted') {
       const permission = await notificationManager.requestPermission();
       setPermissionStatus(permission);
       
@@ -55,30 +80,15 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
       await notificationManager.subscribeToPush(user.id);
     }
 
-    if (key === 'push_enabled' && !value) {
+    if (!prefs.push_enabled && permissionStatus === 'granted') {
       // Unsubscribe from push
       await notificationManager.unsubscribeFromPush(user.id);
     }
 
-    const updated = { ...prefs, [key]: value };
-    setPrefs(updated);
-    await savePreferences(updated);
-  };
-
-  const handleTimeChange = async (key: 'reminder_time' | 'quiet_hours_start' | 'quiet_hours_end', value: string) => {
-    if (!user || !prefs) return;
-    
-    const updated = { ...prefs, [key]: value };
-    setPrefs(updated);
-    await savePreferences(updated);
-  };
-
-  const handleFrequencyChange = async (frequency: 'daily' | 'weekly' | 'off') => {
-    if (!user || !prefs) return;
-    
-    const updated = { ...prefs, reminder_frequency: frequency, reminder_enabled: frequency !== 'off' };
-    setPrefs(updated);
-    await savePreferences(updated);
+    await savePreferences(prefs);
+    setHasUnsavedChanges(false);
+    setShowSaveConfirmation(true);
+    setTimeout(() => setShowSaveConfirmation(false), 3000);
   };
 
   const savePreferences = async (preferences: NotificationPreferences) => {
@@ -331,21 +341,42 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
         )}
       </div>
 
+      {/* Save Reminder Settings Button */}
+      <div className="border-t border-soft-silver pt-4">
+        <button
+          onClick={handleSaveReminderSettings}
+          disabled={!hasUnsavedChanges || isSaving}
+          className="w-full px-4 py-3 text-sm font-medium silver-button text-graphite-charcoal hover:bg-tactile-taupe disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 rounded-lg mb-4"
+          style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
+        >
+          {isSaving ? 'Saving...' : 'Save Reminder Settings'}
+        </button>
+        
+        {showSaveConfirmation && (
+          <div className="text-sm text-green-600 text-center mb-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            ✓ Reminder settings saved
+          </div>
+        )}
+        
+        {!hasUnsavedChanges && !showSaveConfirmation && (
+          <p className="text-xs text-text-secondary text-center mb-4" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+            All settings are saved
+          </p>
+        )}
+      </div>
+
       {/* Test Button */}
       {(prefs.push_enabled || prefs.email_enabled) && (
         <div className="border-t border-soft-silver pt-4">
           <button
             onClick={handleTestNotification}
             disabled={!isSupported || permissionStatus !== 'granted'}
-            className="w-full px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal hover:bg-tactile-taupe disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 rounded-lg"
+            className="w-full px-4 py-2 text-sm font-medium outline-button text-graphite-charcoal hover:bg-tactile-taupe disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 rounded-lg"
+            style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
           >
             Send Test Notification
           </button>
         </div>
-      )}
-
-      {isSaving && (
-        <p className="text-sm text-ui-graphite text-center">Saving...</p>
       )}
     </div>
   );
