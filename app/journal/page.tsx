@@ -197,6 +197,7 @@ export default function JournalPage() {
               userId={user.id}
               fontSize={fontSize}
               setFontSize={setFontSize}
+              entryCount={entries.length}
             />
           </div>
         </div>

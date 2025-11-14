@@ -98,10 +98,11 @@ class HybridStorage implements StorageBackend {
       console.warn('Failed to get current user ID:', error);
     }
     
-    // Filter local entries to only those belonging to current user (safety check)
+    // Filter local entries to only those belonging to current user (STRICT filtering)
+    // Do NOT show entries without user_id to logged-in users (security: prevents cross-account leakage)
     const filteredLocalEntries = currentUserId
-      ? localEntries.filter(entry => !entry.user_id || entry.user_id === currentUserId)
-      : localEntries;
+      ? localEntries.filter(entry => entry.user_id === currentUserId) // STRICT: Only exact matches
+      : localEntries.filter(entry => !entry.user_id); // Only anonymous entries if no userId
 
     // Try to get from Supabase only if user has premium and is authenticated
     try {
@@ -360,8 +361,10 @@ class LocalStorage implements StorageBackend {
   }
 
   async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { id?: string; sync_status?: JournalEntry['sync_status']; last_synced?: string }): Promise<JournalEntry> {
-    // Get userId from entry or current user
-    const userId = entry.user_id || await this.getCurrentUserId();
+    // Always try to get real userId first, ignore 'anonymous' from entry
+    // This ensures entries are saved with real userId when user is logged in
+    const currentUserId = await this.getCurrentUserId();
+    const userId = currentUserId || (entry.user_id && entry.user_id !== 'anonymous' ? entry.user_id : undefined);
     const storageKey = this.getStorageKey(userId);
     const existing = this.getStoredEntries(userId);
     
@@ -379,7 +382,15 @@ class LocalStorage implements StorageBackend {
           last_synced: entry.last_synced || existing[existingIndex].last_synced
         };
         existing[existingIndex] = updatedEntry;
-        localStorage.setItem(storageKey, JSON.stringify(existing));
+        try {
+          localStorage.setItem(storageKey, JSON.stringify(existing));
+        } catch (error) {
+          if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+            console.error('localStorage quota exceeded');
+            throw new Error('Storage quota exceeded. Please free up space.');
+          }
+          throw error;
+        }
         return updatedEntry;
       }
     }
@@ -394,7 +405,64 @@ class LocalStorage implements StorageBackend {
     };
     
     const updated = [newEntry, ...existing];
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    
+    // Save to localStorage with error handling
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.error('localStorage quota exceeded');
+        throw new Error('Storage quota exceeded. Please free up space.');
+      }
+      throw error;
+    }
+    
+    // If we have a userId, migrate any legacy entries for this user on save
+    // This ensures old entries are migrated immediately, not just on load
+    if (userId) {
+      try {
+        const legacyKey = 'heijo-journal-entries';
+        const legacyStored = localStorage.getItem(legacyKey);
+        if (legacyStored) {
+          const legacyEntries = JSON.parse(legacyStored);
+          const userLegacyEntries = legacyEntries.filter((entry: any) => 
+            !entry.user_id || entry.user_id === userId || entry.user_id === 'anonymous'
+          );
+          
+          if (userLegacyEntries.length > 0) {
+            // Add migrated entries to current storage (avoid duplicates by ID)
+            const existingIds = new Set(updated.map(e => e.id));
+            const newMigratedEntries = userLegacyEntries
+              .filter((e: any) => !existingIds.has(e.id))
+              .map((e: any) => ({
+                ...e,
+                user_id: userId, // Ensure all migrated entries have userId
+                sync_status: e.sync_status || 'local_only',
+                last_synced: e.last_synced || undefined
+              }));
+            
+            if (newMigratedEntries.length > 0) {
+              const allEntries = [...updated, ...newMigratedEntries];
+              localStorage.setItem(storageKey, JSON.stringify(allEntries));
+              
+              // Remove migrated entries from legacy key
+              const remaining = legacyEntries.filter((e: any) => 
+                e.user_id && e.user_id !== userId && e.user_id !== 'anonymous' && e.user_id
+              );
+              
+              if (remaining.length === 0) {
+                localStorage.removeItem(legacyKey);
+              } else {
+                localStorage.setItem(legacyKey, JSON.stringify(remaining));
+              }
+            }
+          }
+        }
+      } catch (migrationError) {
+        console.warn('Failed to migrate legacy entries on save:', migrationError);
+        // Don't fail the save if migration fails
+      }
+    }
     
     return newEntry;
   }
@@ -415,7 +483,15 @@ class LocalStorage implements StorageBackend {
     const storageKey = this.getStorageKey(userId);
     const entries = this.getStoredEntries(userId);
     const updated = entries.filter(entry => entry.id !== id);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+        console.error('localStorage quota exceeded');
+        throw new Error('Storage quota exceeded. Please free up space.');
+      }
+      throw error;
+    }
   }
 
   async exportEntries(): Promise<JournalEntry[]> {
@@ -440,26 +516,59 @@ class LocalStorage implements StorageBackend {
         if (legacyStored) {
           try {
             const legacyEntries = JSON.parse(legacyStored);
-            // Filter legacy entries to only those belonging to this user (STRICT: must have matching user_id)
-            const userEntries = legacyEntries.filter((entry: any) => entry.user_id === userId);
+            // Filter legacy entries to only those belonging to this user
+            // Migrate 'anonymous' and undefined entries to current user if userId exists
+            const userEntries = legacyEntries.filter((entry: any) => 
+              entry.user_id === userId || 
+              (entry.user_id === 'anonymous' && userId) ||
+              (!entry.user_id && userId) // CRITICAL: Migrate undefined entries to current user
+            );
             if (userEntries.length > 0) {
-              // Migrate to scoped key
-              localStorage.setItem(storageKey, JSON.stringify(userEntries));
-              // Clean up legacy key after successful migration (only if all entries migrated)
-              const remainingEntries = legacyEntries.filter((entry: any) => entry.user_id && entry.user_id !== userId);
-              if (remainingEntries.length === 0) {
-                // No other users' entries remain, safe to delete legacy key
-                localStorage.removeItem(legacyKey);
-              } else {
-                // Other users' entries remain, keep legacy key but remove migrated entries
-                localStorage.setItem(legacyKey, JSON.stringify(remainingEntries));
+              // Migrate to scoped key with error handling
+              try {
+                // Ensure all migrated entries have userId set
+                const migratedEntries = userEntries.map((entry: any) => ({
+                  ...entry,
+                  user_id: userId, // Set userId for all migrated entries
+                  sync_status: entry.sync_status || 'local_only',
+                  last_synced: entry.last_synced || undefined
+                }));
+                
+                localStorage.setItem(storageKey, JSON.stringify(migratedEntries));
+                
+                // Clean up legacy key after successful migration
+                // Exclude entries that belong to this user (migrated) or are anonymous/undefined
+                const remainingEntries = legacyEntries.filter((entry: any) => 
+                  entry.user_id && 
+                  entry.user_id !== userId && 
+                  entry.user_id !== 'anonymous'
+                );
+                
+                if (remainingEntries.length === 0) {
+                  // No other users' entries remain, safe to delete legacy key
+                  localStorage.removeItem(legacyKey);
+                } else {
+                  // Other users' entries remain, keep legacy key but remove migrated entries
+                  localStorage.setItem(legacyKey, JSON.stringify(remainingEntries));
+                }
+                
+                return migratedEntries;
+              } catch (error) {
+                if (error instanceof DOMException && error.name === 'QuotaExceededError') {
+                  console.error('localStorage quota exceeded during migration');
+                } else {
+                  console.warn('Failed to migrate legacy entries:', error);
+                }
+                // Return entries anyway (they're still in legacy key, will try again next time)
+                return userEntries.map((entry: any) => ({
+                  ...entry,
+                  user_id: userId, // Set userId even if migration failed
+                  sync_status: entry.sync_status || 'local_only',
+                  last_synced: entry.last_synced || undefined
+                }));
               }
             }
-            return userEntries.map((entry: any) => ({
-              ...entry,
-              sync_status: entry.sync_status || 'local_only',
-              last_synced: entry.last_synced || undefined
-            }));
+            return [];
           } catch (e) {
             console.warn('Failed to parse legacy entries:', e);
           }
@@ -470,19 +579,27 @@ class LocalStorage implements StorageBackend {
     
     try {
       const entries = JSON.parse(stored);
-      // STRICT FILTERING: Only show entries that belong to this specific user
-      // Do NOT show entries without user_id (they could be from other accounts)
-      const userEntries = userId 
-        ? entries.filter((entry: any) => entry.user_id === userId)
-        : entries.filter((entry: any) => !entry.user_id); // Only show anonymous entries if no userId
-      
-      // Ensure all entries have sync_status field for backward compatibility
-      return userEntries.map((entry: any) => ({
+      // If entries are in user-scoped key (heijo-journal-entries:${userId}),
+      // they belong to this user, even if user_id field is missing or 'anonymous'
+      // Add/update user_id for all entries in this user's key
+      const entriesWithUserId = entries.map((entry: any) => ({
         ...entry,
-        user_id: entry.user_id || userId,
+        user_id: userId || entry.user_id, // Use current userId if entry doesn't have it (entries in user's key belong to user)
         sync_status: entry.sync_status || 'local_only',
         last_synced: entry.last_synced || undefined
       }));
+      
+      // Now filter - all entries should match since they're in user's key
+      // But filter for safety and to handle 'anonymous' entries
+      const userEntries = userId 
+        ? entriesWithUserId.filter((entry: any) => 
+            entry.user_id === userId || 
+            entry.user_id === 'anonymous' || 
+            !entry.user_id
+          )
+        : entriesWithUserId.filter((entry: any) => !entry.user_id || entry.user_id === 'anonymous');
+      
+      return userEntries;
     } catch (e) {
       console.warn('Failed to parse stored entries:', e);
       return [];

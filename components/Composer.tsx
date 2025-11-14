@@ -211,7 +211,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         source,
         tags: selectedTags,
         created_at: new Date().toISOString(),
-        user_id: userId || 'anonymous',
+        user_id: userId, // Let storage handle undefined - it will get real userId
         sync_status: 'local_only'
       });
       setLastSaved(new Date());
@@ -265,7 +265,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             tags: selectedTags,
             source,
             created_at: new Date().toISOString(),
-            user_id: userId || 'anonymous',
+            user_id: userId, // Let storage handle undefined - it will get real userId
             sync_status: 'local_only'
           });
           // Clear form after save
@@ -353,6 +353,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         source,
         tags: selectedTags,
         created_at: new Date().toISOString(),
+        user_id: userId, // Let storage handle undefined - it will get real userId
         sync_status: 'local_only'
       });
 
@@ -715,7 +716,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                       tags: selectedTags,
                       source,
                       created_at: new Date().toISOString(),
-                      user_id: userId || 'anonymous',
+                      user_id: userId, // Let storage handle undefined - it will get real userId
                       sync_status: 'local_only'
                     });
                     // Clear form after save
