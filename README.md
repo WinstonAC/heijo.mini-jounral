@@ -2,47 +2,47 @@
 
 A **privacy-first journaling application** that combines the nostalgic charm of 1985 PalmPilot aesthetics with modern voice recognition technology. Built with Next.js 14, TypeScript, and enterprise-grade security.
 
-> **🎉 v1.0.0 Stable Release** - Production-ready with bulletproof authentication, data persistence, and preserved UI/UX experience.
+> **v1.0.0 Stable Release** - Production-ready with bulletproof authentication, data persistence, and preserved UI/UX experience.
 
-## 🎯 Overview
+## Overview
 
 Heijō Mini-Journal is designed with **privacy-first principles**, offering a complete offline journaling experience with voice recognition, daily prompts, and secure data storage. The app features an authentic PalmPilot 1985 design aesthetic while providing modern functionality and security.
 
-## ✨ Key Features
+## Key Features
 
-### 🔒 Privacy & Security
+### Privacy & Security
 - **AES-GCM Encryption**: All data encrypted with device-specific keys
 - **Local-First Storage**: Complete offline functionality with optional Supabase sync
 - **GDPR Compliance**: Full data export and deletion capabilities
 - **Zero-Network Mode**: Voice recognition and data storage work without internet
 - **Rate Limiting**: 100 requests/hour per device with anti-automation protection
 
-### 💎 Premium Features (Optional)
+### Premium Features (Optional)
 - **Free Tier**: Complete local storage, all features included
 - **Premium Tier**: $5/year for cloud sync across all devices
 - **Testing**: Premium currently free for testing (manual activation)
 - See [Premium Features Documentation](docs/PREMIUM_FEATURES.md) for details
 
-### 🎤 Voice & Text Input
+### Voice & Text Input
 - **Streaming Voice Recognition**: Real-time transcription with <300ms latency
 - **Web Speech API**: Browser-native voice recognition for privacy
 - **Visual Feedback**: Animated recording button with pulse effects
 - **Offline Support**: Voice recognition works without internet connection
 
-### 📝 Journaling Features
+### Journaling Features
 - **Daily Prompts**: 90-day rotating prompt system with Y/N chip interface
 - **Tag System**: Organize entries with customizable tags
 - **Search & Filter**: Find entries by content, tags, or date
 - **Export Functionality**: Download entries as JSON or CSV
 - **PWA Support**: Installable as a standalone app
 
-### 🎨 Design System
+### Design System
 - **PalmPilot 1985 Aesthetic**: Authentic retro design with modern usability
 - **Dieter Rams Principles**: Clean, functional, and unobtrusive design
 - **Mobile-First**: Responsive design starting from mobile devices
 - **Accessibility**: WCAG 2.1 AA compliance with keyboard navigation
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 - Node.js 18+ 
@@ -161,7 +161,7 @@ CREATE POLICY "Prompts are public" ON prompts
   FOR SELECT USING (is_active = true);
 ```
 
-## 🏗️ Architecture
+## Architecture
 
 ### Tech Stack
 - **Frontend**: Next.js 14 (App Router), React 18, TypeScript
@@ -196,7 +196,7 @@ heijo-mini-journal/
 └── public/                # Static assets
 ```
 
-## 📚 Documentation
+## Documentation
 
 ### Main Documentation
 - **[README.md](README.md)** - Complete project overview and setup
@@ -219,7 +219,7 @@ heijo-mini-journal/
 - **[Features](docs/product/FEATURES.md)** - Comprehensive feature overview
 - **[Design System](docs/product/DESIGN.md)** - PalmPilot 1985 design system and guidelines
 
-## 🔒 Security Features
+## Security Features
 
 ### Data Protection
 - **AES-GCM Encryption**: 256-bit encryption with device-specific keys
@@ -240,7 +240,7 @@ heijo-mini-journal/
 - **Transparent Privacy**: Clear privacy policy and data usage
 - **User Control**: Complete control over personal data
 
-## 🎨 Design System
+## Design System
 
 ### PalmPilot 1985 Aesthetic
 - **Color Palette**: Authentic 1985 PalmPilot colors
@@ -254,7 +254,7 @@ heijo-mini-journal/
 - **Accessibility**: WCAG 2.1 AA compliance
 - **Consistency**: Unified design language throughout
 
-## 🚀 Performance
+## Performance
 
 ### Performance Metrics
 - **Cold Start**: <1.5 seconds app initialization
@@ -269,7 +269,7 @@ heijo-mini-journal/
 - **Caching Strategy**: Intelligent data caching
 - **Bundle Optimization**: Tree shaking and minification
 
-## 🆕 v1.0.0 Release Notes
+## v1.0.0 Release Notes
 
 ### New Features
 - **Analytics Dashboard**: Usage tracking and insights
@@ -291,7 +291,7 @@ heijo-mini-journal/
 - **Error Handling**: Robust error handling and fallback mechanisms
 - **Performance**: Optimized for production deployment
 
-## 🌐 Browser Support
+## Browser Support
 
 ### Supported Browsers
 - **Chrome**: 88+ (full support)
@@ -305,7 +305,7 @@ heijo-mini-journal/
 - **IndexedDB**: For local storage
 - **Service Workers**: For PWA functionality
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
@@ -316,11 +316,11 @@ We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.
 4. Add tests if applicable
 5. Submit a pull request
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 - **CORS Authentication Errors**
   - **Error**: "Access to fetch at '...supabase.co/auth/v1/token' has been blocked by CORS policy"
@@ -367,7 +367,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - Validate `manifest.xml` against Office Add‑in validator.
   - If blocked by CSP, ensure resources are bundled or allowed by add‑in policies.
 
-## 🧪 QA Resources
+## QA Resources
 
 - Testing Readiness Report: `docs/TESTING_READINESS.md`
 - Testing & QA: `docs/TESTING_READINESS.md`
@@ -394,12 +394,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    npx playwright show-report
    ```
 
-## 📦 Versioning & Changelog
+## Versioning & Changelog
 
 - Semantic versioning is used for releases.
 - See `CHANGELOG.md` for notable changes.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **PalmPilot 1985**: Design inspiration from the original PalmPilot
 - **Dieter Rams**: Design principles and philosophy
@@ -407,7 +407,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Next.js Team**: Amazing React framework
 - **Tailwind CSS**: Utility-first CSS framework
 
-## 📞 Support
+## Support
 
 - **Documentation**: [Full Documentation](docs/)
 - **Issues (Report a bug)**: https://github.com/WinstonAC/heijo.mini-jounral/issues

@@ -41,6 +41,22 @@
 
 ---
 
+### 2b) Regression — Entries Persist After Logout & Remain Isolated Per Account
+**Steps:**
+1. Sign in with Account A and create a new entry.
+2. Sign out, refresh the page, and sign back into Account A.
+3. Confirm the entry renders immediately from `localStorage` (before any network calls).
+4. Sign out again, then sign in with Account B.
+5. Confirm Account B sees an empty journal history (or only their own entries).
+6. Inspect `localStorage` and note that Account A stored data in `heijo-journal-entries:<accountA-id>` while Account B stores data under `heijo-journal-entries:<accountB-id>`.
+
+**Expected:**
+- Account A's entry persists across sign-out/sign-in cycles because the scoped key is retained.
+- Account B does not see Account A's entries because the key names differ per `userId`.
+- Deleting journal data on logout is unnecessary; key scoping already prevents cross-account leakage.
+
+---
+
 ### 3) Voice Input — Web Speech API
 **Steps:**
 1. Grant mic permission.

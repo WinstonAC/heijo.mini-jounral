@@ -1,44 +1,73 @@
+#!/usr/bin/env node
+
 /**
- * Quick sanity check that mirrors the filtering logic currently used in
- * HybridStorage.getEntries (lib/store.ts lines ~101-106).
- *
- * We simulate the data that LocalStorage.getEntries() returns for an anonymous
- * session: one legacy entry whose user_id === 'anonymous', and one brand new
- * entry that doesn't set user_id at all.
+ * Lightweight reproduction script for the strict local-entry filtering logic.
+ * Mirrors the guest vs. authenticated behavior in HybridStorage.getEntries.
  */
 
-const localEntries = [
+const entries = [
   {
-    id: 'legacy-anon',
-    created_at: '2024-05-01T12:00:00.000Z',
-    content: 'Legacy anon entry still stored with user_id="anonymous"',
+    id: 'legacy-guest',
+    created_at: '2024-01-01T00:00:00.000Z',
+    content: 'Legacy guest entry saved before the fix',
+    source: 'text',
+    tags: [],
     user_id: 'anonymous',
+    sync_status: 'local_only'
   },
   {
-    id: 'guest-new',
-    created_at: '2025-11-14T10:00:00.000Z',
-    content: 'New guest entry saved after recent fixes',
+    id: 'new-guest',
+    created_at: '2024-01-02T00:00:00.000Z',
+    content: 'New guest entry with no user id',
+    source: 'text',
+    tags: [],
     user_id: undefined,
+    sync_status: 'local_only'
   },
+  {
+    id: 'user-123-entry',
+    created_at: '2024-01-03T00:00:00.000Z',
+    content: 'Entry for user-123',
+    source: 'text',
+    tags: [],
+    user_id: 'user-123',
+    sync_status: 'synced'
+  },
+  {
+    id: 'user-456-entry',
+    created_at: '2024-01-04T00:00:00.000Z',
+    content: 'Entry for user-456',
+    source: 'text',
+    tags: [],
+    user_id: 'user-456',
+    sync_status: 'synced'
+  }
 ];
 
-function filterLocalEntries(localEntries, currentUserId) {
+const filterEntries = (entries, currentUserId) => {
+  const isGuestEntry = (entry) => !entry.user_id || entry.user_id === 'anonymous';
   return currentUserId
-    ? localEntries.filter((entry) => entry.user_id === currentUserId)
-    : localEntries.filter((entry) => !entry.user_id);
-}
+    ? entries.filter(entry => entry.user_id === currentUserId)
+    : entries.filter(isGuestEntry);
+};
 
-const guestView = filterLocalEntries(localEntries, undefined);
-const loggedInView = filterLocalEntries(localEntries, 'user-123');
+const assert = (condition, message) => {
+  if (!condition) {
+    throw new Error(message);
+  }
+};
 
-console.log('Guest session sees:', guestView);
-console.log('Logged-in session sees:', loggedInView);
+// Guest mode: should show both anonymous variants and nothing else
+const guestEntries = filterEntries(entries, undefined);
+assert(guestEntries.length === 2, 'Guest view should show both legacy and new guest entries');
+assert(guestEntries.some(entry => entry.id === 'legacy-guest'), 'Legacy guest entry missing (user_id="anonymous")');
+assert(guestEntries.some(entry => entry.id === 'new-guest'), 'New guest entry missing (no user_id)');
 
-if (!guestView.find((entry) => entry.id === 'legacy-anon')) {
-  console.warn(
-    '\nWARNING: Legacy guest entries with user_id="anonymous" are being dropped.\n' +
-      'They pass through LocalStorage but are filtered out by HybridStorage.'
-  );
-}
+// Authenticated mode: each user should only see their own data
+const user123Entries = filterEntries(entries, 'user-123');
+assert(user123Entries.length === 1 && user123Entries[0].id === 'user-123-entry', 'user-123 should only see their own entry');
 
+const user456Entries = filterEntries(entries, 'user-456');
+assert(user456Entries.length === 1 && user456Entries[0].id === 'user-456-entry', 'user-456 should only see their own entry');
 
+console.log('storage-filter-check: PASS – guest + authenticated filtering behave as expected');

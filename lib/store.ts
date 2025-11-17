@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 
 export interface JournalEntry {
@@ -100,9 +102,11 @@ class HybridStorage implements StorageBackend {
     
     // Filter local entries to only those belonging to current user (STRICT filtering)
     // Do NOT show entries without user_id to logged-in users (security: prevents cross-account leakage)
+    const isGuestEntry = (entry: JournalEntry) => !entry.user_id || entry.user_id === 'anonymous';
+
     const filteredLocalEntries = currentUserId
       ? localEntries.filter(entry => entry.user_id === currentUserId) // STRICT: Only exact matches
-      : localEntries.filter(entry => !entry.user_id); // Only anonymous entries if no userId
+      : localEntries.filter(isGuestEntry); // Treat legacy 'anonymous' entries as guest data
 
     // Try to get from Supabase only if user has premium and is authenticated
     try {
@@ -337,8 +341,16 @@ class SupabaseStorage implements StorageBackend {
   }
 }
 
+const SESSION_STORAGE_KEY = 'heijo_session';
+const LAST_USER_ID_STORAGE_KEY = 'heijo_last_user_id';
+
 // Local storage backend
-class LocalStorage implements StorageBackend {
+export class LocalStorage implements StorageBackend {
+  constructor(
+    private readonly supabaseClient: SupabaseClient | null = supabase,
+    private readonly isSupabaseConfiguredFn: () => boolean = isSupabaseConfigured
+  ) {}
+
   private getStorageKey(userId?: string): string {
     // Scope localStorage by userId to prevent cross-account data leakage
     if (userId) {
@@ -347,17 +359,60 @@ class LocalStorage implements StorageBackend {
     // Fallback for anonymous/legacy entries (will be migrated on first save with userId)
     return 'heijo-journal-entries';
   }
-  
+
   private async getCurrentUserId(): Promise<string | undefined> {
     try {
-      if (supabase && isSupabaseConfigured()) {
-        const { data: { user } } = await supabase.auth.getUser();
-        return user?.id;
+      if (this.supabaseClient && this.isSupabaseConfiguredFn()) {
+        const { data: { user } } = await this.supabaseClient.auth.getUser();
+        if (user?.id) {
+          this.rememberLastUserId(user.id);
+          return user.id;
+        }
       }
     } catch (error) {
       console.warn('Failed to get current user ID:', error);
     }
-    return undefined;
+
+    const sessionUserId = this.getSessionUserId();
+    if (sessionUserId) {
+      this.rememberLastUserId(sessionUserId);
+      return sessionUserId;
+    }
+
+    return this.getLastKnownUserId();
+  }
+
+  private getSessionUserId(): string | undefined {
+    if (typeof window === 'undefined') return undefined;
+
+    try {
+      const rawSession = localStorage.getItem(SESSION_STORAGE_KEY);
+      if (!rawSession) return undefined;
+
+      const parsed = JSON.parse(rawSession);
+      const sessionUser = parsed?.user || parsed?.currentSession?.user || parsed?.session?.user;
+      const userId = sessionUser?.id;
+      return typeof userId === 'string' && userId ? userId : undefined;
+    } catch (error) {
+      console.warn('Failed to parse heijo_session for user ID:', error);
+      return undefined;
+    }
+  }
+
+  private getLastKnownUserId(): string | undefined {
+    if (typeof window === 'undefined') return undefined;
+    const lastUserId = localStorage.getItem(LAST_USER_ID_STORAGE_KEY);
+    return lastUserId || undefined;
+  }
+
+  private rememberLastUserId(userId?: string): void {
+    if (typeof window === 'undefined') return;
+    if (!userId || userId === 'anonymous') return;
+    try {
+      localStorage.setItem(LAST_USER_ID_STORAGE_KEY, userId);
+    } catch (error) {
+      console.warn('Failed to persist last user ID:', error);
+    }
   }
 
   async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { id?: string; sync_status?: JournalEntry['sync_status']; last_synced?: string }): Promise<JournalEntry> {
@@ -366,6 +421,7 @@ class LocalStorage implements StorageBackend {
     const currentUserId = await this.getCurrentUserId();
     const userId = currentUserId || (entry.user_id && entry.user_id !== 'anonymous' ? entry.user_id : undefined);
     const storageKey = this.getStorageKey(userId);
+    this.rememberLastUserId(userId);
     const existing = this.getStoredEntries(userId);
     
     // If entry has an ID, check if it already exists and update it
@@ -503,12 +559,20 @@ class LocalStorage implements StorageBackend {
     // No-op for localStorage only
   }
 
-  private getStoredEntries(userId?: string): JournalEntry[] {
+  private getStoredEntries(userId?: string, options: { skipLastKnownFallback?: boolean } = {}): JournalEntry[] {
     if (typeof window === 'undefined') return [];
-    
+
+    const { skipLastKnownFallback = false } = options;
+
     const storageKey = this.getStorageKey(userId);
     const stored = localStorage.getItem(storageKey);
     if (!stored) {
+      if (!userId && !skipLastKnownFallback) {
+        const lastKnownUserId = this.getLastKnownUserId();
+        if (lastKnownUserId) {
+          return this.getStoredEntries(lastKnownUserId, { skipLastKnownFallback: true });
+        }
+      }
       // If no scoped entries found and we have a userId, try legacy key for migration
       if (userId) {
         const legacyKey = 'heijo-journal-entries';
@@ -552,6 +616,7 @@ class LocalStorage implements StorageBackend {
                   localStorage.setItem(legacyKey, JSON.stringify(remainingEntries));
                 }
                 
+                this.rememberLastUserId(userId);
                 return migratedEntries;
               } catch (error) {
                 if (error instanceof DOMException && error.name === 'QuotaExceededError') {
@@ -560,12 +625,14 @@ class LocalStorage implements StorageBackend {
                   console.warn('Failed to migrate legacy entries:', error);
                 }
                 // Return entries anyway (they're still in legacy key, will try again next time)
-                return userEntries.map((entry: any) => ({
+                const migratedEntries = userEntries.map((entry: any) => ({
                   ...entry,
                   user_id: userId, // Set userId even if migration failed
                   sync_status: entry.sync_status || 'local_only',
                   last_synced: entry.last_synced || undefined
                 }));
+                this.rememberLastUserId(userId);
+                return migratedEntries;
               }
             }
             return [];
@@ -591,14 +658,18 @@ class LocalStorage implements StorageBackend {
       
       // Now filter - all entries should match since they're in user's key
       // But filter for safety and to handle 'anonymous' entries
-      const userEntries = userId 
-        ? entriesWithUserId.filter((entry: any) => 
-            entry.user_id === userId || 
-            entry.user_id === 'anonymous' || 
+      const userEntries = userId
+        ? entriesWithUserId.filter((entry: any) =>
+            entry.user_id === userId ||
+            entry.user_id === 'anonymous' ||
             !entry.user_id
           )
         : entriesWithUserId.filter((entry: any) => !entry.user_id || entry.user_id === 'anonymous');
-      
+
+      if (userId) {
+        this.rememberLastUserId(userId);
+      }
+
       return userEntries;
     } catch (e) {
       console.warn('Failed to parse stored entries:', e);
