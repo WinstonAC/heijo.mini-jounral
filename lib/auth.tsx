@@ -108,14 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!supabase) return;
     
     // Clear user-specific localStorage data on sign out
-    // This prevents data leakage when switching accounts
+    // Entries remain intentionally because the key is already scoped as
+    // `heijo-journal-entries:${userId}`, so there is no cross-account leakage
     try {
       const session = await supabase.auth.getSession();
       const userId = session.data.session?.user?.id;
       
       if (userId) {
-        // Clear user-scoped storage key
-        localStorage.removeItem(`heijo-journal-entries:${userId}`);
+        // Keep journal entries so they rehydrate on next login; scoped keys prevent leakage
         // Clear analytics data (if user-specific)
         localStorage.removeItem('heijo_analytics');
         // Clear notification preferences (if user-specific)
