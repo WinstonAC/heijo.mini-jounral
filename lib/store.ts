@@ -102,9 +102,11 @@ class HybridStorage implements StorageBackend {
     
     // Filter local entries to only those belonging to current user (STRICT filtering)
     // Do NOT show entries without user_id to logged-in users (security: prevents cross-account leakage)
+    const isGuestEntry = (entry: JournalEntry) => !entry.user_id || entry.user_id === 'anonymous';
+
     const filteredLocalEntries = currentUserId
       ? localEntries.filter(entry => entry.user_id === currentUserId) // STRICT: Only exact matches
-      : localEntries.filter(entry => !entry.user_id); // Only anonymous entries if no userId
+      : localEntries.filter(isGuestEntry); // Treat legacy 'anonymous' entries as guest data
 
     // Try to get from Supabase only if user has premium and is authenticated
     try {
