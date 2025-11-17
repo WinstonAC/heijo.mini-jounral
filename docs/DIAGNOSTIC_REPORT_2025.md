@@ -26,9 +26,11 @@ When signed in with different email accounts (williamacampbell.com vs billy.camp
    - BUT: If `entry.user_id` is `undefined` or `null`, the filter `!entry.user_id || entry.user_id === userId` returns `true`
    - This means entries without `user_id` show up for EVERY user
 
-3. **No Cleanup on Logout**:
-   - When switching accounts, old localStorage data isn't cleared
-   - Both user-scoped keys and legacy key remain in localStorage
+3. **Logout Behavior** (UPDATED):
+   - Entries are intentionally preserved on logout (not cleared)
+   - User-scoped keys (`heijo-journal-entries:${userId}`) prevent cross-account leakage
+   - Entries rehydrate on next login from the same account
+   - No cleanup needed - scoped keys provide isolation
 
 ### Evidence in Code
 ```typescript
@@ -42,11 +44,12 @@ private getStoredEntries(userId?: string): JournalEntry[] {
 }
 ```
 
-### Recommended Fixes
-1. **Stricter Filtering**: Only show entries where `entry.user_id === userId` (no `!entry.user_id` fallback)
-2. **Clean Legacy Key**: Delete legacy key after successful migration
-3. **Clear on Logout**: Clear localStorage when user signs out
-4. **Migration Safety**: Only migrate entries that have a valid `user_id` matching current user
+### Recommended Fixes (IMPLEMENTED)
+1. **Stricter Filtering**: ✅ Only show entries where `entry.user_id === userId` (no `!entry.user_id` fallback for logged-in users)
+2. **Clean Legacy Key**: ✅ Delete legacy key after successful migration
+3. **Preserve on Logout**: ✅ Entries remain in localStorage (scoped keys prevent leakage, entries rehydrate on next login)
+4. **Migration Safety**: ✅ Only migrate entries that have a valid `user_id` matching current user
+5. **Guest Entry Support**: ✅ Treat both `undefined` and `'anonymous'` user_id as guest entries
 
 ---
 
@@ -249,8 +252,10 @@ All fixes have been implemented and are ready for testing:
 
 1. **Local Storage Fix** (`lib/store.ts`, `lib/auth.tsx`)
    - Strict filtering by user_id
-   - Legacy key cleanup
-   - Sign out cleanup
+   - Legacy key cleanup and migration
+   - Guest entry support (treats `'anonymous'` and `undefined` as guest data)
+   - Entries preserved on logout (scoped keys prevent cross-account leakage)
+   - Enhanced user ID fallback chain (session storage, last-known user ID)
 
 2. **Mobile Tooltip Fix** (`components/Composer.tsx`, `components/MicButton.tsx`)
    - Tooltips hidden on mobile (< 768px)

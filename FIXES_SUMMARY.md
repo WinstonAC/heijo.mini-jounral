@@ -1,7 +1,7 @@
 # Heijō Journal App - Fixes Summary
 
 ## Overview
-This document summarizes the fixes implemented for four critical issues in the Heijō mini-journal web app.
+This document summarizes the fixes implemented for critical issues in the Heijō mini-journal web app, including recent updates from November 2025.
 
 ---
 
@@ -274,4 +274,127 @@ const filteredLocalEntries = currentUserId
 - Mobile-first design: Save button uses responsive classes (`sm:hidden` / `hidden sm:flex`)
 - Safe area support: Added `.safe-area-bottom` utility for iOS home indicator spacing
 - User privacy: Storage scoping ensures users never see another user's entries on shared devices
+
+---
+
+## Issue 5: Guest Storage Filter Regression ✅ (November 2025)
+
+### Root Cause
+After implementing strict user filtering to prevent cross-account leakage, guest entries with `user_id: 'anonymous'` were being filtered out. This caused legacy guest entries to disappear for users who had created entries before logging in.
+
+### Fix Implemented
+- Updated `HybridStorage.getEntries()` to treat both `undefined` and `'anonymous'` as valid guest entries
+- Added `isGuestEntry` helper function for clarity
+- Guest users now see both legacy entries (with `user_id: 'anonymous'`) and new entries (with `user_id: undefined`)
+
+### Files Changed
+- `lib/store.ts`: Updated filtering logic in `HybridStorage.getEntries()`
+- `scripts/storage-filter-check.js`: Added regression test script
+
+### Key Changes
+```typescript
+// Treat both undefined and 'anonymous' as guest entries
+const isGuestEntry = (entry: JournalEntry) => !entry.user_id || entry.user_id === 'anonymous';
+
+const filteredLocalEntries = currentUserId
+  ? localEntries.filter(entry => entry.user_id === currentUserId) // STRICT: Only exact matches
+  : localEntries.filter(isGuestEntry); // Treat legacy 'anonymous' entries as guest data
+```
+
+---
+
+## Issue 6: Logout Behavior - Preserve Entries ✅ (November 2025)
+
+### Root Cause
+Initial implementation cleared journal entries on logout to prevent cross-account leakage. However, this caused data loss - users' entries disappeared when they signed out, even though they would sign back into the same account.
+
+### Fix Implemented
+- Removed `localStorage.removeItem()` for journal entries on sign out
+- Entries are now preserved because user-scoped keys (`heijo-journal-entries:${userId}`) already prevent cross-account leakage
+- Entries rehydrate automatically on next login from the same account
+- Only analytics and notification preferences are cleared (user-specific, not data)
+
+### Files Changed
+- `lib/auth.tsx`: Updated `signOut()` function to preserve journal entries
+- `docs/QA_MATRIX.md`: Added regression test for logout behavior
+
+### Key Changes
+```typescript
+// Entries remain intentionally because the key is already scoped as
+// `heijo-journal-entries:${userId}`, so there is no cross-account leakage
+// Keep journal entries so they rehydrate on next login; scoped keys prevent leakage
+// (removed: localStorage.removeItem(`heijo-journal-entries:${userId}`))
+```
+
+---
+
+## Issue 7: Enhanced localStorage User ID Fallback ✅ (November 2025)
+
+### Root Cause
+When Supabase is unavailable or slow to respond, the app couldn't reliably get the current user ID, causing entries to be saved without proper user association.
+
+### Fix Implemented
+- Added multi-level fallback chain for user ID retrieval:
+  1. Try Supabase `auth.getUser()` (primary)
+  2. Parse session from `localStorage.getItem('heijo_session')` (fallback)
+  3. Use last-known user ID from `localStorage.getItem('heijo_last_user_id')` (final fallback)
+- Added `rememberLastUserId()` to persist user ID for future sessions
+- Made `LocalStorage` class testable with dependency injection
+- Added comprehensive test coverage in `tests/local-storage-fallback.test.ts`
+
+### Files Changed
+- `lib/store.ts`: Enhanced `LocalStorage.getCurrentUserId()` with fallback chain
+- `tests/local-storage-fallback.test.ts`: Added test suite for fallback behavior
+
+### Key Changes
+```typescript
+private async getCurrentUserId(): Promise<string | undefined> {
+  // 1. Try Supabase
+  if (this.supabaseClient && this.isSupabaseConfiguredFn()) {
+    const { data: { user } } = await this.supabaseClient.auth.getUser();
+    if (user?.id) {
+      this.rememberLastUserId(user.id);
+      return user.id;
+    }
+  }
+  
+  // 2. Try session storage
+  const sessionUserId = this.getSessionUserId();
+  if (sessionUserId) {
+    this.rememberLastUserId(sessionUserId);
+    return sessionUserId;
+  }
+  
+  // 3. Try last-known user ID
+  return this.getLastKnownUserId();
+}
+```
+
+---
+
+## Issue 8: Password Reset 404 Error ✅ (November 2025)
+
+### Root Cause
+Password reset emails from Supabase redirected to `/reset-password`, but this route didn't exist in the Next.js app, causing a 404 error.
+
+### Fix Implemented
+- Created `app/reset-password/page.tsx` with full password reset UI
+- Matches existing login page design and styling
+- Handles Supabase session validation and password update
+- Redirects to `/login` after successful password change
+
+### Files Changed
+- `app/reset-password/page.tsx`: New password reset page
+- `lib/auth.tsx`: Already configured with correct redirect URL
+
+### Key Changes
+```typescript
+// app/reset-password/page.tsx
+const { error } = await supabase.auth.updateUser({ password });
+if (!error) {
+  setShowSuccess(true);
+  setMessage('✅ Password updated! You can now sign back in.');
+  setTimeout(() => router.push('/login'), 2000);
+}
+```
 

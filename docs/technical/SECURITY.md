@@ -353,7 +353,12 @@ export class GDPRManager {
       await supabase.from('journal_entries').delete().eq('user_id', user.id);
     }
     
-    // Delete from local storage
+    // Delete from local storage (user-scoped key)
+    const userId = await this.getCurrentUserId();
+    if (userId) {
+      localStorage.removeItem(`heijo-journal-entries:${userId}`);
+    }
+    // Also clear legacy key if it exists
     localStorage.removeItem('heijo-journal-entries');
     localStorage.removeItem('heijo-local-user');
     

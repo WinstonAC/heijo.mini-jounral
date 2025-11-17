@@ -1,6 +1,6 @@
 ## 🧘‍♂️ Heijō — Testing Readiness & Feature Validation Report
 
-**Last Updated**: 2025-11-05  
+**Last Updated**: 2025-11-17  
 **Scope:** Current Heijō Mini‑Journal web app codebase feature validation and QA readiness.
 
 ---
@@ -9,13 +9,16 @@
 
 ### Authentication
 - **How it works**: Supabase Auth using magic link and email/password as fallback (`lib/auth.tsx`, `lib/supabaseClient.ts`, `app/login/page.tsx`). Session persisted to `localStorage` under `heijo_session`.
-- **Password reset**: Forgot password flow implemented
+- **Password reset**: Full password reset flow implemented with dedicated `/reset-password` page (`app/reset-password/page.tsx`)
 - **Re-auth after restart**: Yes, via Supabase session + `localStorage` backup
+- **Logout behavior**: Journal entries are preserved on logout (user-scoped keys prevent cross-account leakage, entries rehydrate on next login)
 - **Readiness**: ✅ Works
 
 ### Journaling — Local-First Storage
-- **How it works**: Hybrid storage with local-first save and optional Supabase sync (`lib/store.ts`). Entries stored in `localStorage` key `heijo-journal-entries`; sync to Supabase when premium configured.
-- **Persistence**: Yes, via `localStorage` and IndexedDB; cloud sync optional via Supabase
+- **How it works**: Hybrid storage with local-first save and optional Supabase sync (`lib/store.ts`). Entries stored in user-scoped `localStorage` keys `heijo-journal-entries:${userId}`; sync to Supabase when premium configured.
+- **Persistence**: Yes, via `localStorage` and IndexedDB; cloud sync optional via Supabase. Entries persist across logout/login cycles.
+- **Guest entries**: Supports both `undefined` and `'anonymous'` user_id values for guest users
+- **User ID fallback**: Multi-level fallback chain (Supabase → session storage → last-known user ID) for reliability
 - **Privacy/deletion**: `gdprManager.deleteAllData()` clears secure data and consent keys; export CSV/JSON supported
 - **Readiness**: ✅ Works
 
@@ -54,9 +57,20 @@
 1. Navigate to `/login`. Enter email. Submit magic link.
 2. Open link; confirm redirect to `/journal` and session present.
 3. Refresh browser; confirm session persists.
-4. Test password reset flow.
+4. Test password reset flow:
+   - Click "Forgot password?" on login page
+   - Enter email and submit
+   - Check email for reset link
+   - Click link; should redirect to `/reset-password`
+   - Enter new password and confirm
+   - Should redirect to `/login` after success
+5. Test logout behavior:
+   - Create an entry while logged in
+   - Sign out
+   - Sign back in with same account
+   - Verify entry is still present (rehydrated from localStorage)
 
-**Expected**: Session available; `localStorage['heijo_session']` set; logout clears session.
+**Expected**: Session available; `localStorage['heijo_session']` set; logout clears session but preserves journal entries; password reset flow works end-to-end.
 
 ### 2) Journaling — Local-First Storage
 **Steps**:
@@ -160,7 +174,8 @@
 ## 📦 Local Storage Keys Reference
 
 - `heijo_session`: Supabase session JSON for resilience
-- `heijo-journal-entries`: Array of entries with `sync_status` and optional `last_synced`
+- `heijo-journal-entries:${userId}`: User-scoped array of entries with `sync_status` and optional `last_synced` (replaces legacy `heijo-journal-entries`)
+- `heijo_last_user_id`: Last known user ID for fallback when Supabase is unavailable
 - `HeijoSecureStorage`: Encrypted entries/metadata via `secureStorage` (IndexedDB)
 - `heijo-consent-settings`: Consent flags for microphone, storage, analytics
 - `heijo-analytics-data` / `heijo-analytics-events`: Usage metrics and events

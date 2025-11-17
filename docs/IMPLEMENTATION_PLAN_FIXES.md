@@ -5,20 +5,22 @@
 ### Problem
 Entries from one account appear when logged into another account.
 
-### Solution
-1. **Strict Filtering**: Only show entries where `entry.user_id === userId` (remove `!entry.user_id` fallback)
-2. **Clean Legacy Key**: Delete legacy `heijo-journal-entries` key after successful migration
-3. **Clear on Logout**: Clear user-specific localStorage on sign out
-4. **Migration Safety**: Only migrate entries with valid matching `user_id`
+### Solution (IMPLEMENTED)
+1. **Strict Filtering**: ✅ Only show entries where `entry.user_id === userId` (remove `!entry.user_id` fallback for logged-in users)
+2. **Clean Legacy Key**: ✅ Delete legacy `heijo-journal-entries` key after successful migration
+3. **Preserve on Logout**: ✅ Entries remain in localStorage (scoped keys prevent leakage, entries rehydrate on next login)
+4. **Migration Safety**: ✅ Only migrate entries with valid matching `user_id`
+5. **Guest Entry Support**: ✅ Treat both `undefined` and `'anonymous'` as guest entries
 
 ### Files to Modify
 - `lib/store.ts` - Fix `getStoredEntries()` filtering logic
 - `lib/auth.tsx` - Add localStorage cleanup on signOut
 
-### Changes
-- Line 467: Change filter from `!entry.user_id || entry.user_id === userId` to `entry.user_id === userId`
-- Line 448: Delete legacy key after migration
-- Line 110: Clear localStorage keys on signOut
+### Changes (IMPLEMENTED)
+- ✅ Filter updated: Strict matching for logged-in users, guest entry support for anonymous users
+- ✅ Legacy key cleanup: Deleted after successful migration
+- ✅ Logout behavior: Entries preserved (scoped keys provide isolation)
+- ✅ Enhanced user ID fallback: Multi-level fallback chain for reliability
 
 ---
 
