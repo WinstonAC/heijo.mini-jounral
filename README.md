@@ -62,13 +62,21 @@ Heijō Mini-Journal is designed with **privacy-first principles**, offering a co
    npm install
    ```
 
-3. **Start development server**
+3. **Set up environment variables** (optional for local-only mode)
+   ```bash
+   cp env.example .env.local
+   # Edit .env.local with your Supabase credentials
+   ```
+
+4. **Start development server**
    ```bash
    npm run dev
    ```
 
-4. **Open in browser**
+5. **Open in browser**
    Navigate to [http://localhost:3000](http://localhost:3000)
+
+**📖 For detailed development setup, see [Development Environment Guide](docs/DEV_SETUP.md)**
 
 ### Production Build
 

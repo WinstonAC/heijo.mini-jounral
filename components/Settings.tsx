@@ -38,7 +38,24 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
 
   const loadData = async () => {
     const consentData = gdprManager.getConsentSettings();
-    const metricsData = await gdprManager.getPrivacyMetrics();
+    
+    // Use main storage system (user-scoped) instead of secureStorage for metrics
+    // This ensures each user only sees their own entry count
+    const entries = await storage.getEntries();
+    const totalSize = JSON.stringify(entries).length;
+    const sortedEntries = entries.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+    
+    const metricsData = {
+      totalEntries: entries.length,
+      totalSize,
+      oldestEntry: sortedEntries.length > 0 ? new Date(sortedEntries[0].created_at) : undefined,
+      newestEntry: sortedEntries.length > 0 ? new Date(sortedEntries[sortedEntries.length - 1].created_at) : undefined,
+      consentGiven: consentData.dataStorage,
+      dataRetentionDays: 365
+    };
+    
     setConsent(consentData);
     setMetrics(metricsData);
     

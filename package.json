@@ -4,12 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:turbo": "next dev --turbo",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "lint:fix": "next lint --fix",
     "test:e2e": "playwright test",
     "test:e2e:report": "playwright show-report",
-    "seed:prompts": "ts-node scripts/seed-prompts.ts"
+    "seed:prompts": "ts-node scripts/seed-prompts.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@supabase/auth-helpers-nextjs": "^0.10.0",
