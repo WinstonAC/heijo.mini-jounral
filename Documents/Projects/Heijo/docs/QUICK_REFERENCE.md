@@ -35,8 +35,12 @@ heijo-landing/
 
 ### Required
 ```env
+# Supabase
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+# Email (EmailJS)
 EMAILJS_PUBLIC_KEY=your_emailjs_public_key
 EMAILJS_SERVICE_ID=your_emailjs_service_id
 EMAILJS_TEMPLATE_ID=your_emailjs_template_id
@@ -44,32 +48,43 @@ EMAILJS_TEMPLATE_ID=your_emailjs_template_id
 
 ### Optional
 ```env
+# Site config
 NEXT_PUBLIC_SITE_ORIGIN=https://heijo.io
+NEXT_PUBLIC_SITE_NAME=Heijō
+
+# Supabase storage
 NEXT_PUBLIC_SUPABASE_BUCKET=public
 NEXT_PUBLIC_SUPABASE_PREFIX=audio/flow
+
+# Analytics + social
+NEXT_PUBLIC_GA_ID=your_google_analytics_id
+NEXT_PUBLIC_GTM_ID=your_google_tag_manager_id
+NEXT_PUBLIC_TWITTER_HANDLE=@heijo
+NEXT_PUBLIC_GITHUB_URL=https://github.com/heijo
+
+# Runtime
+NODE_ENV=development
+NEXT_PUBLIC_VERCEL_ENV=development
 ```
 
 ## 🌐 API Endpoints
 
-### POST /api/join
-Add email to waitlist
-```typescript
-POST /api/join
-Content-Type: application/json
+### Waitlist
+- `POST /api/join` — add email to the waitlist (stores UA + source metadata)
 
-{
-  "email": "user@example.com"
-}
-```
+### Auth & Beta Access
+- `POST /api/auth/check-beta` — verify an email is allowlisted before signup
+- `POST /api/auth/signup` — create an account (enforces beta allowlist + password rules)
+- `POST /api/auth/signin` — email/password login gated by beta allowlist
+- `GET /api/auth/session` — lightweight session probe used by the app shell
+- `POST /api/auth/signout` — clear Supabase session cookies
 
-### GET /api/healthcheck
-Health monitoring endpoint
+> See `docs/technical/BETA_ACCESS.md` for full beta flow details.
 
-### GET /api/flow-audio
-Audio file management
-
-### GET /rss.xml
-RSS feed for blog content
+### Platform
+- `GET /api/healthcheck` — uptime probes / status dashboards
+- `GET /api/flow-audio` — serve audio assets referenced by the landing pages
+- `GET /rss.xml` — public RSS feed for Field Notes blog
 
 ## 🗄️ Database
 
@@ -180,6 +195,7 @@ curl -X POST http://localhost:3000/api/join \
 - [Frontend Guide](technical/FRONTEND.md)
 - [Database Guide](technical/DATABASE.md)
 - [Design System](product/DESIGN.md)
+- [Beta Access Control](technical/BETA_ACCESS.md)
 
 ## 🔗 External Services
 
