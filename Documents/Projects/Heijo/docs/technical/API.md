@@ -7,7 +7,7 @@ Heijō uses a combination of external APIs and internal endpoints to provide its
 
 ### Supabase
 **Purpose**: Database and authentication backend
-**Base URL**: `NEXT_PUBLIC_SUPABASE_URL`
+**Base URL**: `SUPABASE_URL` or `NEXT_PUBLIC_SUPABASE_URL` (fallback)
 **Authentication**: Service role key for admin operations, anon key for client operations
 
 #### Database Schema
@@ -94,6 +94,9 @@ CREATE TABLE public.waitlist (
 
 ### Required
 ```env
+# Supabase URL (either SUPABASE_URL or NEXT_PUBLIC_SUPABASE_URL)
+SUPABASE_URL=your_supabase_project_url
+# OR
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 EMAILJS_PUBLIC_KEY=your_emailjs_public_key
