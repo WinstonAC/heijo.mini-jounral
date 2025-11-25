@@ -151,23 +151,23 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 p-2 sm:p-4 lg:p-6 overflow-y-auto">
-      <div className="max-w-7xl mx-auto min-h-full flex flex-col">
-        {/* Main Journal Panel - Clean white container */}
-        <div className="bg-gradient-to-b from-white via-gray-50/80 to-gray-100/60 rounded-xl border border-soft-silver p-3 sm:p-4 lg:p-6 shadow-lg relative flex-1 flex flex-col backdrop-blur-sm iridescent">
+    <div className="min-h-screen bg-[#f2f2f2] px-3 sm:px-5 py-4 safe-area-bottom overflow-y-auto">
+      <div className="mx-auto w-full max-w-[420px] sm:max-w-3xl lg:max-w-5xl flex flex-col flex-1">
+        {/* Main Journal Panel */}
+        <div className="brutalist-card relative flex-1 flex flex-col bg-white/95 rounded-[14px] border border-[#e5e5e5] shadow-[0_4px_12px_rgba(0,0,0,0.06)] px-4 sm:px-6 lg:px-8 py-4 sm:py-6 gap-4">
           {/* Header inside journal panel */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-3 sm:mb-4 pb-3 sm:pb-4 border-b border-soft-silver flex-shrink-0">
-            <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#ececec] flex-shrink-0">
+            <div className="flex flex-col gap-1">
               <div className="relative group">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl brand-hero text-graphite-charcoal relative">
-                  <span className="brand-hero">Heijō</span>
-                  <span className="brand-label text-text-secondary ml-1 sm:ml-2">mini-journal</span>
+                <h1 className="text-2xl sm:text-3xl tracking-tight leading-tight text-graphite-charcoal">
+                  <span className="brand-hero leading-[1.1]">Heijō</span>
+                  <span className="brand-label text-text-secondary ml-2 sm:ml-3 leading-[1.2]">mini-journal</span>
                 </h1>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs text-text-secondary font-medium subheading">
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-xs text-text-secondary font-medium subheading leading-tight">
                     Micro-moments. Macro-clarity.
                   </span>
-                  <span className="text-xs text-text-caption font-medium px-2 py-1 bg-tactile-taupe rounded-full caption-text">
+                  <span className="text-[10px] tracking-[0.2em] text-text-caption font-semibold px-3 py-1 border border-[#d8d8d8] rounded-full uppercase leading-tight">
                     beta
                   </span>
                 </div>
@@ -176,13 +176,13 @@ export default function JournalPage() {
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
                 onClick={() => setShowSettings(true)}
-                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-1 px-2 rounded-lg hover:bg-tactile-taupe caption-text"
+                className="text-xs tracking-[0.18em] uppercase text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-2 px-3 rounded-md hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 Settings
               </button>
               <button
                 onClick={signOut}
-                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-1 px-2 rounded-lg hover:bg-tactile-taupe caption-text"
+                className="text-xs tracking-[0.18em] uppercase text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-2 px-3 rounded-md hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 Sign Out
               </button>

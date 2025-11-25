@@ -204,220 +204,212 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
   if (!isOpen || !consent || !metrics) return null;
 
   return (
-    <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-60 flex items-center justify-center z-50 p-4">
-      <div className="bg-mist-white border border-soft-silver rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-medium text-graphite-charcoal subheading">Settings</h2>
+    <div className="fixed inset-0 z-50 bg-black/70">
+      <div className="flex h-full w-full items-end md:items-center justify-center px-3 py-4 md:px-6">
+        <div className="settings-sheet w-full max-w-3xl h-[96vh] md:h-[90vh] overflow-hidden flex flex-col bg-white">
+          {/* Sticky header */}
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b settings-divider bg-white/95 px-5 py-4">
+            <h2 className="text-lg font-semibold tracking-[0.08em] uppercase text-[#2a2a2a] leading-tight">
+              Settings
+            </h2>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-full border border-soft-silver flex items-center justify-center text-text-secondary hover:bg-tactile-taupe transition-colors"
+              className="ghost-chip rounded-full px-3 py-2 text-xs tracking-[0.18em] uppercase focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+              aria-label="Close settings"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              Close
             </button>
           </div>
 
-          {/* Data Overview */}
-          <div className="mb-6 p-4 bg-tactile-taupe rounded-lg">
-            <h3 className="text-sm font-medium text-graphite-charcoal mb-3 subheading">Your Data</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div>
-                <span className="text-text-secondary">Total Entries:</span>
-                <span className="ml-2 font-medium text-graphite-charcoal">{metrics.totalEntries}</span>
-              </div>
-              <div>
-                <span className="text-text-secondary">Storage Used:</span>
-                <span className="ml-2 font-medium text-graphite-charcoal">{formatBytes(metrics.totalSize)}</span>
-              </div>
-              {metrics.oldestEntry && (
-                <div>
-                  <span className="text-text-secondary">Oldest Entry:</span>
-                  <span className="ml-2 font-medium text-graphite-charcoal">{metrics.oldestEntry.toLocaleDateString()}</span>
+          {/* Scrollable body */}
+          <div className="flex-1 overflow-y-auto px-5 md:px-8 py-5 space-y-6 pb-24">
+            {/* Data overview */}
+            <section className="space-y-3 border-b settings-divider pb-5">
+              <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
+                Your Data
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                <div className="flex items-center justify-between border border-[#eeeeee] rounded-lg px-3 py-2">
+                  <span className="text-text-secondary">Total Entries</span>
+                  <span className="text-[#1a1a1a] font-semibold">{metrics.totalEntries}</span>
                 </div>
-              )}
-              {metrics.newestEntry && (
-                <div>
-                  <span className="text-text-secondary">Newest Entry:</span>
-                  <span className="ml-2 font-medium text-graphite-charcoal">{metrics.newestEntry.toLocaleDateString()}</span>
+                <div className="flex items-center justify-between border border-[#eeeeee] rounded-lg px-3 py-2">
+                  <span className="text-text-secondary">Storage Used</span>
+                  <span className="text-[#1a1a1a] font-semibold">{formatBytes(metrics.totalSize)}</span>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Consent Settings */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-graphite-charcoal mb-4 subheading">Consent Settings</h3>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-graphite-charcoal">Microphone Access</div>
-                  <div className="text-xs text-text-secondary">Required for voice recording</div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consent.microphone}
-                    onChange={(e) => handleConsentChange('microphone', e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal"></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-graphite-charcoal">Local Data Storage</div>
-                  <div className="text-xs text-text-secondary">Store your journal entries locally with encryption</div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consent.dataStorage && !isPremium}
-                    onChange={(e) => handleLocalStorageToggle(e.target.checked)}
-                    disabled={isPremium}
-                    className="sr-only peer"
-                  />
-                  <div className={`w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal ${isPremium ? 'opacity-50 cursor-not-allowed' : ''}`}></div>
-                </label>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-graphite-charcoal">Premium Cloud Sync</div>
-                  <div className="text-xs text-text-secondary">
-                    {isPremium ? 'Premium: Active' : 'Sync across all your devices'}
+                {metrics.oldestEntry && (
+                  <div className="flex items-center justify-between border border-[#eeeeee] rounded-lg px-3 py-2">
+                    <span className="text-text-secondary">Oldest Entry</span>
+                    <span className="text-[#1a1a1a] font-semibold">{metrics.oldestEntry.toLocaleDateString()}</span>
                   </div>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={isPremium}
-                    onChange={(e) => handlePremiumToggle(e.target.checked)}
-                    disabled={isLoadingPremium}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal"></div>
-                </label>
+                )}
+                {metrics.newestEntry && (
+                  <div className="flex items-center justify-between border border-[#eeeeee] rounded-lg px-3 py-2">
+                    <span className="text-text-secondary">Newest Entry</span>
+                    <span className="text-[#1a1a1a] font-semibold">{metrics.newestEntry.toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
+            </section>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm font-medium text-graphite-charcoal">Analytics (Optional)</div>
-                  <div className="text-xs text-text-secondary">Help improve the app with anonymous usage data</div>
+            {/* Consent settings */}
+            <section className="space-y-4 border-b settings-divider pb-5">
+              <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
+                Consent Settings
+              </h3>
+              {[
+                {
+                  title: 'Microphone Access',
+                  description: 'Required for voice recording',
+                  checked: consent.microphone,
+                  onChange: (checked: boolean) => handleConsentChange('microphone', checked),
+                  disabled: false,
+                },
+                {
+                  title: 'Local Data Storage',
+                  description: 'Store encrypted copies on this device',
+                  checked: consent.dataStorage && !isPremium,
+                  onChange: (checked: boolean) => handleLocalStorageToggle(checked),
+                  disabled: isPremium,
+                },
+                {
+                  title: 'Premium Cloud Sync',
+                  description: isPremium ? 'Premium: Active' : 'Sync across devices',
+                  checked: isPremium,
+                  onChange: (checked: boolean) => handlePremiumToggle(checked),
+                  disabled: isLoadingPremium,
+                },
+                {
+                  title: 'Analytics (Optional)',
+                  description: 'Share anonymous usage patterns',
+                  checked: consent.analytics,
+                  onChange: (checked: boolean) => handleConsentChange('analytics', checked),
+                  disabled: false,
+                },
+              ].map((item) => (
+                <div key={item.title} className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-[#1a1a1a]">{item.title}</p>
+                    <p className="text-xs text-text-secondary mt-0.5">{item.description}</p>
+                  </div>
+                  <label className={`relative inline-flex h-6 w-11 cursor-pointer rounded-full ${item.disabled ? 'opacity-50' : ''}`}>
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={item.checked}
+                      onChange={(e) => item.onChange(e.target.checked)}
+                      disabled={item.disabled}
+                    />
+                    <span className="absolute inset-0 rounded-full bg-[#e6e6e6] transition peer-checked:bg-[#1a1a1a]"></span>
+                    <span className="absolute left-[2px] top-[2px] h-5 w-5 rounded-full bg-white shadow transition peer-checked:translate-x-5"></span>
+                  </label>
                 </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={consent.analytics}
-                    onChange={(e) => handleConsentChange('analytics', e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-tactile-taupe peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-soft-silver rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-soft-silver after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-graphite-charcoal"></div>
-                </label>
-              </div>
-            </div>
-          </div>
+              ))}
+            </section>
 
-          {/* Analytics Dashboard - Only show if analytics consent is given */}
-          <AnalyticsDashboard isVisible={consent?.analytics === true} />
+            {/* Analytics Dashboard */}
+            <AnalyticsDashboard isVisible={consent?.analytics === true} />
 
-          {/* Display Settings */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-graphite-charcoal mb-4 subheading">Display Settings</h3>
-            <div className="space-y-4">
-              <div>
-                <div className="text-sm font-medium text-graphite-charcoal mb-3">Font Size</div>
+            {/* Display settings */}
+            <section className="space-y-3 border-b settings-divider pb-5">
+              <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
+                Display
+              </h3>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-[#1a1a1a]">Font Size</p>
                 <div className="flex items-center gap-2">
                   {(['small', 'medium', 'large'] as const).map((size) => (
                     <button
                       key={size}
                       onClick={() => setFontSize(size)}
-                      className={`w-8 h-8 rounded-lg border transition-all duration-300 flex items-center justify-center text-xs font-medium focus:outline-none focus:ring-2 focus:ring-soft-silver focus:ring-opacity-50 ${
+                      className={`w-9 h-9 rounded-lg border text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
                         fontSize === size
-                          ? 'bg-graphite-charcoal border-graphite-charcoal text-text-inverse shadow-lg'
-                          : 'bg-white border-soft-silver text-graphite-charcoal hover:bg-tactile-taupe hover:border-graphite-charcoal hover:shadow-md'
+                          ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg'
+                          : 'bg-white text-[#1a1a1a] border-[#d9d9d9] hover:border-[#1a1a1a]'
                       }`}
                     >
                       {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-text-secondary mt-2">
-                  Adjust the font size for your journal entries
+                <p className="text-xs text-text-secondary">
+                  Adjust reading comfort without changing layout.
                 </p>
               </div>
-            </div>
-          </div>
+            </section>
 
-          {/* Notification Settings */}
-          <div className="mb-6 border-t border-ui-warm-silver pt-6">
-            <NotificationSettings />
-          </div>
+            {/* Notifications */}
+            <section className="space-y-3 border-b settings-divider pb-5">
+              <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
+                Notifications
+              </h3>
+              <NotificationSettings />
+            </section>
 
-          {/* Data Export */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-graphite-charcoal mb-4 subheading">Export Your Data</h3>
-            <div className="flex gap-3">
+            {/* Export */}
+            <section className="space-y-3 border-b settings-divider pb-5">
+              <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
+                Export
+              </h3>
+              <div className="flex flex-wrap gap-3">
+                <button
+                  onClick={handleExportCSV}
+                  disabled={isExporting || metrics.totalEntries === 0}
+                  className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isExporting ? 'Exporting…' : 'Export as CSV'}
+                </button>
+              </div>
+              <p className="text-xs text-text-caption">
+                Includes entry text, tags, and timestamps.
+              </p>
+            </section>
+
+            {/* Delete data */}
+            <section className="space-y-3">
+              <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
+                Delete All Data
+              </h3>
+              <p className="text-xs text-text-secondary">
+                Permanently removes every journal entry, tag, and preference. This cannot be undone.
+              </p>
               <button
-                onClick={handleExportCSV}
-                disabled={isExporting || metrics.totalEntries === 0}
-                className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 rounded-lg"
+                onClick={() => setShowDeleteConfirm(true)}
+                disabled={metrics.totalEntries === 0}
+                className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white bg-[#c62828] shadow-[0_6px_18px_rgba(198,40,40,0.35)] hover:bg-[#b02121] disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                {isExporting ? 'Exporting...' : 'Export as CSV'}
+                Delete All Data
               </button>
-            </div>
-            <p className="text-xs text-text-caption mt-2">
-              Export your journal entries with date, time, and text content.
-            </p>
-          </div>
+            </section>
 
-          {/* Data Deletion */}
-          <div className="mb-6">
-            <h3 className="text-sm font-medium text-graphite-charcoal mb-4 subheading">Delete All Data</h3>
-            <p className="text-xs text-text-secondary mb-4">
-              This will permanently delete all your journal entries and settings. This action cannot be undone.
-            </p>
-            <button
-              onClick={() => setShowDeleteConfirm(true)}
-              disabled={metrics.totalEntries === 0}
-              className="px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded-lg"
-            >
-              Delete All Data
-            </button>
-          </div>
-
-          {/* Legal Links */}
-          <div className="text-center flex items-center justify-center gap-4">
-            <button
-              onClick={() => {
-                onClose();
-                window.location.href = '/privacy';
-              }}
-              className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors"
-            >
-              Privacy Policy
-            </button>
-            <span className="text-soft-silver">•</span>
-            <button
-              onClick={() => {
-                onClose();
-                window.location.href = '/terms';
-              }}
-              className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors"
-            >
-              Terms of Service
-            </button>
-          </div>
-
-          {/* Branding */}
-          <div className="mt-6 pt-6 border-t border-soft-silver text-center">
-            <div className="text-[10px] text-text-caption caption-text">
-              <div className="brand-hero">Heijō mini-journal</div>
-              <div className="mt-1">Micro-moments. Macro-clarity.</div>
-            </div>
+            {/* Legal */}
+            <section className="space-y-3 text-center">
+              <div className="flex items-center justify-center gap-4 text-xs text-text-caption">
+                <button
+                  onClick={() => {
+                    onClose();
+                    window.location.href = '/privacy';
+                  }}
+                  className="hover:text-graphite-charcoal underline-offset-4 hover:underline"
+                >
+                  Privacy Policy
+                </button>
+                <span aria-hidden="true">•</span>
+                <button
+                  onClick={() => {
+                    onClose();
+                    window.location.href = '/terms';
+                  }}
+                  className="hover:text-graphite-charcoal underline-offset-4 hover:underline"
+                >
+                  Terms of Service
+                </button>
+              </div>
+              <div className="text-[10px] text-text-caption leading-snug">
+                <div className="brand-hero uppercase tracking-[0.2em]">Heijō mini-journal</div>
+                <div>Micro-moments. Macro-clarity.</div>
+              </div>
+            </section>
           </div>
         </div>
       </div>

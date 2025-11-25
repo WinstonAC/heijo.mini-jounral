@@ -30,10 +30,14 @@ export default function HeaderClock() {
   const { day, month, dayNum, year, time: timeStr } = formatTime(time);
 
   return (
-    <div className="text-[#1A1A1A] text-lg sm:text-xl tracking-wide whitespace-nowrap mb-4" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-      <span className="font-semibold">{day}, {month} {dayNum}, {year}</span>
-      <span className="mx-2 text-[#8A8A8A]">•</span>
-      <span className="font-semibold">{timeStr}</span>
+    <div className="flex flex-wrap items-baseline gap-2 text-[#1f1f1f] mb-2 leading-tight" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <span className="text-[clamp(1rem,2vw,1.125rem)] font-semibold tracking-[0.02em]">
+        {day}, {month} {dayNum}, {year}
+      </span>
+      <span className="text-[#9a9a9a]">•</span>
+      <span className="text-[clamp(0.95rem,1.8vw,1.05rem)] font-medium tracking-[0.08em]">
+        {timeStr}
+      </span>
     </div>
   );
 }

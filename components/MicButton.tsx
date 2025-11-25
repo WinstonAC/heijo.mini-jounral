@@ -215,17 +215,17 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
   const getButtonClass = () => {
     const state = getButtonState();
-    const baseClass = 'w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-all duration-100 focus:outline-none focus:ring-2 focus:ring-soft-silver focus:ring-opacity-50';
+    const baseClass = 'relative w-14 h-14 sm:w-16 sm:h-16 rounded-full mic-shell flex items-center justify-center transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-gray-900';
     
     switch (state) {
       case 'listening':
-        return `${baseClass} border-soft-silver text-soft-silver bg-transparent record-btn is-recording`;
+        return `${baseClass} recording text-[#fc7b3e]`;
       case 'denied':
-        return `${baseClass} border-red-300 text-red-500 bg-red-50 cursor-not-allowed`;
+        return `${baseClass} text-red-500 opacity-60 cursor-not-allowed`;
       case 'unsupported':
-        return `${baseClass} border-soft-silver text-text-caption bg-tactile-taupe cursor-not-allowed`;
+        return `${baseClass} text-text-caption opacity-60 cursor-not-allowed`;
       default:
-        return `${baseClass} border-soft-silver text-text-secondary hover:border-graphite-charcoal hover:text-graphite-charcoal hover:bg-tactile-taupe`;
+        return `${baseClass} text-[#5a5a5a]`;
     }
   };
 
@@ -245,7 +245,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
   if (!isSupported) {
     return (
-      <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-soft-silver text-text-caption bg-tactile-taupe flex items-center justify-center cursor-not-allowed">
+      <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full mic-shell text-text-caption opacity-60 flex items-center justify-center cursor-not-allowed">
         <svg
           width="16"
           height="16"
@@ -273,6 +273,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         disabled={!isSupported || permissionState === 'denied'}
         className={getButtonClass()}
         title={getTooltipText()}
+        aria-pressed={isListening}
       >
         <svg
           width="16"

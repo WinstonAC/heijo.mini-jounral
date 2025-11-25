@@ -37,6 +37,10 @@
 @tailwind components;
 @tailwind utilities;
 
+.brutalist-safe-area {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
 :root {
   /* Heijō Silver Fade Color System */
   --heijo-bg-gradient-top: #F7F7F8;
@@ -55,6 +59,12 @@
   --graphite-charcoal: #1A1A1A;
   --soft-silver: #D9D9DC;
   --tactile-taupe: #D9D9DC;
+  --heijo-border-strong: #e5e5e5;
+  --heijo-border-muted: rgba(26, 26, 26, 0.08);
+  --heijo-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --heijo-shadow-float: 0 10px 30px rgba(0, 0, 0, 0.08);
+  --panel-gradient: radial-gradient(circle at 15% 20%, rgba(255,255,255,0.04), transparent 45%), linear-gradient(180deg, #0C0C0C 0%, #111111 100%);
+  --panel-border: rgba(255,255,255,0.08);
   
   /* Typography Colors */
   --text-primary: #1A1A1A;
@@ -132,6 +142,11 @@
     font-family: "Inter", "Helvetica Neue", system-ui, sans-serif;
     font-weight: 300;
     font-size: 0.875rem;
+  }
+  
+  .label-track {
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
   }
 }
 
@@ -330,17 +345,18 @@
   }
   
   .journal-input {
-    background: var(--graphite-charcoal);
+    background: var(--panel-gradient);
     color: var(--text-inverse);
-    border: 1px solid var(--soft-silver);
-    transition: all 0.3s ease;
+    border: 1px solid var(--panel-border);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s ease;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25), 0 6px 18px rgba(0, 0, 0, 0.25);
   }
   
   .journal-input:focus {
-    border-color: var(--soft-silver);
-    box-shadow: var(--silver-glow);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.2), 0 10px 28px rgba(0, 0, 0, 0.3);
     outline: none;
-    animation: silverGlow 0.3s ease-out;
+    transform: scale(1.01);
   }
   
   .prompt-bubble {
@@ -353,7 +369,88 @@
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  .brutalist-card {
+    border: 1px solid var(--heijo-border-strong);
+    border-radius: 0.9rem;
+    box-shadow: var(--heijo-shadow-soft);
+    background: #fefefe;
+  }
+
+  .mic-shell {
+    position: relative;
+    background: linear-gradient(180deg, #fdfdfd 0%, #f3f3f3 100%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow:
+      inset 0 2px 6px rgba(0, 0, 0, 0.08),
+      inset 0 -2px 4px rgba(255, 255, 255, 0.6),
+      0 4px 10px rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .mic-shell:focus-visible {
+    outline: 2px solid #111;
+    outline-offset: 3px;
+  }
+
+  .mic-shell:is(:hover, :focus-visible) {
+    transform: translateY(-1px);
+    box-shadow:
+      inset 0 1px 3px rgba(0, 0, 0, 0.05),
+      inset 0 -2px 4px rgba(255, 255, 255, 0.7),
+      0 6px 16px rgba(0, 0, 0, 0.14);
+  }
+
+  .mic-shell::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 999px;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.08);
+    pointer-events: none;
+  }
+
+  .mic-shell.recording::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 999px;
+    border: 1px solid rgba(252, 123, 62, 0.8);
+    box-shadow: 0 0 0 1px rgba(252, 123, 62, 0.35);
+  }
+
+  .ghost-chip {
+    border: 1px solid rgba(26, 26, 26, 0.25);
+    color: rgba(26, 26, 26, 0.8);
+    opacity: 0.8;
+    transition: opacity 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  .ghost-chip:hover,
+  .ghost-chip:focus-visible {
+    opacity: 1;
+    color: #1a1a1a;
+    border-color: rgba(26, 26, 26, 0.45);
+  }
+
+  .settings-divider {
+    border-top: 1px solid rgba(26, 26, 26, 0.08);
+  }
+
+  .settings-sheet {
+    background: #fefefe;
+    border-radius: 1rem 1rem 0 0;
+    border: 1px solid rgba(26, 26, 26, 0.12);
+    box-shadow: var(--heijo-shadow-float);
+  }
+
+  @media (min-width: 768px) {
+    .settings-sheet {
+      border-radius: 1.25rem;
+    }
+  }
 }
+
 
 
 

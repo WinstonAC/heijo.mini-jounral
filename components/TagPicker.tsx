@@ -36,25 +36,21 @@ export default function TagPicker({ selectedTags, onTagsChange }: TagPickerProps
   };
 
   return (
-    <div className="space-y-4">
-      <label className="block text-sm sm:text-base font-semibold relative" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-        <span className="relative z-10 bg-gradient-to-r from-[#1A1A1A] via-[#4A4A4A] to-[#1A1A1A] bg-clip-text text-transparent">
-          Today&apos;s Vibe
-        </span>
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#E8E8E8] to-transparent opacity-30 blur-sm"></div>
+    <div className="space-y-2.5">
+      <label className="block text-[11px] sm:text-sm font-semibold label-track text-[#4b4b4b]">
+        TODAY&apos;S VIBE
       </label>
       
-      <div className="flex flex-wrap gap-1.5 sm:gap-2">
+      <div className="flex flex-wrap gap-2">
         {visibleTags.map(tag => (
           <button
             key={tag}
             onClick={() => toggleTag(tag)}
-            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-lg border-2 transition-all duration-100 ${
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold tracking-[0.08em] rounded-full border transition-all duration-150 ${
               selectedTags.includes(tag)
-                ? 'bg-[#2A2A2A] text-[#E8E8E8] border-[#C7C7C7]'
-                : 'bg-[#F8F8F8] text-[#8A8A8A] border-[#C7C7C7] hover:bg-[#2A2A2A] hover:text-[#E8E8E8]'
+                ? 'bg-[#181818] text-white border-[#181818] shadow-sm'
+                : 'bg-white text-[#4a4a4a] border-[#d9d9d9] hover:border-[#1a1a1a] hover:text-[#1a1a1a]'
             }`}
-            style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
           >
             {tag}
           </button>
@@ -63,8 +59,7 @@ export default function TagPicker({ selectedTags, onTagsChange }: TagPickerProps
         {!showAll && AVAILABLE_TAGS.length > DEFAULT_TAGS.length && (
           <button
             onClick={() => setShowAll(true)}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-[#8A8A8A] border-2 border-[#C7C7C7] rounded-lg hover:bg-[#2A2A2A] hover:text-[#E8E8E8] transition-all duration-100"
-            style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold tracking-[0.08em] text-[#5a5a5a] border border-[#d9d9d9] rounded-full hover:border-[#1a1a1a] hover:text-[#1a1a1a] transition-all duration-150"
           >
             + Show more
           </button>
@@ -73,8 +68,7 @@ export default function TagPicker({ selectedTags, onTagsChange }: TagPickerProps
         {showAll && (
           <button
             onClick={() => setShowAll(false)}
-            className="px-3 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-[#8A8A8A] border-2 border-[#C7C7C7] rounded-lg hover:bg-[#2A2A2A] hover:text-[#E8E8E8] transition-all duration-100"
-            style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+            className="px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold tracking-[0.08em] text-[#5a5a5a] border border-[#d9d9d9] rounded-full hover:border-[#1a1a1a] hover:text-[#1a1a1a] transition-all duration-150"
           >
             Show less
           </button>

@@ -456,7 +456,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
 
   return (
-    <div className="h-full flex flex-col space-y-2 sm:space-y-3">
+    <div className="h-full flex flex-col space-y-2 sm:space-y-4">
       {/* Digital-style Date/Time Display */}
       <div className="flex-shrink-0">
         <HeaderClock />
@@ -492,26 +492,61 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
               </button>
             </div>
           </div>
+
+    {/* Mobile Toolbar */}
+    <div className="md:hidden pt-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
+      <div className="sticky bottom-3 z-30">
+        <div className="flex items-center justify-between gap-3 rounded-full border border-[#e5e5e5] bg-white/95 shadow-[0_6px_18px_rgba(0,0,0,0.08)] px-3 py-2">
+          <div className="relative">
+            <MicButton 
+              onTranscript={handleVoiceTranscript} 
+              onError={handleVoiceError}
+            />
+            {isVoiceActive && (
+              <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-sm font-medium tracking-[0.12em] uppercase">
+            <button
+              onClick={handleManualSave}
+              disabled={!content.trim()}
+              className="ghost-chip rounded-full px-3 py-2 text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800 disabled:opacity-40"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => {
+                const event = new CustomEvent('openJournalHistory');
+                window.dispatchEvent(event);
+              }}
+              className="ghost-chip rounded-full px-3 py-2 text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
+            >
+              History
+            </button>
+          </div>
+        </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Prompt Display - Minimal floating card */}
       {promptState === 'showing' && currentPrompt && (
         <div className="flex-shrink-0 prompt-bubble rounded-xl px-6 py-4">
-          <div className="flex items-center justify-between">
-            <p className="text-graphite-charcoal font-medium text-base flex-1 pr-6 leading-relaxed body-text">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-graphite-charcoal font-medium text-base flex-1 sm:pr-6 leading-relaxed body-text">
               {currentPrompt.text}
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 justify-end sm:justify-start">
               <button
                 onClick={handleSelectPrompt}
-                className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300"
+                className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 min-w-[96px]"
               >
                 Use This
               </button>
               <button
                 onClick={handlePromptNo}
-                className="px-4 py-2 text-sm font-medium outline-button rounded-lg transition-all duration-300"
+                className="px-4 py-2 text-sm font-medium outline-button rounded-lg transition-all duration-300 min-w-[96px]"
               >
                 Skip
               </button>
@@ -523,7 +558,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       {/* Selected Prompt Display - Minimal floating card */}
       {promptState === 'selected' && currentPrompt && (
         <div className="flex-shrink-0 prompt-bubble border-soft-silver rounded-xl px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-graphite-charcoal font-medium text-base leading-relaxed body-text">
               {currentPrompt.text}
             </p>
@@ -548,15 +583,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         </div>
       )}
 
-      {/* Mic Button */}
-      <div className="flex-shrink-0 flex items-center justify-end gap-2 sm:gap-4 text-xs text-text-caption">
-        <div className="relative group">
+      {/* Mic Button - Desktop */}
+      <div className="hidden md:flex flex-shrink-0 items-center justify-end gap-3 text-xs text-text-caption">
+        <div className="relative">
           <MicButton 
             onTranscript={handleVoiceTranscript} 
             onError={handleVoiceError}
           />
           {isVoiceActive && (
-            <div className="absolute -inset-1 bg-soft-silver rounded-lg animate-pulse opacity-20"></div>
+            <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
           )}
         </div>
       </div>
@@ -581,7 +616,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 setIsUserScrolled(!isAtBottom);
               }}
               placeholder="Type or speak your thoughts..."
-              className={`w-full resize-none rounded-lg bg-transparent focus:outline-none text-gray-900 dark:text-gray-100 p-3 sm:p-4 lg:p-6 journal-input transition-all duration-300 ${getFontSizeClass()} ${
+              className={`w-full resize-none rounded-[14px] border border-white/10 bg-transparent focus:outline-none text-gray-100 p-3 sm:p-4 lg:p-5 journal-input transition-all duration-300 ${getFontSizeClass()} ${
                 promptState === "hidden"
                   ? "flex-1 h-full min-h-0" // Fill space when prompt hidden
                   : "min-h-[200px] sm:min-h-[250px]" // Standard height when prompt visible
@@ -589,11 +624,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
               disabled={showWelcomeOverlay}
               style={{
                 fontFamily: 'Inter, system-ui, sans-serif',
-                lineHeight: '1.8',
-                background: 'var(--graphite-charcoal)',
+                lineHeight: '1.6',
+                background: 'var(--panel-gradient)',
                 color: 'var(--text-inverse)',
-                border: '1px solid var(--soft-silver)',
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.1)',
+                border: '1px solid var(--panel-border)',
+                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
                 ...(promptState === "hidden"
                   ? (
                       isMobile
@@ -781,41 +816,24 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             )}
           </div>
 
-          {/* Compact buttons - visible on all screen sizes */}
-          <div className="flex items-center gap-2">
-            <div className="relative group">
+          {/* Desktop ghost chips */}
+          <div className="hidden md:flex items-center gap-2 ml-auto">
               <button
                 onClick={handleManualSave}
                 disabled={!content.trim()}
-                className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
-                style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+              className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
                 S
               </button>
-              {/* Tooltip - hidden on mobile to prevent off-screen issues */}
-              <div className="hidden sm:block absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
-                Save
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
-              </div>
-            </div>
-            <div className="relative group">
               <button
                 onClick={() => {
-                  // This will be handled by the parent component
                   const event = new CustomEvent('openJournalHistory');
                   window.dispatchEvent(event);
                 }}
-                className="w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-medium transition-all duration-100 bg-[#F8F8F8] border-[#C7C7C7] text-[#6A6A6A] hover:bg-[#F0F0F0] hover:border-[#8A8A8A] focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
-                style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+              className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
                 H
               </button>
-              {/* Tooltip - hidden on mobile to prevent off-screen issues */}
-              <div className="hidden sm:block absolute bottom-full right-0 transform translate-x-0 mb-2 px-2 py-1 bg-[#2A2A2A] text-[#E8E8E8] text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
-                History
-                <div className="absolute top-full right-4 transform translate-x-0 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-[#2A2A2A]"></div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
