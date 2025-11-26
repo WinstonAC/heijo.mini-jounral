@@ -320,11 +320,31 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                     {groups.today.map(entry => (
                       <div key={entry.id}>
                         <div
-                          onClick={() => setExpandedEntry(expandedEntry === entry.id ? null : entry.id)}
-                          className="p-2.5 sm:p-3 bg-[#2A2A2A] border border-[#C7C7C7] hover:border-[#E8E8E8] cursor-pointer transition-colors duration-200"
+                          onClick={() => {
+                            if (selectionMode) {
+                              toggleSelection(entry.id);
+                            } else {
+                              setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
+                            }
+                          }}
+                          className={`p-2.5 sm:p-3 bg-[#2A2A2A] border border-[#C7C7C7] hover:border-[#E8E8E8] transition-colors duration-200 cursor-pointer ${
+                            selectedEntries.has(entry.id) ? 'border-heijo-press bg-[#3A3A3A]' : ''
+                          }`}
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
+                              {selectionMode && (
+                                <input
+                                  type="checkbox"
+                                  checked={selectedEntries.has(entry.id)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    toggleSelection(entry.id);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-4 h-4 rounded border-heijo-border text-heijo-press focus:ring-heijo-press"
+                                />
+                              )}
                               <span className="text-xs text-[#8A8A8A]">
                                 {formatTime(entry.created_at)}
                               </span>
@@ -409,12 +429,30 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                       <div key={entry.id}>
                         <div
                           onClick={() => {
-                            setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
+                            if (selectionMode) {
+                              toggleSelection(entry.id);
+                            } else {
+                              setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
+                            }
                           }}
-                          className="p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 cursor-pointer"
+                          className={`p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 cursor-pointer ${
+                            selectedEntries.has(entry.id) ? 'border-heijo-press bg-[#F0F0F0]' : ''
+                          }`}
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
+                              {selectionMode && (
+                                <input
+                                  type="checkbox"
+                                  checked={selectedEntries.has(entry.id)}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    toggleSelection(entry.id);
+                                  }}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-4 h-4 rounded border-heijo-border text-heijo-press focus:ring-heijo-press"
+                                />
+                              )}
                               <span className="text-xs text-[#8A8A8A]">
                                 {formatDate(entry.created_at)}
                               </span>
@@ -512,12 +550,28 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                                 <div key={entry.id}>
                                   <div
                                     onClick={() => {
-                                      setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
+                                      if (!selectionMode) {
+                                        setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
+                                      }
                                     }}
-                                    className="p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 cursor-pointer"
+                                    className={`p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
+                                      selectionMode ? '' : 'cursor-pointer'
+                                    } ${selectedEntries.has(entry.id) ? 'border-heijo-press bg-[#F0F0F0]' : ''}`}
                                   >
                                     <div className="flex items-start justify-between mb-2">
                                       <div className="flex items-center gap-2">
+                                        {selectionMode && (
+                                          <input
+                                            type="checkbox"
+                                            checked={selectedEntries.has(entry.id)}
+                                            onChange={(e) => {
+                                              e.stopPropagation();
+                                              toggleSelection(entry.id);
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-4 h-4 rounded border-heijo-border text-heijo-press focus:ring-heijo-press"
+                                          />
+                                        )}
                                         <span className="text-xs text-[#8A8A8A]">
                                           {formatDate(entry.created_at)}
                                         </span>
