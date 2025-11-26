@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import MicButton from './MicButton';
 import TagPicker from './TagPicker';
 import HeaderClock from './HeaderClock';
+import VibesPillButton from './VibesPillButton';
 import { JournalEntry } from '@/lib/store';
 import { getPrompt, logPromptHistory } from '@/lib/pickPrompt';
 import { analyticsCollector } from '@/lib/analytics';
@@ -28,9 +29,10 @@ interface ComposerProps {
   fontSize: 'small' | 'medium' | 'large';
   setFontSize: (size: 'small' | 'medium' | 'large') => void;
   entryCount?: number; // Number of entries for this user
+  onManualSaveReady?: (saveFn: () => Promise<void>) => void; // Optional callback to expose save function
 }
 
-export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize, entryCount = 0 }: ComposerProps) {
+export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize, entryCount = 0, onManualSaveReady }: ComposerProps) {
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [source, setSource] = useState<'text' | 'voice'>('text');
@@ -148,11 +150,48 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
   }, [hasSeenWelcome, showWelcomeOverlay]);
 
+  // Prevent body scroll when prompt sheet is open on mobile
+  useEffect(() => {
+    const isPromptOpen = (promptState === 'ticking' && !hasShownToday) || promptState === 'showing';
+    
+    if (isPromptOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Mobile UX] Prompt sheet opened - body scroll locked');
+      }
+    } else {
+      document.body.style.overflow = '';
+      if (isPromptOpen && process.env.NODE_ENV === 'development') {
+        console.log('[Mobile UX] Prompt sheet closed - body scroll restored');
+      }
+    }
+    
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [promptState, hasShownToday, isMobile]);
+
   // Reset prompt for testing - remove this in production
   useEffect(() => {
     // Uncomment the line below to reset prompts for testing
-    localStorage.removeItem('heijo-prompt-shown');
+    // localStorage.removeItem('heijo-prompt-shown');
   }, []);
+
+  // Debug logging for mobile UX
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      if (showWelcomeOverlay) {
+        console.log('[Mobile UX] Welcome overlay shown');
+      }
+      if (promptState === 'ticking' && !hasShownToday) {
+        console.log('[Mobile UX] Prompt sheet opened');
+      }
+      if (promptState === 'hidden') {
+        console.log('[Mobile UX] Prompt sheet closed');
+      }
+    }
+  }, [showWelcomeOverlay, promptState, hasShownToday]);
+
 
   // Handle welcome overlay dismissal
   const handleDismissWelcome = useCallback(() => {
@@ -345,7 +384,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     setTimeout(() => setVoiceError(null), 5000);
   };
 
-  const handleManualSave = async () => {
+  const handleManualSave = useCallback(async () => {
     if (!content.trim()) return;
 
     try {
@@ -374,7 +413,23 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         console.warn('Mic transcription ready, but Supabase save failed:', error);
       }
     }
-  };
+  }, [content, source, selectedTags, userId, onSave]);
+
+  // Expose manual save function to parent for mobile bottom nav
+  useEffect(() => {
+    if (onManualSaveReady) {
+      onManualSaveReady(handleManualSave);
+    }
+  }, [onManualSaveReady, handleManualSave]);
+
+  // Listen for mobile save event from bottom nav (fallback)
+  useEffect(() => {
+    const handleMobileSave = () => {
+      handleManualSave();
+    };
+    window.addEventListener('mobileSave', handleMobileSave);
+    return () => window.removeEventListener('mobileSave', handleMobileSave);
+  }, [handleManualSave]);
 
   const handleExport = () => {
     onExport();
@@ -463,69 +518,34 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         <HeaderClock />
       </div>
 
-      {/* Prompt Question - Minimal floating card */}
+      {/* Prompt Question - Full-screen sheet on mobile */}
       {promptState === 'ticking' && !hasShownToday && !showWelcomeOverlay && (
-        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-60 flex items-center justify-center z-50">
-          <div className="prompt-bubble rounded-xl p-8 max-w-md mx-4">
+        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-60 md:bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="prompt-bubble rounded-xl p-6 sm:p-8 max-w-md w-full mx-4">
             <div className="text-center">
-              <p className="text-graphite-charcoal font-medium text-xl mb-8 leading-relaxed subheading">
+              <p className="text-graphite-charcoal font-medium text-lg sm:text-xl mb-6 sm:mb-8 leading-relaxed subheading">
                 Would you like a prompt today?
               </p>
-              <div className="flex gap-4 justify-center mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-4">
                 <button
                   onClick={handlePromptYes}
-                  className="px-6 py-3 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300"
+                  className="px-6 py-3 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 min-h-[44px]"
                 >
                   Yes
                 </button>
                 <button
                   onClick={handlePromptNo}
-                  className="px-6 py-3 text-sm font-medium outline-button rounded-lg transition-all duration-300"
+                  className="px-6 py-3 text-sm font-medium outline-button rounded-lg transition-all duration-300 min-h-[44px]"
                 >
                   No
                 </button>
               </div>
               <button
                 onClick={handlePromptNo}
-                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 caption-text"
+                className="text-xs text-text-caption hover:text-graphite-charcoal transition-colors duration-200 caption-text min-h-[44px] px-2"
               >
                 Skip
               </button>
-            </div>
-          </div>
-
-    {/* Mobile Toolbar */}
-    <div className="md:hidden pt-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 16px)' }}>
-      <div className="sticky bottom-3 z-30">
-        <div className="flex items-center justify-between gap-3 rounded-full border border-[#e5e5e5] bg-white/95 shadow-[0_6px_18px_rgba(0,0,0,0.08)] px-3 py-2">
-          <div className="relative">
-            <MicButton 
-              onTranscript={handleVoiceTranscript} 
-              onError={handleVoiceError}
-            />
-            {isVoiceActive && (
-              <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
-            )}
-          </div>
-          <div className="flex items-center gap-2 text-sm font-medium tracking-[0.12em] uppercase">
-            <button
-              onClick={handleManualSave}
-              disabled={!content.trim()}
-              className="ghost-chip rounded-full px-3 py-2 text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800 disabled:opacity-40"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => {
-                const event = new CustomEvent('openJournalHistory');
-                window.dispatchEvent(event);
-              }}
-              className="ghost-chip rounded-full px-3 py-2 text-[12px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
-            >
-              History
-            </button>
-          </div>
-        </div>
             </div>
           </div>
         </div>
@@ -602,13 +622,20 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         {/* Graphite charcoal typing area with silver focus */}
         <div className="relative flex-1">
           <div className="relative w-full h-full">
+            {/* Mobile Vibes Pill - bottom-left inside black card */}
+            {isMobile && !showWelcomeOverlay && (
+              <VibesPillButton 
+                selectedTags={selectedTags}
+                onTagsChange={setSelectedTags}
+              />
+            )}
             {showWelcomeOverlay ? (
               // Welcome message displayed inside the textarea area
               <div 
                 className="w-full rounded-[14px] border border-white/10 journal-input p-6 sm:p-8 flex flex-col justify-center"
                 style={{
                   fontFamily: 'Inter, system-ui, sans-serif',
-                  background: '#1B1B1A',
+                  background: '#171717',
                   color: 'var(--text-inverse)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
@@ -677,13 +704,13 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 placeholder="Type or speak your thoughts..."
                 className={`w-full resize-none rounded-[14px] border border-white/10 bg-transparent focus:outline-none text-gray-100 p-3 sm:p-4 lg:p-5 journal-input transition-all duration-300 ${getFontSizeClass()} ${
                   promptState === "hidden"
-                    ? "flex-1 h-full min-h-0" // Fill space when prompt hidden
-                    : "min-h-[200px] sm:min-h-[250px]" // Standard height when prompt visible
+                    ? (isMobile ? "overflow-y-auto" : "flex-1 h-full min-h-0") // Scrollable on mobile, fill on desktop
+                    : "min-h-[160px] sm:min-h-[200px] overflow-y-auto" // Standard height with scroll
                 }`}
                 style={{
                   fontFamily: 'Inter, system-ui, sans-serif',
                   lineHeight: '1.6',
-                  background: '#1B1B1A',
+                  background: '#171717',
                   color: 'var(--text-inverse)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
@@ -691,19 +718,22 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                     ? (
                         isMobile
                           ? {
-                              // ✅ MOBILE: current perfect behavior (no change)
-                              height: "calc(100dvh - 14rem)",
+                              // ✅ MOBILE: taller textarea for better mobile experience
+                              minHeight: "45vh",
+                              maxHeight: "55vh",
+                              height: "auto",
                               transition: "height 0.3s ease",
                             }
                           : {
-                              // ✅ DESKTOP (MacBook): balanced and visually centered
-                              //   - leaves just enough space for buttons & rounded base
-                              //   - never too tall or cramped
-                              height: "clamp(360px, calc(100dvh - 21rem), 520px)",
+                              // ✅ DESKTOP: reduced height by ~15-20% for better balance
+                              height: "clamp(300px, calc((100dvh - 21rem) * 0.85), 440px)",
                               transition: "height 0.3s ease",
                             }
                       )
-                    : undefined)
+                    : {
+                        minHeight: isMobile ? "45vh" : "160px",
+                        maxHeight: isMobile ? "55vh" : "250px",
+                      })
                 }}
               />
             )}
@@ -789,8 +819,26 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         )}
       </div>
 
-      {/* Tag picker and Status - Compact footer */}
-      <div className="flex-shrink-0 space-y-1">
+      {/* MIC ZONE – MOBILE: Hero mic directly under black card */}
+      {!showWelcomeOverlay && (promptState === 'hidden' || promptState === 'selected' || promptState === 'showing') && (
+        <div className="md:hidden flex-shrink-0 mt-4 flex justify-center">
+          <div className="relative w-20 h-20 rounded-full bg-white flex items-center justify-center" style={{ 
+            boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.22), 0 10px 30px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(255,255,255,0.7)'
+          }}>
+            <MicButton 
+              onTranscript={handleVoiceTranscript} 
+              onError={handleVoiceError}
+            />
+            {isVoiceActive && (
+              <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tag picker and Status - Compact footer (Desktop only) */}
+      <div className="hidden md:block flex-shrink-0 space-y-1">
         <TagPicker
           selectedTags={selectedTags}
           onTagsChange={setSelectedTags}
@@ -814,7 +862,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             )}
           </div>
 
-          {/* Desktop ghost chips */}
+          {/* Desktop ghost chips - hidden on mobile */}
           <div className="hidden md:flex items-center gap-2 ml-auto">
               <button
                 onClick={handleManualSave}

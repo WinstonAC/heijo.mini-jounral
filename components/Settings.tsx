@@ -204,11 +204,11 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
   if (!isOpen || !consent || !metrics) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70">
+    <div className="fixed inset-0 z-50 bg-black/70" style={{ paddingTop: 'env(safe-area-inset-top, 0)', paddingBottom: 'env(safe-area-inset-bottom, 0)' }}>
       <div className="flex h-full w-full items-end md:items-center justify-center px-3 py-4 md:px-6">
-        <div className="settings-sheet w-full max-w-3xl h-[96vh] md:h-[90vh] overflow-hidden flex flex-col bg-white">
+        <div className="settings-sheet w-full max-w-3xl h-[96vh] md:h-[90vh] overflow-hidden flex flex-col bg-white" style={{ maxHeight: 'calc(100vh - env(safe-area-inset-top, 0) - env(safe-area-inset-bottom, 0))' }}>
           {/* Sticky header */}
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b settings-divider bg-white/95 px-5 py-4">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b settings-divider bg-white/95 px-4 sm:px-5 py-3 sm:py-4">
             <h2 className="text-lg font-semibold tracking-[0.08em] uppercase text-[#2a2a2a] leading-tight">
               Settings
             </h2>
@@ -222,7 +222,7 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
           </div>
 
           {/* Scrollable body */}
-          <div className="flex-1 overflow-y-auto px-5 md:px-8 py-5 space-y-6 pb-24">
+          <div className="flex-1 overflow-y-auto px-4 sm:px-5 md:px-8 py-4 sm:py-5 space-y-5 sm:space-y-6 pb-20 sm:pb-24" style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0))' }}>
             {/* Data overview */}
             <section className="space-y-3 border-b settings-divider pb-5">
               <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">

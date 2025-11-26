@@ -61,7 +61,7 @@ export default function TagPicker({ selectedTags, onTagsChange }: TagPickerProps
             onClick={() => setShowAll(true)}
             className="px-3 sm:px-4 py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold tracking-[0.08em] text-[#5a5a5a] border border-[#d9d9d9] rounded-full hover:border-[#1a1a1a] hover:text-[#1a1a1a] transition-all duration-150"
           >
-            + Show more
+            + Show all
           </button>
         )}
         

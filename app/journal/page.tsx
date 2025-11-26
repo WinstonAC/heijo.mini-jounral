@@ -19,6 +19,7 @@ export default function JournalPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedPrompt, setSelectedPrompt] = useState<{ id: string; text: string } | null>(null);
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [manualSaveFn, setManualSaveFn] = useState<(() => Promise<void>) | null>(null);
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 
@@ -151,10 +152,11 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f2f2f2] px-3 sm:px-5 py-4 safe-area-bottom overflow-y-auto">
-      <div className="mx-auto w-full max-w-[420px] sm:max-w-3xl lg:max-w-5xl flex flex-col flex-1">
+    <>
+    <div className="min-h-screen flex flex-col items-center px-2 sm:px-5 py-4 sm:py-14 md:py-16 safe-area-bottom overflow-y-auto" style={{ background: 'linear-gradient(180deg, #f5f5f5 0%, #f0f0f0 100%)' }}>
+      <div className="w-full max-w-[420px] min-w-[360px] sm:max-w-[420px] sm:min-w-[360px] md:max-w-[960px] md:min-w-[640px] lg:max-w-[960px] lg:min-w-[640px] mx-auto flex flex-col flex-1 mt-6 md:mt-10 pb-4 md:pb-0">
         {/* Main Journal Panel */}
-        <div className="brutalist-card relative flex-1 flex flex-col bg-white/95 rounded-[14px] border border-[#e5e5e5] shadow-[0_4px_12px_rgba(0,0,0,0.06)] px-4 sm:px-6 lg:px-8 py-4 sm:py-6 gap-4">
+        <div className="brutalist-card relative min-h-[72vh] md:h-auto md:flex-1 flex flex-col bg-[#fefefe] rounded-[18px] px-4 sm:px-6 lg:px-8 py-4 pb-4 sm:py-6 gap-4">
           {/* Header inside journal panel */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#ececec] flex-shrink-0">
             <div className="flex flex-col gap-1">
@@ -173,7 +175,8 @@ export default function JournalPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-2 self-end sm:self-auto">
+            {/* Desktop-only Settings/Sign Out */}
+            <div className="hidden md:flex items-center gap-2">
               <button
                 onClick={() => setShowSettings(true)}
                 className="text-xs tracking-[0.18em] uppercase text-text-caption hover:text-graphite-charcoal transition-colors duration-300 py-2 px-3 rounded-md hover:bg-[#f4f4f4] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -198,7 +201,52 @@ export default function JournalPage() {
               fontSize={fontSize}
               setFontSize={setFontSize}
               entryCount={entries.length}
+              onManualSaveReady={setManualSaveFn}
             />
+          </div>
+
+          {/* Mobile Bottom Pill Nav - inside card on mobile */}
+          <div className="sm:hidden mt-8 pb-8 flex justify-center" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom, 2rem))' }}>
+            <div 
+              className="w-full max-w-[calc(100%-2rem)] rounded-full bg-white/80 backdrop-blur-md flex items-center justify-between px-4 py-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
+            >
+              {/* Left cluster: Save, History */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={async () => {
+                    if (manualSaveFn) {
+                      await manualSaveFn();
+                    } else {
+                      // Fallback: dispatch event
+                      const event = new CustomEvent('mobileSave');
+                      window.dispatchEvent(event);
+                    }
+                  }}
+                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => {
+                    const event = new CustomEvent('openJournalHistory');
+                    window.dispatchEvent(event);
+                  }}
+                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  History
+                </button>
+              </div>
+
+              {/* Right cluster: Settings */}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowSettings(true)}
+                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  Settings
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -220,6 +268,8 @@ export default function JournalPage() {
         setFontSize={setFontSize}
       />
     </div>
+
+    </>
   );
 }
 
