@@ -351,8 +351,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           // Trigger silver glow animation
           setShowSaveGlow(true);
           setTimeout(() => setShowSaveGlow(false), 1000);
-          // Use handleManualSave to respect rate limits and debouncing
-          handleManualSave();
+          // Use ref to call handleManualSave to respect rate limits and debouncing
+          if (handleManualSaveRef.current) {
+            handleManualSaveRef.current();
+          }
         } else if (isRateLimited) {
           console.warn('Save blocked: Rate limit exceeded');
         }
@@ -361,7 +363,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [content, selectedTags, source, userId, onSave, isRateLimited, handleManualSave]);
+  }, [content, isRateLimited]); // Removed handleManualSave from deps - use ref instead
 
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     if (isFinal) {
