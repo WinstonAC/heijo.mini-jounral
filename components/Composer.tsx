@@ -627,79 +627,6 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         </div>
       )}
 
-      {/* MOBILE HERO MIC (centered under card) */}
-      {!showWelcomeOverlay && (promptState === 'hidden' || promptState === 'selected' || promptState === 'showing') && (
-        <div className="flex justify-center md:hidden mt-4">
-          <div className="relative">
-            <button
-              type="button"
-              ref={mobileMicButtonRef}
-              onClick={() => {
-                // Trigger the MicButton's internal button
-                if (micButtonInternalRef.current) {
-                  micButtonInternalRef.current.click();
-                } else {
-                  // Fallback: find button if ref not set yet
-                  const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
-                  if (micButton) {
-                    micButton.click();
-                  }
-                }
-              }}
-              className="
-                relative flex items-center justify-center
-                w-20 h-20
-                rounded-full
-                bg-white
-                shadow-[0_12px_32px_rgba(0,0,0,0.18)]
-                border border-white/70
-                active:translate-y-[1px]
-                transition-transform duration-150
-              "
-            >
-              <svg
-                className="w-6 h-6 text-gray-800"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-            </button>
-            {isVoiceActive && (
-              <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
-            )}
-            {/* MicButton for functionality - positioned off-screen but functional */}
-            <div 
-              data-mobile-mic-wrapper 
-              className="sr-only"
-              ref={(el) => {
-                // Store reference to MicButton's internal button
-                if (el) {
-                  const button = el.querySelector('button') as HTMLButtonElement;
-                  if (button) {
-                    micButtonInternalRef.current = button;
-                  }
-                }
-              }}
-            >
-              <MicButton 
-                onTranscript={handleVoiceTranscript} 
-                onError={handleVoiceError}
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* DESKTOP MIC – same behavior as current implementation */}
       <div className="hidden md:flex flex-shrink-0 items-center justify-end gap-3 text-xs text-text-caption">
         <div className="relative">
@@ -915,6 +842,77 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         )}
       </div>
 
+      {/* MOBILE HERO MIC (centered under card) */}
+      {!showWelcomeOverlay && (promptState === 'hidden' || promptState === 'selected' || promptState === 'showing') && (
+        <div className="md:hidden flex justify-center mt-5">
+          <div className="relative">
+            <button
+              type="button"
+              ref={mobileMicButtonRef}
+              onClick={() => {
+                // Trigger the MicButton's internal button
+                if (micButtonInternalRef.current) {
+                  micButtonInternalRef.current.click();
+                } else {
+                  // Fallback: find button if ref not set yet
+                  const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
+                  if (micButton) {
+                    micButton.click();
+                  }
+                }
+              }}
+              className={`
+                relative flex items-center justify-center
+                w-20 h-20
+                rounded-full
+                bg-white
+                shadow-[0_14px_40px_rgba(0,0,0,0.22)]
+                border border-white/80
+                transition-transform duration-150
+                active:translate-y-[1px]
+                ${isVoiceActive ? "ring-2 ring-orange-400/80" : ""}
+              `}
+              aria-label={isVoiceActive ? "Stop recording" : "Start recording"}
+            >
+              <svg
+                className="w-6 h-6 text-gray-900"
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" y1="19" x2="12" y2="23" />
+                <line x1="8" y1="23" x2="16" y2="23" />
+              </svg>
+            </button>
+            {/* MicButton for functionality - positioned off-screen but functional */}
+            <div 
+              data-mobile-mic-wrapper 
+              className="sr-only"
+              ref={(el) => {
+                // Store reference to MicButton's internal button
+                if (el) {
+                  const button = el.querySelector('button') as HTMLButtonElement;
+                  if (button) {
+                    micButtonInternalRef.current = button;
+                  }
+                }
+              }}
+            >
+              <MicButton 
+                onTranscript={handleVoiceTranscript} 
+                onError={handleVoiceError}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tag picker and Status - Compact footer (Desktop only) */}
       <div className="hidden md:block flex-shrink-0 space-y-1">
