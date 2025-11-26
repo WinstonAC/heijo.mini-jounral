@@ -93,7 +93,15 @@ class RateLimiter {
 
     const now = Date.now();
 
-    // Check if in backoff period
+    // Reset window if expired (also reset backoff when window resets)
+    if (now - this.state.windowStart > this.config.windowMs) {
+      this.state.requests = 0;
+      this.state.windowStart = now;
+      this.state.backoffUntil = 0; // Clear backoff when window resets
+      await this.saveState();
+    }
+
+    // Check if in backoff period (only if window hasn't reset)
     if (now < this.state.backoffUntil) {
       const retryAfter = Math.ceil((this.state.backoffUntil - now) / 1000);
       return { 
@@ -101,12 +109,6 @@ class RateLimiter {
         reason: 'Rate limit exceeded, please try again later',
         retryAfter
       };
-    }
-
-    // Reset window if expired
-    if (now - this.state.windowStart > this.config.windowMs) {
-      this.state.requests = 0;
-      this.state.windowStart = now;
     }
 
     // Check if limit exceeded
@@ -179,6 +181,21 @@ class RateLimiter {
     if (typeof window !== 'undefined') {
       localStorage.removeItem(this.VIOLATION_KEY);
     }
+  }
+
+  /**
+   * Reset rate limiter state (useful for clearing stuck states)
+   */
+  async reset(): Promise<void> {
+    this.state = {
+      requests: 0,
+      windowStart: Date.now(),
+      backoffUntil: 0,
+      violations: 0,
+      deviceId: this.state?.deviceId || await this.generateDeviceId()
+    };
+    await this.saveState();
+    this.clearViolationLog();
   }
 
   /**
@@ -276,13 +293,18 @@ class RateLimiter {
   private async applyBackoff(): Promise<void> {
     if (!this.state) return;
 
-    const currentBackoff = this.state.backoffUntil - Date.now();
+    const now = Date.now();
+    // If backoff has expired or never set, start with initial backoff
+    const currentBackoff = this.state.backoffUntil > now 
+      ? this.state.backoffUntil - now 
+      : 1000; // Start with 1 second if no active backoff
+    
     const newBackoff = Math.min(
       currentBackoff * this.config.backoffMultiplier,
       this.config.maxBackoffMs
     );
 
-    this.state.backoffUntil = Date.now() + newBackoff;
+    this.state.backoffUntil = now + newBackoff;
     await this.saveState();
   }
 

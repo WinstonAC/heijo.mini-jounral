@@ -16,6 +16,8 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedEntries, setSelectedEntries] = useState<Set<string>>(new Set());
 
   // Listen for custom event to open drawer
   useEffect(() => {
@@ -118,6 +120,52 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
   const groups = groupEntriesByTime(filteredEntries);
   const hasEntries = filteredEntries.length > 0;
 
+  // Selection handlers
+  const toggleSelection = (entryId: string) => {
+    const newSelected = new Set(selectedEntries);
+    if (newSelected.has(entryId)) {
+      newSelected.delete(entryId);
+    } else {
+      newSelected.add(entryId);
+    }
+    setSelectedEntries(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedEntries.size === filteredEntries.length) {
+      setSelectedEntries(new Set());
+    } else {
+      setSelectedEntries(new Set(filteredEntries.map(e => e.id)));
+    }
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedEntries.size === 0) return;
+    
+    const count = selectedEntries.size;
+    if (confirm(`Are you sure you want to delete ${count} ${count === 1 ? 'entry' : 'entries'}?`)) {
+      selectedEntries.forEach(id => {
+        onDelete?.(id);
+      });
+      setSelectedEntries(new Set());
+      setSelectionMode(false);
+    }
+  };
+
+  // Reset selection when closing drawer or exiting selection mode
+  useEffect(() => {
+    if (!selectionMode) {
+      setSelectedEntries(new Set());
+    }
+  }, [selectionMode]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectionMode(false);
+      setSelectedEntries(new Set());
+    }
+  }, [isOpen]);
+
   return (
     <>
       {/* Drawer Overlay */}
@@ -132,24 +180,71 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
         >
           {/* Header */}
           <div className="flex items-center justify-between p-4 sm:p-6 border-b border-heijo-border flex-shrink-0">
-            <h2 className="text-base sm:text-lg font-light text-heijo-text" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-              Journal History
-            </h2>
+            <div className="flex items-center gap-3">
+              {selectionMode && (
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={selectedEntries.size === filteredEntries.length && filteredEntries.length > 0}
+                    onChange={toggleSelectAll}
+                    className="w-4 h-4 rounded border-heijo-border text-heijo-press focus:ring-heijo-press"
+                  />
+                  <span className="text-xs text-heijo-text">
+                    {selectedEntries.size > 0 ? `${selectedEntries.size} selected` : 'Select All'}
+                  </span>
+                </label>
+              )}
+              {!selectionMode && (
+                <h2 className="text-base sm:text-lg font-light text-heijo-text" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+                  Journal History
+                </h2>
+              )}
+            </div>
             <div className="flex items-center gap-2 sm:gap-3">
-              {onExportAll && (
-                <div className="relative group">
+              {selectionMode ? (
+                <>
                   <button
-                    onClick={onExportAll}
+                    onClick={() => {
+                      setSelectionMode(false);
+                      setSelectedEntries(new Set());
+                    }}
                     className="px-3 py-1.5 text-xs font-light border border-heijo-border text-text-secondary rounded hover:bg-soft-silver transition-colors duration-200"
                   >
-                    Export All
+                    Cancel
                   </button>
-                  {/* 90-day retention tooltip */}
-                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-graphite-charcoal text-text-inverse text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
-                    Export your last 90 days of entries
-                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-graphite-charcoal"></div>
-                  </div>
-                </div>
+                  {selectedEntries.size > 0 && (
+                    <button
+                      onClick={handleBulkDelete}
+                      className="px-3 py-1.5 text-xs font-light bg-red-600 text-white rounded hover:bg-red-700 transition-colors duration-200"
+                    >
+                      Delete ({selectedEntries.size})
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  {onExportAll && (
+                    <div className="relative group">
+                      <button
+                        onClick={onExportAll}
+                        className="px-3 py-1.5 text-xs font-light border border-heijo-border text-text-secondary rounded hover:bg-soft-silver transition-colors duration-200"
+                      >
+                        Export All
+                      </button>
+                      {/* 90-day retention tooltip */}
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-graphite-charcoal text-text-inverse text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap pointer-events-none z-10">
+                        Export your last 90 days of entries
+                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-graphite-charcoal"></div>
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    onClick={() => setSelectionMode(true)}
+                    className="px-3 py-1.5 text-xs font-light border border-heijo-border text-text-secondary rounded hover:bg-soft-silver transition-colors duration-200"
+                  >
+                    Select
+                  </button>
+                </>
               )}
               <button
                 onClick={() => setIsOpen(false)}
