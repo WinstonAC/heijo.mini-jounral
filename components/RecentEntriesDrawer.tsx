@@ -7,9 +7,10 @@ interface RecentEntriesDrawerProps {
   entries: JournalEntry[];
   onEntryClick: (entry: JournalEntry) => void;
   onExportAll?: () => void;
+  onDelete?: (id: string) => void;
 }
 
-export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll }: RecentEntriesDrawerProps) {
+export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll, onDelete }: RecentEntriesDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
   const [expandedEntry, setExpandedEntry] = useState<string | null>(null);
@@ -126,11 +127,11 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
           onClick={() => setIsOpen(false)}
         >
         <div 
-          className="fixed left-0 top-0 h-full w-full sm:w-[90%] md:max-w-md bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out"
+          className="fixed left-0 top-0 h-full w-full sm:w-[90%] md:max-w-md bg-gradient-to-b from-heijo-card-top to-heijo-card-bottom border-r-2 border-heijo-border shadow-sm transform transition-transform duration-300 ease-in-out flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-heijo-border">
+          <div className="flex items-center justify-between p-4 sm:p-6 border-b border-heijo-border flex-shrink-0">
             <h2 className="text-base sm:text-lg font-light text-heijo-text" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
               Journal History
             </h2>
@@ -162,7 +163,7 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
           </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6 min-h-0">
               {/* Search and Filter */}
               <div className="space-y-4">
                 <input
@@ -274,8 +275,24 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                                   ))}
                                 </div>
                               )}
-                              <div className="text-xs text-[#8A8A8A] pt-2 border-t border-[#C7C7C7]">
-                                {formatDate(entry.created_at)} at {formatTime(entry.created_at)} • {entry.source === 'voice' ? 'Voice' : 'Text'} entry
+                              <div className="flex items-center justify-between pt-2 border-t border-[#C7C7C7]">
+                                <div className="text-xs text-[#8A8A8A]">
+                                  {formatDate(entry.created_at)} at {formatTime(entry.created_at)} • {entry.source === 'voice' ? 'Voice' : 'Text'} entry
+                                </div>
+                                {onDelete && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (confirm('Are you sure you want to delete this entry?')) {
+                                        onDelete(entry.id);
+                                        setExpandedEntry(null);
+                                      }
+                                    }}
+                                    className="text-xs text-[#DC2626] hover:text-[#B91C1C] transition-colors duration-200"
+                                  >
+                                    Delete
+                                  </button>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -297,14 +314,9 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                       <div key={entry.id}>
                         <div
                           onClick={() => {
-                            // Only expand if content is longer than 200 characters
-                            if (entry.content.length > 200) {
-                              setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
-                            }
+                            setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
                           }}
-                          className={`p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
-                            entry.content.length > 200 ? 'cursor-pointer' : 'cursor-default'
-                          }`}
+                          className="p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 cursor-pointer"
                         >
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center gap-2">
@@ -317,11 +329,14 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                               <span className="text-xs text-[#8A8A8A]">
                                 {entry.source === 'voice' ? 'Voice' : 'Text'}
                               </span>
-                              {expandedEntry === entry.id && (
+                              {expandedEntry === entry.id && onDelete && (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    // Add delete functionality here if needed
+                                    if (confirm('Are you sure you want to delete this entry?')) {
+                                      onDelete(entry.id);
+                                      setExpandedEntry(null);
+                                    }
                                   }}
                                   className="text-xs text-[#DC2626] hover:text-[#B91C1C] transition-colors duration-200"
                                 >
@@ -402,14 +417,9 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                                 <div key={entry.id}>
                                   <div
                                     onClick={() => {
-                                      // Only expand if content is longer than 200 characters
-                                      if (entry.content.length > 200) {
-                                        setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
-                                      }
+                                      setExpandedEntry(expandedEntry === entry.id ? null : entry.id);
                                     }}
-                                    className={`p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 ${
-                                      entry.content.length > 200 ? 'cursor-pointer' : 'cursor-default'
-                                    }`}
+                                    className="p-2.5 sm:p-3 bg-white border border-[#D8D8D8] rounded-lg hover:border-[#B8B8B8] transition-all duration-200 cursor-pointer"
                                   >
                                     <div className="flex items-start justify-between mb-2">
                                       <div className="flex items-center gap-2">
@@ -422,11 +432,14 @@ export default function RecentEntriesDrawer({ entries, onEntryClick, onExportAll
                                         <span className="text-xs text-[#8A8A8A]">
                                           {entry.source === 'voice' ? 'Voice' : 'Text'}
                                         </span>
-                                        {expandedEntry === entry.id && (
+                                        {expandedEntry === entry.id && onDelete && (
                                           <button
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              // Add delete functionality here if needed
+                                              if (confirm('Are you sure you want to delete this entry?')) {
+                                                onDelete(entry.id);
+                                                setExpandedEntry(null);
+                                              }
                                             }}
                                             className="text-xs text-[#DC2626] hover:text-[#B91C1C] transition-colors duration-200"
                                           >

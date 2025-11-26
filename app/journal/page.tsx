@@ -124,6 +124,16 @@ export default function JournalPage() {
     window.location.href = `/entry/${entry.id}`;
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await storage.deleteEntry(id);
+      setEntries(prev => prev.filter(entry => entry.id !== id));
+    } catch (error) {
+      console.error('Failed to delete entry:', error);
+      alert('Failed to delete entry. Please try again.');
+    }
+  };
+
   const handleExport = async () => {
     try {
       const allEntries = await storage.exportEntries();
@@ -256,6 +266,7 @@ export default function JournalPage() {
         entries={entries}
         onEntryClick={handleEntryClick}
         onExportAll={handleExport}
+        onDelete={handleDelete}
       />
 
 
