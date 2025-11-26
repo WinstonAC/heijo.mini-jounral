@@ -51,7 +51,7 @@ App Layout
 
 #### 1. Composer Component
 
-The main journal entry creation interface:
+The main journal entry creation interface with mobile-first responsive design:
 
 ```typescript
 // components/Composer.tsx
@@ -64,6 +64,7 @@ export default function Composer({
   const [isRecording, setIsRecording] = useState(false);
   const [transcript, setTranscript] = useState('');
   const { startRecording, stopRecording, isSupported } = useVoiceToText();
+  const isMobile = useIsMobile();
 
   const handleVoiceRecording = async () => {
     if (isRecording) {
@@ -80,30 +81,55 @@ export default function Composer({
       <textarea
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        placeholder="What's on your mind?"
-        className="composer-textarea"
+        placeholder="Type or speak your thoughts..."
+        className="journal-input rounded-[14px]"
+        style={{
+          background: 'var(--panel-gradient)',
+          border: '1px solid var(--panel-border)',
+          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)'
+        }}
       />
-      <div className="composer-controls">
-        <MicButton
-          isRecording={isRecording}
-          onToggle={handleVoiceRecording}
-          disabled={!isSupported}
-        />
-        <button
-          onClick={() => onSave({ content, source: 'text' })}
-          className="save-button"
-        >
-          Save Entry
-        </button>
-      </div>
+      {/* Mobile Toolbar - sticky below textarea */}
+      {isMobile && (
+        <div className="mobile-toolbar">
+          <MicButton
+            isRecording={isRecording}
+            onToggle={handleVoiceRecording}
+            disabled={!isSupported}
+          />
+          <button onClick={() => onSave({ content, source: 'text' })} className="ghost-chip">
+            Save
+          </button>
+          <button onClick={openHistory} className="ghost-chip">
+            History
+          </button>
+        </div>
+      )}
+      {/* Desktop controls - bottom-right */}
+      {!isMobile && (
+        <div className="desktop-controls">
+          <MicButton
+            isRecording={isRecording}
+            onToggle={handleVoiceRecording}
+            disabled={!isSupported}
+          />
+          <button className="ghost-chip">S</button>
+          <button className="ghost-chip">H</button>
+        </div>
+      )}
     </div>
   );
 }
 ```
 
+**Design Notes**: 
+- Textarea features subtle radial gradient background, 14px border radius, and breathing focus effect (scale 1.01 + shadow increase)
+- Mobile: Sticky toolbar with mic + Save/History controls above vibe tags
+- Desktop: Minimal ghost chips (S/H) in bottom-right with 80% opacity → 100% on hover
+
 #### 2. MicButton Component
 
-Voice recording interface with visual feedback:
+Voice recording interface with recessed shell design and visual feedback:
 
 ```typescript
 // components/MicButton.tsx
@@ -117,25 +143,28 @@ export default function MicButton({
       onClick={onToggle}
       disabled={disabled}
       className={`
-        mic-button
+        mic-shell
         ${isRecording ? 'recording' : ''}
         ${disabled ? 'disabled' : ''}
       `}
       aria-label={isRecording ? 'Stop recording' : 'Start recording'}
+      aria-pressed={isRecording}
     >
       <svg className="mic-icon" viewBox="0 0 24 24">
         <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
         <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
       </svg>
       {isRecording && (
-        <div className="recording-indicator">
-          <div className="pulse-ring"></div>
+        <div className="recording-ring">
+          <div className="absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
         </div>
       )}
     </button>
   );
 }
 ```
+
+**Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle (no aggressive glow) for subtle visual feedback.
 
 #### 3. EntryList Component
 

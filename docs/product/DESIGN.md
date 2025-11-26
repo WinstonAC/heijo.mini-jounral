@@ -18,12 +18,24 @@ Heijō Mini-Journal embraces the **PalmPilot 1985 aesthetic** while incorporatin
 
 - **Good design is innovative**: Modern voice recognition with retro aesthetics
 - **Good design makes a product useful**: Focus on journaling functionality
-- **Good design is aesthetic**: Beautiful PalmPilot-inspired interface
+- **Good design is aesthetic**: Beautiful PalmPilot-inspired interface with brutalist polish
 - **Good design makes a product understandable**: Intuitive user experience
 - **Good design is unobtrusive**: Design supports, doesn't distract
 - **Good design is honest**: Transparent about privacy and data usage
 - **Good design is long-lasting**: Timeless design that ages well
 - **Good design is thorough down to the last detail**: Attention to every pixel
+
+### Brutalist Aesthetic Elements
+
+The UI incorporates brutalist design principles for a clean, elevated aesthetic:
+
+- **Subtle Elevation**: 1px borders (#e5e5e5) and soft shadows (0 4px 12px rgba(0,0,0,0.06)) for depth
+- **Increased Border Radius**: ~14px for cards and textarea (increased from ~12px)
+- **Recessed Elements**: Mic button features inner shadows for tactile depth
+- **Minimal Ghost Chips**: S/H buttons use border-only styling with 80% opacity → 100% on hover
+- **Breathing Focus States**: Textarea scales to 1.01 with shadow increase on focus
+- **Monochrome Palette**: Greyscale with single accent color (orange for recording state)
+- **8px Spacing System**: All elements align to a single vertical axis
 
 ## Color System
 
@@ -159,7 +171,7 @@ p {
 
 ### 8-Point Grid
 
-Consistent spacing using 8px base unit:
+Consistent spacing using 8px base unit for clean alignment to a single vertical axis:
 
 ```css
 /* Spacing Scale */
@@ -180,6 +192,8 @@ Consistent spacing using 8px base unit:
 .p-6 { padding: 1.5rem; }      /* 24px */
 .p-8 { padding: 2rem; }        /* 32px */
 ```
+
+**Note**: All elements align cleanly to a single vertical axis on both desktop and mobile, ensuring visual consistency and the brutalist aesthetic.
 
 ### Component Spacing
 
@@ -309,41 +323,45 @@ Consistent spacing using 8px base unit:
   width: 100%;
   min-height: 8rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--ui-silver);
-  border-radius: 0.5rem;
-  background-color: var(--ui-screen);
-  color: var(--ui-charcoal);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.875rem; /* 14px for subtle elevation */
+  background: linear-gradient(180deg, rgba(26, 26, 26, 0.98) 0%, rgba(26, 26, 26, 0.95) 100%);
+  color: var(--text-inverse);
   font-family: 'Inter', sans-serif;
   font-size: 1rem;
   line-height: 1.6;
   resize: vertical;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s ease-in-out;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.28), 0 6px 20px rgba(0, 0, 0, 0.2);
 }
 
 .textarea-field:focus {
   outline: none;
-  border-color: var(--ui-press);
-  box-shadow: 0 0 0 3px rgba(58, 166, 255, 0.1);
+  transform: scale(1.01);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.28), 0 8px 24px rgba(0, 0, 0, 0.25);
 }
 ```
+
+**Note**: The textarea features a subtle radial gradient background, breathing focus effect (scale 1.01 + shadow increase), and increased border radius (14px) for the brutalist aesthetic.
 
 ### Cards
 
 #### Entry Card
 ```css
 .entry-card {
-  background-color: var(--ui-screen);
-  border: 1px solid var(--ui-warm-silver);
-  border-radius: 0.75rem;
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #e5e5e5;
+  border-radius: 0.875rem; /* 14px for subtle elevation */
   padding: 1.5rem;
   margin-bottom: 1rem;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
 }
 
 .entry-card:hover {
-  border-color: var(--ui-press);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #d0d0d0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
 }
 
@@ -352,6 +370,8 @@ Consistent spacing using 8px base unit:
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 ```
+
+**Note**: Main cards feature subtle 1px borders (#e5e5e5) and soft shadows (0 4px 12px rgba(0,0,0,0.06)) for elevation, with increased border radius (~14px) for the brutalist aesthetic.
 
 #### Settings Card
 ```css
@@ -508,26 +528,53 @@ export const pulse = (element: HTMLElement) => {
 
 ### Mobile-First Approach
 
+Optimized for 320-430px widths with proper safe-area handling:
+
 ```css
-/* Mobile First (default) */
+/* Mobile First (default) - 320-430px */
 .container {
   padding: 1rem;
+  max-width: 420px;
+  margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom, 16px);
 }
 
 .button {
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
+  min-height: 44px; /* Accessibility: minimum tap target */
+}
+
+/* Mobile Toolbar (mobile only) */
+.mobile-toolbar {
+  position: sticky;
+  bottom: 12px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-between;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 9999px;
+  border: 1px solid #e5e5e5;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
 }
 
 /* Tablet */
 @media (min-width: 768px) {
   .container {
     padding: 1.5rem;
+    max-width: 768px;
   }
   
   .button {
     padding: 0.75rem 1.5rem;
     font-size: 1rem;
+  }
+  
+  .mobile-toolbar {
+    display: none; /* Hide mobile toolbar on desktop */
   }
 }
 
@@ -535,6 +582,7 @@ export const pulse = (element: HTMLElement) => {
 @media (min-width: 1024px) {
   .container {
     padding: 2rem;
+    max-width: 1280px;
   }
   
   .button {
@@ -543,6 +591,8 @@ export const pulse = (element: HTMLElement) => {
   }
 }
 ```
+
+**Mobile Toolbar**: On mobile devices, the mic button and Save/History controls are moved into a compact sticky toolbar directly under the textarea and above the vibe tags, ensuring they remain visible when the keyboard opens.
 
 ### Breakpoint System
 

@@ -38,9 +38,10 @@ Heijō Mini-Journal is designed with **privacy-first principles**, offering a co
 
 ### Design System
 - **PalmPilot 1985 Aesthetic**: Authentic retro design with modern usability
-- **Dieter Rams Principles**: Clean, functional, and unobtrusive design
-- **Mobile-First**: Responsive design starting from mobile devices
-- **Accessibility**: WCAG 2.1 AA compliance with keyboard navigation
+- **Dieter Rams / Brutalist Principles**: Clean, functional, and unobtrusive design with subtle elevation
+- **8px Spacing System**: Consistent spacing with all elements aligned to a single vertical axis
+- **Mobile-First**: Responsive design optimized for 320-430px widths with proper safe-area handling
+- **Accessibility**: WCAG 2.1 AA compliance with keyboard navigation and 44px+ tap targets
 
 ## Quick Start
 

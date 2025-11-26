@@ -57,18 +57,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Feature flag to disable FAB
   const ENABLE_FAB = false;
 
-  // Check if user has seen welcome overlay (account-based, Supabase-first)
-  // Show onboarding only if user has zero entries
+  // Check if user has seen welcome (account-based, Supabase-first)
+  // Show onboarding if has_seen_onboarding is false AND heijo_hasSeenWelcome is not 'true'
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const checkOnboardingStatus = async () => {
-      // Only show onboarding if user has zero entries
-      if (entryCount > 0) {
-        setHasSeenWelcome(true);
-        setShowWelcomeOverlay(false);
-        return;
-      }
       
       // First, check Supabase user metadata (account-based)
       if (supabase && isSupabaseConfigured() && userId) {
@@ -125,18 +119,18 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           console.log('Onboarding state: using localStorage fallback (completed)');
         }
       } else {
-        // Show welcome overlay for new users with zero entries
+        // Show welcome for new users (has_seen_onboarding is false AND heijo_hasSeenWelcome is not 'true')
         setHasSeenWelcome(false);
         setShowWelcomeOverlay(true);
         
         if (process.env.NODE_ENV === 'development') {
-          console.log('Onboarding state: showing welcome overlay (zero entries)');
+          console.log('Onboarding state: showing welcome (first-time user)');
         }
       }
     };
     
     checkOnboardingStatus();
-  }, [userId, entryCount]);
+  }, [userId]);
 
   // Delay prompt logic until welcome overlay is dismissed
   useEffect(() => {
@@ -193,6 +187,13 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     setShowWelcomeOverlay(false);
     setHasSeenWelcome(true);
   }, [userId]);
+
+  // Handle clicking into textarea or typing - dismiss welcome
+  const handleTextareaFocus = useCallback(() => {
+    if (showWelcomeOverlay) {
+      handleDismissWelcome();
+    }
+  }, [showWelcomeOverlay, handleDismissWelcome]);
 
   // Handle typing - dismiss welcome if user starts typing
   useEffect(() => {
@@ -463,7 +464,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       </div>
 
       {/* Prompt Question - Minimal floating card */}
-      {promptState === 'ticking' && !hasShownToday && (
+      {promptState === 'ticking' && !hasShownToday && !showWelcomeOverlay && (
         <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-60 flex items-center justify-center z-50">
           <div className="prompt-bubble rounded-xl p-8 max-w-md mx-4">
             <div className="text-center">
@@ -601,113 +602,110 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         {/* Graphite charcoal typing area with silver focus */}
         <div className="relative flex-1">
           <div className="relative w-full h-full">
-            <textarea
-              ref={textareaRef}
-              value={content + (interimTranscript ? ` ${interimTranscript}` : '')}
-              onChange={(e) => {
-                setContent(e.target.value);
-                setSource('text');
-                setInterimTranscript(''); // Clear interim when typing
-              }}
-              onKeyDown={handleKeyDown}
-              onScroll={(e) => {
-                const target = e.target as HTMLTextAreaElement;
-                const isAtBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 5;
-                setIsUserScrolled(!isAtBottom);
-              }}
-              placeholder="Type or speak your thoughts..."
-              className={`w-full resize-none rounded-[14px] border border-white/10 bg-transparent focus:outline-none text-gray-100 p-3 sm:p-4 lg:p-5 journal-input transition-all duration-300 ${getFontSizeClass()} ${
-                promptState === "hidden"
-                  ? "flex-1 h-full min-h-0" // Fill space when prompt hidden
-                  : "min-h-[200px] sm:min-h-[250px]" // Standard height when prompt visible
-              }`}
-              disabled={showWelcomeOverlay}
-              style={{
-                fontFamily: 'Inter, system-ui, sans-serif',
-                lineHeight: '1.6',
-                background: 'var(--panel-gradient)',
-                color: 'var(--text-inverse)',
-                border: '1px solid var(--panel-border)',
-                boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
-                ...(promptState === "hidden"
-                  ? (
-                      isMobile
-                        ? {
-                            // ✅ MOBILE: current perfect behavior (no change)
-                            height: "calc(100dvh - 14rem)",
-                            transition: "height 0.3s ease",
-                          }
-                        : {
-                            // ✅ DESKTOP (MacBook): balanced and visually centered
-                            //   - leaves just enough space for buttons & rounded base
-                            //   - never too tall or cramped
-                            height: "clamp(360px, calc(100dvh - 21rem), 520px)",
-                            transition: "height 0.3s ease",
-                          }
-                    )
-                  : undefined)
-              }}
-            />
-
-            {/* Welcome Overlay - appears inside journal editor on first visit */}
-            {showWelcomeOverlay && (
+            {showWelcomeOverlay ? (
+              // Welcome message displayed inside the textarea area
               <div 
-                className="absolute inset-0 flex flex-col items-center justify-center p-6 sm:p-8 z-10"
+                className="w-full rounded-[14px] border border-white/10 journal-input p-6 sm:p-8 flex flex-col justify-center"
                 style={{
-                  background: 'var(--graphite-charcoal)',
                   fontFamily: 'Inter, system-ui, sans-serif',
+                  background: '#1B1B1A',
                   color: 'var(--text-inverse)',
-                  animation: 'fadeInSlide 0.5s ease-out',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
+                  ...(promptState === "hidden"
+                    ? (
+                        isMobile
+                          ? {
+                              height: "calc(100dvh - 14rem)",
+                              transition: "height 0.3s ease",
+                            }
+                          : {
+                              height: "clamp(360px, calc(100dvh - 21rem), 520px)",
+                              transition: "height 0.3s ease",
+                            }
+                      )
+                    : {
+                        minHeight: "200px",
+                      })
                 }}
               >
-                <style jsx>{`
-                  @keyframes fadeInSlide {
-                    from {
-                      opacity: 0;
-                      transform: translateY(20px);
-                    }
-                    to {
-                      opacity: 1;
-                      transform: translateY(0);
-                    }
-                  }
-                `}</style>
-                
-                <div className="max-w-lg w-full space-y-6 text-center px-4">
-                  {/* Welcome Header */}
-                  <h1 
-                    className="text-2xl sm:text-3xl font-semibold body-text"
-                    style={{
-                      fontFamily: 'Inter, system-ui, sans-serif',
-                      color: 'var(--text-inverse)',
-                    }}
-                  >
-                    Welcome to Heijō
-                  </h1>
-                  
-                  {/* Instructions */}
-                  <div className="space-y-4 body-text">
-                    <p 
-                      className="text-base sm:text-lg leading-relaxed"
-                      style={{
-                        fontFamily: 'Inter, system-ui, sans-serif',
-                        color: 'var(--text-inverse)',
-                      }}
-                    >
-                      Type or speak your thoughts, tag today&apos;s vibe, then tap Save.
+                <div className="space-y-6 body-text" style={{ fontFamily: 'Inter, system-ui, sans-serif', color: 'var(--text-inverse)' }}>
+                  <div className="space-y-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold leading-tight">
+                      Welcome to Heijō mini-journal.
+                    </h2>
+                    <p className="text-base sm:text-lg leading-relaxed opacity-90">
+                      Micro-moments. Macro-clarity.
                     </p>
                   </div>
                   
-                  {/* CTA Button */}
+                  <div className="space-y-3 text-sm sm:text-base leading-relaxed opacity-90">
+                    <p>1. Type or {isMobile ? 'tap' : 'click'} the mic to speak your thoughts.</p>
+                    <p>2. Use Save (or the S button on desktop) to store your entry.</p>
+                  </div>
+                  
+                  <p className="text-xs sm:text-sm opacity-75 italic">
+                    You&apos;ll only see this message once. When you&apos;re ready, clear this and write your first entry.
+                  </p>
+                  
                   <button
                     onClick={handleDismissWelcome}
-                    className="w-full sm:w-auto px-8 py-3 text-base font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 hover:bg-tactile-taupe"
+                    onFocus={handleTextareaFocus}
+                    className="mt-4 px-6 py-3 text-sm sm:text-base font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 hover:bg-tactile-taupe self-start"
                     style={{ fontFamily: 'Inter, system-ui, sans-serif' }}
                   >
-                    Tap to get started
+                    Start journaling
                   </button>
                 </div>
               </div>
+            ) : (
+              <textarea
+                ref={textareaRef}
+                value={content + (interimTranscript ? ` ${interimTranscript}` : '')}
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  setSource('text');
+                  setInterimTranscript(''); // Clear interim when typing
+                }}
+                onFocus={handleTextareaFocus}
+                onKeyDown={handleKeyDown}
+                onScroll={(e) => {
+                  const target = e.target as HTMLTextAreaElement;
+                  const isAtBottom = target.scrollTop + target.clientHeight >= target.scrollHeight - 5;
+                  setIsUserScrolled(!isAtBottom);
+                }}
+                placeholder="Type or speak your thoughts..."
+                className={`w-full resize-none rounded-[14px] border border-white/10 bg-transparent focus:outline-none text-gray-100 p-3 sm:p-4 lg:p-5 journal-input transition-all duration-300 ${getFontSizeClass()} ${
+                  promptState === "hidden"
+                    ? "flex-1 h-full min-h-0" // Fill space when prompt hidden
+                    : "min-h-[200px] sm:min-h-[250px]" // Standard height when prompt visible
+                }`}
+                style={{
+                  fontFamily: 'Inter, system-ui, sans-serif',
+                  lineHeight: '1.6',
+                  background: '#1B1B1A',
+                  color: 'var(--text-inverse)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
+                  ...(promptState === "hidden"
+                    ? (
+                        isMobile
+                          ? {
+                              // ✅ MOBILE: current perfect behavior (no change)
+                              height: "calc(100dvh - 14rem)",
+                              transition: "height 0.3s ease",
+                            }
+                          : {
+                              // ✅ DESKTOP (MacBook): balanced and visually centered
+                              //   - leaves just enough space for buttons & rounded base
+                              //   - never too tall or cramped
+                              height: "clamp(360px, calc(100dvh - 21rem), 520px)",
+                              transition: "height 0.3s ease",
+                            }
+                      )
+                    : undefined)
+                }}
+              />
             )}
             
             {/* Jump to live button */}
