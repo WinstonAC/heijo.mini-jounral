@@ -50,10 +50,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const mobileMicButtonRef = useRef<HTMLButtonElement | null>(null);
   const micButtonInternalRef = useRef<HTMLButtonElement | null>(null);
+  const handleManualSaveRef = useRef<() => Promise<void>>();
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   const [hasSeenWelcome, setHasSeenWelcome] = useState(true); // Default to true, will check localStorage
+  const [isRateLimited, setIsRateLimited] = useState(false);
+  const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
+  const lastSaveAttemptRef = useRef<number>(0);
+  const SAVE_DEBOUNCE_MS = 2000; // Minimum 2 seconds between save attempts
   
   // Mobile detection hook
   const isMobile = useIsMobile();
@@ -245,8 +250,21 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
   const handleAutoSave = useCallback(async () => {
     if (!content.trim()) return;
+    
+    // Prevent rapid saves - debounce
+    const now = Date.now();
+    if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
+      return;
+    }
+    
+    // Don't attempt save if rate limited
+    if (isRateLimited) {
+      return;
+    }
 
     setIsAutoSaving(true);
+    lastSaveAttemptRef.current = now;
+    
     try {
       const savedEntry = await onSave({
         content: content.trim(),
@@ -257,8 +275,28 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         sync_status: 'local_only'
       });
       setLastSaved(new Date());
+      setIsRateLimited(false);
+      setRateLimitRetryAfter(null);
     } catch (error) {
       console.error('Auto-save failed:', error);
+      
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes('Rate limit')) {
+        setIsRateLimited(true);
+        // Extract retry after if available
+        const retryMatch = error.message.match(/try again later/i);
+        if (retryMatch) {
+          // Default to 60 seconds if we can't parse the exact time
+          setRateLimitRetryAfter(60);
+        }
+        // Clear auto-save timeout to prevent further attempts
+        if (autoSaveTimeoutRef.current) {
+          clearTimeout(autoSaveTimeoutRef.current);
+          autoSaveTimeoutRef.current = null;
+        }
+        return; // Don't log as regular error
+      }
+      
       // Check if this was a voice transcription that failed to save
       if (source === 'voice') {
         console.warn('Mic transcription ready, but Supabase save failed:', error);
@@ -266,11 +304,20 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     } finally {
       setIsAutoSaving(false);
     }
-  }, [content, source, selectedTags, userId, onSave]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited]);
 
   // Auto-save functionality (5-10 seconds)
   useEffect(() => {
-    if (content.trim() && content.length > 10) {
+    // Don't set up auto-save if rate limited
+    if (isRateLimited) {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      return;
+    }
+    
+    if (content.trim() && content.length > 10 && !isAutoSaving) {
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -278,7 +325,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
       // Set new timeout for auto-save (7 seconds)
       autoSaveTimeoutRef.current = setTimeout(() => {
-        handleAutoSave();
+        // Double-check we're not already saving and not rate limited before executing
+        if (!isAutoSaving && !isRateLimited) {
+          handleAutoSave();
+        }
       }, 7000);
     }
 
@@ -287,7 +337,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [content, handleAutoSave]);
+  }, [content, handleAutoSave, isAutoSaving, isRateLimited]);
 
   // Keyboard shortcuts for save functionality
   useEffect(() => {
@@ -296,33 +346,22 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       if ((event.metaKey || event.ctrlKey) && (event.key === 's' || event.key === 'Enter')) {
         event.preventDefault(); // Prevent browser save dialog
         
-        if (content.trim()) {
+        if (content.trim() && !isRateLimited) {
           console.info('Save triggered via keyboard shortcut');
           // Trigger silver glow animation
           setShowSaveGlow(true);
           setTimeout(() => setShowSaveGlow(false), 1000);
-          // Call the actual save function
-          onSave({
-            content: content.trim(),
-            tags: selectedTags,
-            source,
-            created_at: new Date().toISOString(),
-            user_id: userId, // Let storage handle undefined - it will get real userId
-            sync_status: 'local_only'
-          });
-          // Clear form after save
-          setContent('');
-          setSelectedTags([]);
-          setSource('text');
-          setInterimTranscript('');
-          setLastSaved(new Date());
+          // Use handleManualSave to respect rate limits and debouncing
+          handleManualSave();
+        } else if (isRateLimited) {
+          console.warn('Save blocked: Rate limit exceeded');
         }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [content, selectedTags, source, userId, onSave]);
+  }, [content, selectedTags, source, userId, onSave, isRateLimited, handleManualSave]);
 
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     if (isFinal) {
@@ -388,6 +427,21 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
   const handleManualSave = useCallback(async () => {
     if (!content.trim()) return;
+    
+    // Prevent rapid saves - debounce
+    const now = Date.now();
+    if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
+      return;
+    }
+    
+    // Don't attempt save if rate limited
+    if (isRateLimited) {
+      console.warn('Save blocked: Rate limit exceeded');
+      return;
+    }
+
+    lastSaveAttemptRef.current = now;
+    setIsAutoSaving(true);
 
     try {
       await onSave({
@@ -408,21 +462,51 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       setSelectedTags([]);
       setSource('text');
       setLastSaved(new Date());
+      setIsRateLimited(false);
+      setRateLimitRetryAfter(null);
     } catch (error) {
       console.error('Manual save failed:', error);
+      
+      // Check if it's a rate limit error
+      if (error instanceof Error && error.message.includes('Rate limit')) {
+        setIsRateLimited(true);
+        // Extract retry after if available
+        const retryMatch = error.message.match(/try again later/i);
+        if (retryMatch) {
+          // Default to 60 seconds if we can't parse the exact time
+          setRateLimitRetryAfter(60);
+        }
+        // Show error toast
+        setShowToast(true);
+        setTimeout(() => setShowToast(false), 3000);
+        return; // Don't log as regular error
+      }
+      
       // Check if this was a voice transcription that failed to save
       if (source === 'voice') {
         console.warn('Mic transcription ready, but Supabase save failed:', error);
       }
+    } finally {
+      setIsAutoSaving(false);
     }
-  }, [content, source, selectedTags, userId, onSave]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited]);
+
+  // Store latest handleManualSave in ref (update ref directly, no useEffect to avoid loops)
+  handleManualSaveRef.current = handleManualSave;
 
   // Expose manual save function to parent for mobile bottom nav
+  // Use useCallback to create a stable reference
+  const stableSaveFn = useCallback(async () => {
+    if (handleManualSaveRef.current) {
+      await handleManualSaveRef.current();
+    }
+  }, []); // Empty deps - function always calls latest ref value
+
   useEffect(() => {
     if (onManualSaveReady) {
-      onManualSaveReady(handleManualSave);
+      onManualSaveReady(stableSaveFn);
     }
-  }, [onManualSaveReady, handleManualSave]);
+  }, [onManualSaveReady, stableSaveFn]);
 
   // Set up ref to MicButton's internal button for mobile
   useEffect(() => {
@@ -448,11 +532,42 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Listen for mobile save event from bottom nav (fallback)
   useEffect(() => {
     const handleMobileSave = () => {
-      handleManualSave();
+      if (handleManualSaveRef.current) {
+        handleManualSaveRef.current();
+      }
     };
     window.addEventListener('mobileSave', handleMobileSave);
     return () => window.removeEventListener('mobileSave', handleMobileSave);
-  }, [handleManualSave]);
+  }, []); // Empty deps - use ref to get latest function
+
+  // Periodically check if rate limit has been cleared
+  useEffect(() => {
+    if (!isRateLimited) return;
+
+    const checkRateLimit = async () => {
+      try {
+        // Import rate limiter dynamically to avoid circular dependencies
+        const { rateLimiter } = await import('@/lib/rateLimiter');
+        const check = await rateLimiter.isAllowed();
+        if (check.allowed) {
+          setIsRateLimited(false);
+          setRateLimitRetryAfter(null);
+        } else if (check.retryAfter) {
+          setRateLimitRetryAfter(check.retryAfter);
+        }
+      } catch (error) {
+        console.warn('Failed to check rate limit status:', error);
+      }
+    };
+
+    // Check immediately
+    checkRateLimit();
+
+    // Then check every 5 seconds while rate limited
+    const interval = setInterval(checkRateLimit, 5000);
+
+    return () => clearInterval(interval);
+  }, [isRateLimited]);
 
   const handleExport = () => {
     onExport();
@@ -627,23 +742,22 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         </div>
       )}
 
-      {/* DESKTOP MIC – same behavior as current implementation */}
-      <div className="hidden md:flex flex-shrink-0 items-center justify-end gap-3 text-xs text-text-caption">
-        <div className="relative">
-          <MicButton 
-            onTranscript={handleVoiceTranscript} 
-            onError={handleVoiceError}
-          />
-          {isVoiceActive && (
-            <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
-          )}
-        </div>
-      </div>
-
       {/* Journal entry section - Full width dominant */}
       <div className="flex-1 flex flex-col min-h-0 pb-20 sm:pb-0">
         {/* Graphite charcoal typing area with silver focus */}
         <div className="relative flex-1">
+          {/* DESKTOP MIC – positioned absolutely in top-right */}
+          <div className="hidden md:block absolute md:right-6 md:top-4 z-10">
+            <div className="relative">
+              <MicButton 
+                onTranscript={handleVoiceTranscript} 
+                onError={handleVoiceError}
+              />
+              {isVoiceActive && (
+                <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
+              )}
+            </div>
+          </div>
           <div className="relative w-full h-full">
             {/* Mobile Vibes Pill - bottom-left inside black card */}
             {isMobile && !showWelcomeOverlay && (
@@ -943,7 +1057,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           <div className="hidden md:flex items-center gap-2 ml-auto">
               <button
                 onClick={handleManualSave}
-                disabled={!content.trim()}
+                disabled={!content.trim() || isRateLimited}
               className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
                 S
@@ -964,7 +1078,21 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       {/* Toast Notifications */}
       {showToast && (
         <div className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-          Saved locally
+          {isRateLimited ? 'Rate limit exceeded. Please try again later.' : 'Saved locally'}
+        </div>
+      )}
+      
+      {/* Rate Limit Warning */}
+      {isRateLimited && (
+        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg shadow-lg z-50 max-w-sm">
+          <div className="flex items-center gap-2">
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <span className="text-sm">
+              Rate limit exceeded. {rateLimitRetryAfter ? `Retry in ${rateLimitRetryAfter}s` : 'Please try again later.'}
+            </span>
+          </div>
         </div>
       )}
 

@@ -80,6 +80,28 @@ class RateLimiter {
   }
 
   /**
+   * Reset rate limiter state (useful for development/testing)
+   */
+  async reset(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    
+    this.state = {
+      requests: 0,
+      windowStart: Date.now(),
+      backoffUntil: 0,
+      violations: 0,
+      deviceId: this.state?.deviceId || await this.generateDeviceId()
+    };
+    await this.saveState();
+    this.violationLog = [];
+    try {
+      localStorage.removeItem(this.VIOLATION_KEY);
+    } catch (error) {
+      console.warn('Failed to clear violation log:', error);
+    }
+  }
+
+  /**
    * Check if request is allowed
    */
   async isAllowed(): Promise<{ allowed: boolean; reason?: string; retryAfter?: number }> {
@@ -183,20 +205,6 @@ class RateLimiter {
     }
   }
 
-  /**
-   * Reset rate limiter state (useful for clearing stuck states)
-   */
-  async reset(): Promise<void> {
-    this.state = {
-      requests: 0,
-      windowStart: Date.now(),
-      backoffUntil: 0,
-      violations: 0,
-      deviceId: this.state?.deviceId || await this.generateDeviceId()
-    };
-    await this.saveState();
-    this.clearViolationLog();
-  }
 
   /**
    * Generate device fingerprint

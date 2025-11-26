@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Composer from '@/components/Composer';
 import EntryList from '@/components/EntryList';
@@ -42,6 +42,15 @@ export default function JournalPage() {
         // Initialize rate limiting
         await rateLimiter.initialize();
         
+        // Reset rate limiter in development if it's blocking (for testing)
+        if (process.env.NODE_ENV === 'development') {
+          const check = await rateLimiter.isAllowed();
+          if (!check.allowed) {
+            console.warn('[Dev] Rate limiter is blocking, resetting for development...');
+            await rateLimiter.reset();
+          }
+        }
+        
         // GDPR consent check removed - local-first app, no consent blocking needed
         // Users can still access Settings manually to configure preferences
         
@@ -71,12 +80,18 @@ export default function JournalPage() {
     }
   };
 
-  const handleSave = async (entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'>) => {
+  const handleSave = useCallback(async (entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'>) => {
     try {
       // Check rate limiting
       const rateLimitCheck = await rateLimiter.isAllowed();
       if (!rateLimitCheck.allowed) {
-        throw new Error(rateLimitCheck.reason || 'Rate limit exceeded');
+        const errorMessage = rateLimitCheck.reason || 'Rate limit exceeded, please try again later';
+        const error = new Error(errorMessage);
+        // Add retryAfter to error for UI display
+        if (rateLimitCheck.retryAfter) {
+          (error as any).retryAfter = rateLimitCheck.retryAfter;
+        }
+        throw error;
       }
 
       // Always use regular storage (localStorage) for consistency
@@ -117,7 +132,7 @@ export default function JournalPage() {
       
       throw error; // Re-throw for other errors
     }
-  };
+  }, []); // Empty deps array since handleSave doesn't depend on any props/state
 
   const handleEntryClick = (entry: JournalEntry) => {
     // Navigate to entry detail page
@@ -224,15 +239,20 @@ export default function JournalPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={async () => {
-                    if (manualSaveFn) {
-                      await manualSaveFn();
+                    if (manualSaveFn && typeof manualSaveFn === 'function') {
+                      try {
+                        await manualSaveFn();
+                      } catch (error) {
+                        console.error('Manual save failed:', error);
+                      }
                     } else {
                       // Fallback: dispatch event
                       const event = new CustomEvent('mobileSave');
                       window.dispatchEvent(event);
                     }
                   }}
-                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  disabled={!manualSaveFn || typeof manualSaveFn !== 'function'}
+                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Save
                 </button>
