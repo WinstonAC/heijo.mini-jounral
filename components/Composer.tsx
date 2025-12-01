@@ -545,6 +545,19 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     return () => window.removeEventListener('mobileSave', handleMobileSave);
   }, []); // Empty deps - use ref to get latest function
 
+  // Listen for manual prompt request from Settings
+  useEffect(() => {
+    const handleRequestPrompt = () => {
+      // Clear the dismissed state
+      const today = new Date().toDateString();
+      localStorage.removeItem('heijo-prompt-shown');
+      setHasShownToday(false);
+      setPromptState('ticking');
+    };
+    window.addEventListener('requestPrompt', handleRequestPrompt);
+    return () => window.removeEventListener('requestPrompt', handleRequestPrompt);
+  }, []);
+
   // Periodically check if rate limit has been cleared
   useEffect(() => {
     if (!isRateLimited) return;
@@ -750,7 +763,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       {/* Journal entry section - Full width dominant */}
       <div className="flex-1 flex flex-col min-h-0 pb-20 sm:pb-0">
         {/* DESKTOP MIC – positioned outside textarea, above it */}
-        <div className="hidden md:flex md:justify-end md:mb-3">
+        <div className="hidden md:flex md:justify-end md:mb-3 md:mr-4">
           <div className="relative">
             <MicButton 
               onTranscript={handleVoiceTranscript} 

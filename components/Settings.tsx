@@ -315,26 +315,62 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
               <h3 className="text-sm font-semibold tracking-[0.14em] uppercase text-[#5a5a5a]">
                 Display
               </h3>
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[#1a1a1a]">Font Size</p>
-                <div className="flex items-center gap-2">
-                  {(['small', 'medium', 'large'] as const).map((size) => (
-                    <button
-                      key={size}
-                      onClick={() => setFontSize(size)}
-                      className={`w-9 h-9 rounded-lg border text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
-                        fontSize === size
-                          ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg'
-                          : 'bg-white text-[#1a1a1a] border-[#d9d9d9] hover:border-[#1a1a1a]'
-                      }`}
-                    >
-                      {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
-                    </button>
-                  ))}
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#1a1a1a]">Font Size</p>
+                  <div className="flex items-center gap-2">
+                    {(['small', 'medium', 'large'] as const).map((size) => (
+                      <button
+                        key={size}
+                        onClick={() => setFontSize(size)}
+                        className={`w-9 h-9 rounded-lg border text-xs font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                          fontSize === size
+                            ? 'bg-[#1a1a1a] text-white border-[#1a1a1a] shadow-lg'
+                            : 'bg-white text-[#1a1a1a] border-[#d9d9d9] hover:border-[#1a1a1a]'
+                        }`}
+                      >
+                        {size === 'small' ? 'S' : size === 'medium' ? 'M' : 'L'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-text-secondary">
+                    Adjust reading comfort without changing layout.
+                  </p>
                 </div>
-                <p className="text-xs text-text-secondary">
-                  Adjust reading comfort without changing layout.
-                </p>
+                
+                {/* Daily Prompt */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#1a1a1a]">Daily Prompt</p>
+                  {(() => {
+                    const today = new Date().toDateString();
+                    const lastShown = typeof window !== 'undefined' ? localStorage.getItem('heijo-prompt-shown') : null;
+                    const wasDismissedToday = lastShown === today;
+                    
+                    if (wasDismissedToday) {
+                      return (
+                        <>
+                          <button
+                            onClick={() => {
+                              // Dispatch event to trigger prompt in Composer
+                              window.dispatchEvent(new CustomEvent('requestPrompt'));
+                            }}
+                            className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg hover:bg-tactile-taupe transition-all duration-300"
+                          >
+                            Show Today's Prompt
+                          </button>
+                          <p className="text-xs text-text-secondary">
+                            View today's journaling prompt if you dismissed it earlier.
+                          </p>
+                        </>
+                      );
+                    }
+                    return (
+                      <p className="text-xs text-text-secondary">
+                        Today's prompt is available. It will appear when you start a new entry.
+                      </p>
+                    );
+                  })()}
+                </div>
               </div>
             </section>
 
