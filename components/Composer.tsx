@@ -181,7 +181,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Reset prompt for testing - remove this in production
   useEffect(() => {
     // Uncomment the line below to reset prompts for testing
-    // localStorage.removeItem('heijo-prompt-shown');
+    if (process.env.NODE_ENV === 'development') {
+      // Uncomment to reset prompt for testing:
+      // localStorage.removeItem('heijo-prompt-shown');
+    }
   }, []);
 
   // Debug logging for mobile UX
@@ -864,17 +867,31 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                               transition: "height 0.3s ease",
                             }
                           : {
-                              // ✅ DESKTOP: Fill available vertical space (elongated)
+                              // ✅ DESKTOP: Fill available vertical space (elongated) - no prompt
                               height: "calc(100vh - 28rem)",
                               minHeight: "450px",
                               maxHeight: "none",
                               transition: "height 0.3s ease",
                             }
                       )
-                    : {
-                        minHeight: isMobile ? "45vh" : "160px",
-                        maxHeight: isMobile ? "55vh" : "250px",
-                      })
+                    : (
+                        isMobile
+                          ? {
+                              // ✅ MOBILE: taller textarea for better mobile experience
+                              minHeight: "45vh",
+                              maxHeight: "55vh",
+                              height: "auto",
+                              transition: "height 0.3s ease",
+                            }
+                          : {
+                              // ✅ DESKTOP: Fill available vertical space (elongated) - with prompt
+                              // Account for prompt height (~6rem) + spacing (~1rem) = ~7rem extra
+                              height: "calc(100vh - 35rem)",
+                              minHeight: "400px",
+                              maxHeight: "none",
+                              transition: "height 0.3s ease",
+                            }
+                      ))
                 }}
               />
             )}
