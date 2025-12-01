@@ -356,17 +356,17 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
                             }}
                             className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg hover:bg-tactile-taupe transition-all duration-300"
                           >
-                            Show Today's Prompt
+                            Show Today&apos;s Prompt
                           </button>
                           <p className="text-xs text-text-secondary">
-                            View today's journaling prompt if you dismissed it earlier.
+                            View today&apos;s journaling prompt if you dismissed it earlier.
                           </p>
                         </>
                       );
                     }
                     return (
                       <p className="text-xs text-text-secondary">
-                        Today's prompt is available. It will appear when you start a new entry.
+                        Today&apos;s prompt is available. It will appear when you start a new entry.
                       </p>
                     );
                   })()}
