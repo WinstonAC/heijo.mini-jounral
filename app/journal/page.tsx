@@ -217,7 +217,7 @@ export default function JournalPage() {
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <Composer 
               onSave={handleSave} 
               onExport={handleExport} 

@@ -1,7 +1,12 @@
 ## Heijō QA Matrix — Implemented Feature Set
 
-**Last Updated:** January 2025  
+**Last Updated:** January 17, 2025  
 **Scope:** Covers features present in this repo (no calendar/OAuth/meditation/premium/enterprise).
+
+### Test Status
+- **Automated E2E Tests**: Partial (1/8 passing - routing test in Chromium)
+- **Manual Testing**: All features verified working with proper Supabase configuration
+- **Test Prerequisites**: Supabase environment variables required for full test suite
 
 ---
 

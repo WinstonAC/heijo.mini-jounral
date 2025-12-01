@@ -8,8 +8,10 @@ Validate core journaling, auth, privacy export/delete, and basic UX across commo
 - Optional: Shared test account(s) listed in `docs/TEST_ACCOUNTS.md`
 
 ### Sign in
-1. Open the site URL
-2. Create an account or sign in (email/password or magic link)
+1. Open the site URL: `https://journal.heijo.io`
+2. Create an account (email/password or magic link)
+3. **Check your email** and click the confirmation link to verify your account
+4. Return to the app and sign in
 
 ### Core flow to try (5 minutes)
 1. Create 2–3 journal entries (text and voice if supported in your browser)

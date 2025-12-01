@@ -746,21 +746,21 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
       {/* Journal entry section - Full width dominant */}
       <div className="flex-1 flex flex-col min-h-0 pb-20 sm:pb-0">
-        {/* Graphite charcoal typing area with silver focus */}
-        <div className="relative flex-1">
-          {/* DESKTOP MIC – positioned absolutely in top-right */}
-          <div className="hidden md:block absolute md:right-6 md:top-4 z-10">
-            <div className="relative">
-              <MicButton 
-                onTranscript={handleVoiceTranscript} 
-                onError={handleVoiceError}
-              />
-              {isVoiceActive && (
-                <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
-              )}
-            </div>
+        {/* DESKTOP MIC – positioned outside textarea, above it */}
+        <div className="hidden md:flex md:justify-end md:mb-3">
+          <div className="relative">
+            <MicButton 
+              onTranscript={handleVoiceTranscript} 
+              onError={handleVoiceError}
+            />
+            {isVoiceActive && (
+              <div className="pointer-events-none absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
+            )}
           </div>
-          <div className="relative w-full h-full">
+        </div>
+        {/* Graphite charcoal typing area with silver focus */}
+        <div className="relative flex-1 min-h-0 flex flex-col">
+          <div className="relative w-full flex-1 min-h-0">
             {/* Mobile Vibes Pill - bottom-left inside black card */}
             {isMobile && !showWelcomeOverlay && (
               <VibesPillButton 
@@ -843,7 +843,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 placeholder="Type or speak your thoughts..."
                 className={`w-full resize-none rounded-[14px] border border-white/10 bg-transparent focus:outline-none text-gray-100 p-3 sm:p-4 lg:p-5 journal-input transition-all duration-300 ${getFontSizeClass()} ${
                   promptState === "hidden"
-                    ? (isMobile ? "overflow-y-auto" : "flex-1 h-full min-h-0") // Scrollable on mobile, fill on desktop
+                    ? (isMobile ? "overflow-y-auto" : "h-full overflow-y-auto") // Scrollable on mobile, fill on desktop
                     : "min-h-[160px] sm:min-h-[200px] overflow-y-auto" // Standard height with scroll
                 }`}
                 style={{
@@ -864,8 +864,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                               transition: "height 0.3s ease",
                             }
                           : {
-                              // ✅ DESKTOP: reduced height by ~15-20% for better balance
-                              height: "clamp(300px, calc((100dvh - 21rem) * 0.85), 440px)",
+                              // ✅ DESKTOP: Fill available vertical space (elongated)
+                              height: "calc(100vh - 28rem)",
+                              minHeight: "450px",
+                              maxHeight: "none",
                               transition: "height 0.3s ease",
                             }
                       )
