@@ -208,12 +208,41 @@ export class EncryptionManager {
 - **Background Sync**: Automatic data synchronization
 - **App-like Experience**: Native app feel in browser
 
+#### Notification Settings
+Comprehensive notification and reminder system with granular controls:
+
+- **Push Notifications**: Browser push notifications with permission handling
+  - Request browser permission for push notifications
+  - Browser support detection and fallback messaging
+  - Permission status tracking (granted/denied/default)
+  - Test notification functionality
+
+- **Email Notifications**: Email-based reminders
+  - Toggle email notifications on/off
+  - Email delivery for reminders
+
+- **Reminder Configuration**:
+  - **Frequency**: Daily, weekly, or off
+  - **Reminder Time**: Custom time selection (24-hour format)
+  - **Timezone**: Automatic timezone detection
+  - **Smart Skip**: Automatically skip reminders if user has already journaled today
+  - **Quiet Hours**: Configure start/end times to suppress notifications during specific hours
+
+- **Settings Management**:
+  - Save reminder settings with confirmation feedback
+  - Unsaved changes tracking
+  - Browser compatibility warnings
+  - Test notification button for verification
+
 ### 7. Data Management
 
 #### Export Functionality
-- **JSON Export**: Complete data export in JSON format
-- **CSV Export**: Spreadsheet-compatible export
-- **Selective Export**: Export specific date ranges or tags
+- **CSV Export**: Spreadsheet-compatible export (primary export method in Settings)
+  - Includes entry text, tags, and timestamps
+  - Downloadable file format
+  - Available from Settings panel
+- **JSON Export**: Complete data export in JSON format (available via GDPR tools)
+- **Selective Export**: Export specific date ranges or tags (future enhancement)
 - **Backup Creation**: Automatic backup generation
 
 ```typescript
@@ -284,7 +313,53 @@ export class PerformanceMonitor {
 - **Caching Strategy**: Intelligent data caching
 - **Memory Management**: Efficient memory usage
 
-### 10. User Experience
+### 10. Settings & Configuration
+
+#### Settings Panel
+Comprehensive settings interface accessible from the main journal interface:
+
+**Data Overview**:
+- **Total Entries**: Count of all journal entries
+- **Storage Used**: Total data storage in bytes (formatted display)
+- **Oldest Entry**: Date of the oldest journal entry
+- **Newest Entry**: Date of the most recent journal entry
+
+**Consent Settings**:
+- **Microphone Access**: Toggle microphone permission (required for voice recording)
+- **Local Data Storage**: Toggle local encrypted storage (disabled when Premium is active)
+- **Premium Cloud Sync**: Toggle premium cloud sync with upgrade modal
+  - Upgrade modal with feature list
+  - Sync confirmation flow for existing entries
+  - Premium activation (free for testing)
+- **Analytics (Optional)**: Toggle anonymous usage analytics
+
+**Display Settings**:
+- **Font Size**: Adjustable font size (Small, Medium, Large)
+  - Changes reading comfort without affecting layout
+  - Persists across sessions
+- **Daily Prompt**: 
+  - "Show Today's Prompt" button (if prompt was dismissed earlier)
+  - Displays prompt availability status
+
+**Notifications**:
+- Full notification settings panel (see Notification Settings section above)
+
+**Export**:
+- **Export as CSV**: Download all entries as CSV file
+  - Includes entry text, tags, and timestamps
+  - Disabled when no entries exist
+
+**Delete All Data**:
+- **Permanent Deletion**: Remove all journal entries, tags, and preferences
+- **Confirmation Modal**: Two-step confirmation process
+- **GDPR Compliant**: Complete data removal
+
+**Legal Links**:
+- Privacy Policy link
+- Terms of Service link
+- Brand information
+
+### 11. User Experience
 
 #### Onboarding
 - **Welcome Tour**: Interactive app introduction
@@ -331,11 +406,44 @@ const onboardingSteps = [
 
 ### 2. Analytics & Insights
 
-#### Personal Analytics
-- **Writing Patterns**: Track writing frequency
-- **Tag Usage**: Most used tags and categories
-- **Voice vs Text**: Usage statistics
-- **Progress Tracking**: 90-day prompt completion
+#### Analytics Dashboard
+Comprehensive usage analytics dashboard (visible when analytics consent is enabled):
+
+**Overview Metrics**:
+- **Total Sessions**: Number of app sessions
+- **Total Entries**: Count of all journal entries created
+
+**Entry Type Analysis**:
+- **Voice vs Text Breakdown**: Percentage breakdown of entry types
+- **Visual Progress Bars**: Visual representation of entry type distribution
+
+**Performance Metrics**:
+- **Average Voice Latency**: Average time for voice recognition results
+- **Average App Start Time**: Average application initialization time
+- **Memory Usage**: Average memory consumption
+- **Entries Per Day**: Average number of entries created per day
+
+**Writing Patterns**:
+- **Average Entry Length**: Average character count per entry
+- **Longest Entry**: Character count of the longest entry
+
+**Feature Usage Tracking**:
+- Voice Recording usage count
+- Text Entry usage count
+- Voice-to-Text conversion count
+- Export Data usage count
+- Delete Entry usage count
+- Search Entries usage count
+
+**Usage Timeline**:
+- **First Used**: Date of first app usage
+- **Last Used**: Date of most recent app usage
+
+**Privacy-First Design**:
+- All analytics stored locally in `localStorage`
+- No external tracking or data transmission
+- User can opt-in/opt-out via Settings
+- Dashboard only visible when analytics consent is enabled
 
 ### 3. Integration Features
 

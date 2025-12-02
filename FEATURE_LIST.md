@@ -235,10 +235,13 @@
 
 ### Export Functionality
 - ✅ **Data Export**
-  - JSON export (complete data)
-  - CSV export (spreadsheet compatible)
-  - Selective export by date range
-  - Selective export by tags
+  - CSV export (primary method in Settings panel)
+    - Includes entry text, tags, and timestamps
+    - Spreadsheet-compatible format
+    - Downloadable file
+  - JSON export (complete data, available via GDPR tools)
+  - Selective export by date range (future enhancement)
+  - Selective export by tags (future enhancement)
   - Automatic backup generation
   - Download functionality
 
@@ -258,13 +261,36 @@
   - Advanced filtering options
 
 ### Analytics & Insights
-- ✅ **Personal Analytics** (v1.0.0)
-  - Writing patterns tracking
-  - Tag usage statistics
-  - Voice vs text usage stats
-  - 90-day prompt completion
-  - Entry frequency tracking
-  - Analytics dashboard
+- ✅ **Analytics Dashboard** (v1.0.0)
+  - **Overview Metrics**:
+    - Total sessions count
+    - Total entries count
+  - **Entry Type Analysis**:
+    - Voice vs text percentage breakdown
+    - Visual progress bars
+  - **Performance Metrics**:
+    - Average voice latency
+    - Average app start time
+    - Memory usage tracking
+    - Entries per day calculation
+  - **Writing Patterns**:
+    - Average entry length (characters)
+    - Longest entry length
+  - **Feature Usage Tracking**:
+    - Voice recording count
+    - Text entry count
+    - Voice-to-text conversion count
+    - Export data count
+    - Delete entry count
+    - Search entries count
+  - **Usage Timeline**:
+    - First used date
+    - Last used date
+  - **Privacy-First Design**:
+    - Local-only storage (localStorage)
+    - Opt-in/opt-out via Settings
+    - No external tracking
+    - Dashboard visibility tied to analytics consent
 
 ## ⚡ Performance Features
 
@@ -297,22 +323,45 @@
 ## 🛠️ Settings & Configuration
 
 ### Settings Panel
-- ✅ **Privacy Settings**
-  - Local storage toggle
-  - Premium cloud sync toggle
-  - Consent management
-  - Data export/delete controls
+- ✅ **Data Overview**
+  - Total entries count
+  - Storage used (formatted bytes)
+  - Oldest entry date
+  - Newest entry date
 
-- ✅ **Appearance Settings**
+- ✅ **Privacy Settings**
+  - Microphone access toggle
+  - Local storage toggle (disabled when Premium active)
+  - Premium cloud sync toggle with upgrade modal
+  - Analytics consent toggle
+  - Consent management
+
+- ✅ **Display Settings**
   - Font size options (small/medium/large)
+  - Daily prompt "Show Today's Prompt" button
   - Theme customization (future)
   - Layout preferences
+
+- ✅ **Notification Settings**
+  - Push notifications with permission handling
+  - Email notifications toggle
+  - Reminder frequency (daily/weekly/off)
+  - Custom reminder time selection
+  - Smart skip (skip if already journaled today)
+  - Quiet hours configuration (start/end times)
+  - Test notification button
+  - Browser support detection
+
+- ✅ **Export & Data Management**
+  - CSV export (primary method in Settings)
+  - Data export/delete controls
+  - Delete all data with confirmation
 
 - ✅ **Account Settings**
   - User profile
   - Premium status
   - Account deletion
-  - Data export
+  - Legal links (Privacy Policy, Terms of Service)
 
 ### Onboarding
 - ✅ **Welcome Experience**

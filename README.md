@@ -244,7 +244,8 @@ heijo-mini-journal/
 - **GDPR Compliance**: Full data export and deletion capabilities
 
 ### Privacy Protection
-- **No Tracking**: No analytics or user tracking
+- **Opt-In Analytics**: Local-only analytics dashboard (user can opt-in/opt-out)
+- **No External Tracking**: No third-party analytics or user tracking
 - **Minimal Data Collection**: Only essential data collected
 - **Transparent Privacy**: Clear privacy policy and data usage
 - **User Control**: Complete control over personal data
@@ -281,7 +282,8 @@ heijo-mini-journal/
 ## v1.0.0 Release Notes
 
 ### New Features
-- **Analytics Dashboard**: Usage tracking and insights
+- **Analytics Dashboard**: Usage tracking and insights (opt-in, local-only)
+- **Notification Settings**: Comprehensive reminder and notification configuration
 - **Enhanced Session Persistence**: Bulletproof authentication with localStorage backup
 - **CORS Configuration**: Production-ready security headers
  

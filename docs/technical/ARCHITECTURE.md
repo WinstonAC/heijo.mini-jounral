@@ -30,6 +30,7 @@ Heijō Mini-Journal is a **privacy-first journaling application** built with Nex
 - **Encryption**: `lib/encryption.ts`
 - **Voice**: `lib/voiceToText.ts`
 - **GDPR & Analytics**: `lib/gdpr.ts`, `lib/analytics.ts`
+- **Notifications**: `lib/notifications.ts` (push notifications, email reminders, notification preferences)
 
 ---
 
@@ -39,6 +40,8 @@ Heijō Mini-Journal is a **privacy-first journaling application** built with Nex
 - **Session changes** → persisted to `localStorage` for resilience
 - **Analytics** (local-only) → `localStorage` for dashboard rendering
 - **Premium sync** → Only if `user_metadata.premium = true`
+- **Notifications** → Preferences stored in Supabase (if premium) or localStorage (free tier)
+- **Notification reminders** → Check preferences → Send push/email if conditions met (frequency, quiet hours, smart skip)
 
 ---
 
@@ -72,11 +75,36 @@ Heijō Mini-Journal is a **privacy-first journaling application** built with Nex
 
 #### `components/Settings.tsx`
 **Settings and privacy controls**
-- Premium toggle (with upgrade modal)
-- Local storage toggle
-- Analytics consent
+- Data overview (total entries, storage used, oldest/newest entry)
+- Consent settings (microphone, local storage, premium cloud sync, analytics)
+- Display settings (font size, daily prompt)
+- Notification settings (via `NotificationSettings` component)
+- Analytics dashboard (via `AnalyticsDashboard` component, conditional on consent)
 - Data export (CSV)
-- Data deletion
+- Data deletion with confirmation modal
+- Premium toggle (with upgrade modal and sync confirmation)
+- Legal links (Privacy Policy, Terms of Service)
+
+#### `components/NotificationSettings.tsx`
+**Notification and reminder configuration**
+- Push notifications with browser permission handling
+- Email notifications toggle
+- Reminder frequency (daily/weekly/off)
+- Custom reminder time selection
+- Smart skip (skip if already journaled today)
+- Quiet hours configuration
+- Test notification functionality
+- Browser support detection
+
+#### `components/AnalyticsDashboard.tsx`
+**Usage analytics dashboard**
+- Overview metrics (sessions, entries)
+- Entry type analysis (voice vs text percentages)
+- Performance metrics (voice latency, app start time, memory usage)
+- Writing patterns (average length, longest entry)
+- Feature usage tracking
+- Usage timeline (first used, last used)
+- Conditional visibility based on analytics consent
 
 ---
 
@@ -140,6 +168,8 @@ if (premium === true) {
 - `HeijoSecureStorage`: Encrypted entries/metadata (IndexedDB)
 - `heijo-consent-settings`: Consent flags (microphone, storage, analytics)
 - `heijo-analytics-data` / `heijo-analytics-events`: Usage metrics
+- `heijo-notification-preferences`: Notification preferences (localStorage fallback)
+- `heijo-prompt-shown`: Daily prompt dismissal tracking
 
 ---
 

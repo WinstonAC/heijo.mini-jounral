@@ -30,6 +30,8 @@ App Layout
 ├── Header
 │   ├── HeaderClock
 │   └── Settings
+│       ├── NotificationSettings
+│       └── AnalyticsDashboard
 ├── Main Content
 │   ├── Journal Page
 │   │   ├── Composer
@@ -166,7 +168,90 @@ export default function MicButton({
 
 **Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle (no aggressive glow) for subtle visual feedback.
 
-#### 3. EntryList Component
+#### 3. NotificationSettings Component
+
+Comprehensive notification and reminder configuration interface:
+
+```typescript
+// components/NotificationSettings.tsx
+export default function NotificationSettings({ onClose }: NotificationSettingsProps) {
+  const { user } = useAuth();
+  const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
+  const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default');
+  const [isSupported, setIsSupported] = useState(false);
+
+  const handleToggle = (key: keyof NotificationPreferences, value: boolean) => {
+    // Update preferences
+  };
+
+  const handleSaveReminderSettings = async () => {
+    // Request permission if enabling push
+    // Save preferences to Supabase or localStorage
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Push Notifications */}
+      {/* Email Notifications */}
+      {/* Reminder Settings */}
+      {/* Quiet Hours */}
+      {/* Test Button */}
+    </div>
+  );
+}
+```
+
+**Features**:
+- Push notification permission handling
+- Email notification toggle
+- Reminder frequency selection (daily/weekly/off)
+- Custom reminder time picker
+- Smart skip functionality
+- Quiet hours configuration
+- Browser support detection
+- Test notification button
+- Unsaved changes tracking
+
+#### 4. AnalyticsDashboard Component
+
+Usage analytics dashboard with comprehensive metrics:
+
+```typescript
+// components/AnalyticsDashboard.tsx
+export default function AnalyticsDashboard({ isVisible }: AnalyticsDashboardProps) {
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+
+  useEffect(() => {
+    if (isVisible) {
+      const data = analyticsCollector.getAnalyticsData();
+      setAnalyticsData(data);
+    }
+  }, [isVisible]);
+
+  return (
+    <div className="analytics-dashboard">
+      {/* Overview Stats */}
+      {/* Entry Types */}
+      {/* Performance Metrics */}
+      {/* Writing Patterns */}
+      {/* Feature Usage */}
+      {/* Usage Timeline */}
+    </div>
+  );
+}
+```
+
+**Features**:
+- Conditional visibility based on analytics consent
+- Overview metrics (sessions, entries)
+- Entry type breakdown (voice vs text)
+- Performance metrics (latency, start time, memory)
+- Writing pattern analysis
+- Feature usage tracking
+- Usage timeline (first/last used)
+- Privacy-first local storage
+
+#### 5. EntryList Component
 
 Display and management of journal entries:
 
