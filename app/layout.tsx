@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { AuthProvider } from '@/lib/auth'
+import { VoiceSettingsProvider } from '@/lib/voiceSettings'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const metadata: Metadata = {
@@ -39,7 +40,9 @@ export default function RootLayout({
       <body className="font-inter min-h-screen bg-gradient-to-b from-neutral-100 via-zinc-100/80 to-gray-300 text-heijo-text relative">
         <ErrorBoundary>
           <AuthProvider>
-            {children}
+            <VoiceSettingsProvider>
+              {children}
+            </VoiceSettingsProvider>
           </AuthProvider>
         </ErrorBoundary>
       </body>

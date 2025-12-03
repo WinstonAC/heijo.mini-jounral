@@ -269,13 +269,19 @@ export default function JournalPage() {
                 </button>
               </div>
 
-              {/* Right cluster: Settings */}
+              {/* Right cluster: Settings, Sign Out */}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowSettings(true)}
                   className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
                 >
                   Settings
+                </button>
+                <button
+                  onClick={signOut}
+                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+                >
+                  Sign Out
                 </button>
               </div>
             </div>

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { enhancedMicButton, VoiceMetrics } from '@/lib/voiceToText';
+import { createEnhancedMicButton, VoiceMetrics, EnhancedMicButton } from '@/lib/voiceToText';
+import { useVoiceSettings } from '@/lib/voiceSettings';
 
 /**
  * CODEX CHANGES INVESTIGATION:
@@ -24,16 +25,18 @@ import { enhancedMicButton, VoiceMetrics } from '@/lib/voiceToText';
 interface MicButtonProps {
   onTranscript: (text: string, isFinal?: boolean) => void;
   onError?: (error: string) => void;
-  lang?: string;
+  lang?: string; // Deprecated: use voiceSettings context instead
 }
 
-export default function MicButton({ onTranscript, onError, lang = 'en-US' }: MicButtonProps) {
+export default function MicButton({ onTranscript, onError, lang }: MicButtonProps) {
+  const { selectedLanguage, provider } = useVoiceSettings();
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [metrics, setMetrics] = useState<VoiceMetrics | null>(null);
   const [permissionState, setPermissionState] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
   const micRef = useRef<HTMLButtonElement>(null);
+  const enhancedMicButtonRef = useRef<EnhancedMicButton | null>(null);
 
   useEffect(() => {
     const initializeMic = async () => {
@@ -42,6 +45,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         if (!navigator.mediaDevices) {
           console.log('Microphone not supported in this browser');
           setIsSupported(false);
+          onError?.('Voice input is not supported on this device.');
           return;
         }
 
@@ -54,6 +58,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         if (!isSecure && !allowInsecureLocalhost) {
           console.log('Microphone requires HTTPS context');
           setIsSupported(false);
+          onError?.('Voice input requires a secure connection (HTTPS).');
           return;
         }
         
@@ -66,7 +71,15 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
         if (!SpeechRecognition) {
           console.log('Speech recognition not supported in this browser');
           setIsSupported(false);
+          onError?.('Voice input is not supported on this device.');
           return;
+        }
+
+        // iOS Safari detection
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        if (isIOS && isSafari) {
+          console.warn('[Heijo][Mic] iOS Safari detected - voice dictation may have limitations');
         }
 
         console.log('Speech recognition and microphone APIs are available');
@@ -93,27 +106,42 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
           }
         }
 
-        // Initialize enhanced mic button
-        console.log('Initializing enhanced microphone...');
-        const initialized = await enhancedMicButton.initialize();
+        // Initialize enhanced mic button with current language and provider
+        // Use selectedLanguage from context (will be loaded from localStorage by VoiceSettingsProvider)
+        console.log(`Initializing enhanced microphone with language: ${selectedLanguage}, provider: ${provider}...`);
+        const micButton = createEnhancedMicButton(selectedLanguage, provider);
+        enhancedMicButtonRef.current = micButton;
+        
+        const initialized = await micButton.initialize();
         console.log('Enhanced microphone initialization result:', initialized);
         setIsInitialized(initialized);
         setIsSupported(Boolean(SpeechRecognition));
       } catch (error) {
         console.error('Failed to initialize microphone:', error);
         setIsSupported(false);
+        const errorMessage = error instanceof Error ? error.message : 'Voice input is not supported on this device.';
+        onError?.(errorMessage);
       }
     };
 
     initializeMic();
 
     return () => {
-      enhancedMicButton.destroy();
+      if (enhancedMicButtonRef.current) {
+        enhancedMicButtonRef.current.destroy();
+        enhancedMicButtonRef.current = null;
+      }
     };
-  }, []);
+  }, [selectedLanguage, provider]); // Re-initialize if language or provider changes
 
   const toggleListening = async () => {
     console.log('Mic button pressed');
+    
+    if (!enhancedMicButtonRef.current) {
+      console.log('Enhanced mic button not initialized');
+      onError?.('Voice recognition not initialized');
+      return;
+    }
     
     // Diagnostic probe (debug mode only)
     if (process.env.NEXT_PUBLIC_DEBUG === '1') {
@@ -133,10 +161,13 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
 
     if (isListening) {
       console.log('Stopping microphone listening');
-      enhancedMicButton.stopListening();
+      enhancedMicButtonRef.current.stopListening();
       setIsListening(false);
     } else {
       try {
+        // Ensure language is up to date before starting
+        enhancedMicButtonRef.current.setLanguage(selectedLanguage);
+        
         // Request microphone permission if needed
         if (permissionState === 'prompt' || permissionState === 'unknown') {
           console.log('getUserMedia called');
@@ -152,19 +183,27 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
           }
         }
 
-        console.log('Starting enhanced microphone listening...');
-        enhancedMicButton.startListening(
+        console.log(`Starting enhanced microphone listening with language: ${selectedLanguage}...`);
+        await enhancedMicButtonRef.current.startListening(
           (text, isFinal) => {
             onTranscript(text, isFinal);
             if (isFinal) {
               // Update metrics after each final result
-              setMetrics(enhancedMicButton.getMetrics());
+              setMetrics(enhancedMicButtonRef.current?.getMetrics() || null);
             }
           },
           (error) => {
             console.error('Voice recognition error:', error);
             setIsListening(false);
-            onError?.(error);
+            
+            // iOS Safari specific error handling
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            if (isIOS && isSafari && error.includes('no-speech')) {
+              onError?.('Voice dictation may not be supported on iOS Safari.');
+            } else {
+              onError?.(error);
+            }
           },
           () => {
             console.log('Voice recognition started');
@@ -173,7 +212,7 @@ export default function MicButton({ onTranscript, onError, lang = 'en-US' }: Mic
           () => {
             console.log('Voice recognition stopped');
             setIsListening(false);
-            setMetrics(enhancedMicButton.getMetrics());
+            setMetrics(enhancedMicButtonRef.current?.getMetrics() || null);
           }
         );
         setPermissionState('granted');

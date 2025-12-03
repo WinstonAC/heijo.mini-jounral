@@ -8,6 +8,7 @@ import { checkPremiumStatus, activatePremium, deactivatePremium } from '@/lib/pr
 import { useAuth } from '@/lib/auth';
 import { storage } from '@/lib/store';
 import NotificationSettings from './NotificationSettings';
+import LanguageSelector from './LanguageSelector';
 
 interface SettingsProps {
   isOpen: boolean;
@@ -335,6 +336,15 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
                   </div>
                   <p className="text-xs text-text-secondary">
                     Adjust reading comfort without changing layout.
+                  </p>
+                </div>
+                
+                {/* Voice Language */}
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[#1a1a1a]">Voice Input Language</p>
+                  <LanguageSelector className="w-full sm:w-auto" />
+                  <p className="text-xs text-text-secondary">
+                    Select the language for voice transcription.
                   </p>
                 </div>
                 

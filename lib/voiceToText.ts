@@ -61,8 +61,11 @@ declare global {
   }
 }
 
+export type VoiceProvider = 'webspeech' | 'whisper' | 'google';
+
 export interface VoiceConfig {
   language: string;
+  provider?: VoiceProvider; // Future-proof: support multiple STT providers
   continuous: boolean;
   interimResults: boolean;
   maxAlternatives: number;
@@ -108,7 +111,8 @@ class VoiceToTextEngine {
 
   constructor(config: Partial<VoiceConfig> = {}) {
     this.config = {
-      language: 'en-US',
+      language: config.language || 'en-US',
+      provider: config.provider || 'webspeech',
       continuous: true,
       interimResults: true,
       maxAlternatives: 1,
@@ -129,17 +133,55 @@ class VoiceToTextEngine {
       return false;
     }
 
+    // Only WebSpeech is implemented for now
+    if (this.config.provider !== 'webspeech') {
+      console.warn(`VoiceToTextEngine: Provider ${this.config.provider} not yet implemented, falling back to webspeech`);
+    }
+
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.log('VoiceToTextEngine: Speech recognition not supported in this browser');
       throw new Error('Speech recognition not supported in this browser');
     }
 
-    console.log('VoiceToTextEngine: Initializing speech recognition');
+    console.log(`VoiceToTextEngine: Initializing speech recognition with language: ${this.config.language}`);
     this.recognition = new SpeechRecognition();
     this.setupRecognition();
     console.log('VoiceToTextEngine: Speech recognition initialized successfully');
     return true;
+  }
+
+  /**
+   * Update the language for recognition
+   * This will update the recognition engine's language setting
+   */
+  setLanguage(language: string): void {
+    if (this.config.language === language) {
+      return; // No change needed
+    }
+
+    const wasListening = this.isListening;
+    
+    // Stop current recognition if active
+    if (wasListening) {
+      this.stop();
+    }
+
+    // Update config
+    this.config.language = language;
+
+    // Update recognition language if it exists
+    if (this.recognition) {
+      this.recognition.lang = language;
+      console.log(`VoiceToTextEngine: Language updated to ${language}`);
+    }
+  }
+
+  /**
+   * Get current language
+   */
+  getLanguage(): string {
+    return this.config.language;
   }
 
   /**
@@ -152,6 +194,12 @@ class VoiceToTextEngine {
 
     if (!this.recognition) {
       throw new Error('Failed to initialize speech recognition');
+    }
+
+    // Ensure language is set correctly before starting
+    if (this.recognition.lang !== this.config.language) {
+      this.recognition.lang = this.config.language;
+      console.log(`VoiceToTextEngine: Language set to ${this.config.language} before start`);
     }
 
     this.isListening = true;
@@ -465,10 +513,16 @@ export class EnhancedMicButton {
   private isInitialized: boolean = false;
   private vadInitialized: boolean = false;
   private vadInitPromise: Promise<boolean> | null = null;
+  private currentLanguage: string;
+  private currentProvider: VoiceProvider;
 
-  constructor() {
+  constructor(language: string = 'en-US', provider: VoiceProvider = 'webspeech') {
+    this.currentLanguage = language;
+    this.currentProvider = provider;
+    
     this.voiceEngine = new VoiceToTextEngine({
-      language: 'en-US',
+      language: language,
+      provider: provider,
       continuous: true,
       interimResults: true,
       chunkSize: 500, // 500ms chunks for low latency
@@ -476,6 +530,66 @@ export class EnhancedMicButton {
     });
 
     this.vad = new VoiceActivityDetector(0.3);
+  }
+
+  /**
+   * Update the language for voice recognition
+   */
+  setLanguage(language: string): void {
+    if (this.currentLanguage === language) {
+      return; // No change needed
+    }
+
+    const wasActive = this.voiceEngine.isActive();
+    
+    // Stop if currently listening
+    if (wasActive) {
+      this.stopListening();
+    }
+
+    // Update language
+    this.currentLanguage = language;
+    this.voiceEngine.setLanguage(language);
+
+    // Restart if it was active
+    if (wasActive) {
+      // Note: We can't restart here automatically because we need the callbacks
+      // The caller should handle restarting if needed
+      console.log(`EnhancedMicButton: Language updated to ${language}. Restart listening to apply.`);
+    }
+  }
+
+  /**
+   * Get current language
+   */
+  getLanguage(): string {
+    return this.currentLanguage;
+  }
+
+  /**
+   * Update the provider (future-proof)
+   */
+  setProvider(provider: VoiceProvider): void {
+    if (this.currentProvider === provider) {
+      return;
+    }
+
+    const wasActive = this.voiceEngine.isActive();
+    
+    if (wasActive) {
+      this.stopListening();
+    }
+
+    this.currentProvider = provider;
+    // For now, only webspeech is supported, but the interface is ready
+    console.log(`EnhancedMicButton: Provider set to ${provider} (only webspeech is currently implemented)`);
+  }
+
+  /**
+   * Get current provider
+   */
+  getProvider(): VoiceProvider {
+    return this.currentProvider;
   }
 
   async initialize(): Promise<boolean> {
@@ -564,8 +678,17 @@ export class EnhancedMicButton {
   }
 }
 
-// Export singleton instance
-export const enhancedMicButton = new EnhancedMicButton();
+// Note: We no longer export a singleton instance
+// Each MicButton component should create its own instance or use a factory
+// This allows different components to use different languages/providers
+
+/**
+ * Factory function to create an EnhancedMicButton instance
+ * This allows each component to have its own instance with its own language
+ */
+export function createEnhancedMicButton(language: string = 'en-US', provider: VoiceProvider = 'webspeech'): EnhancedMicButton {
+  return new EnhancedMicButton(language, provider);
+}
 
 
 
