@@ -29,8 +29,9 @@ Heijō Mini-Journal features a **modern React architecture** built with Next.js 
 App Layout
 ├── Header
 │   ├── HeaderClock
-│   └── Settings
+│   └── Settings (Desktop)
 │       ├── NotificationSettings
+│       ├── LanguageSelector
 │       └── AnalyticsDashboard
 ├── Main Content
 │   ├── Journal Page
@@ -39,7 +40,12 @@ App Layout
 │   │   │   └── PromptChip
 │   │   ├── EntryList
 │   │   │   └── EntryDetail
-│   │   └── RecentEntriesDrawer
+│   │   ├── RecentEntriesDrawer
+│   │   └── Mobile Navigation (Mobile)
+│   │       ├── Save Button
+│   │       ├── History Button
+│   │       ├── Settings Button
+│   │       └── Sign Out Button
 │   ├── Login Page
 │   │   └── LoginCard
 │   └── Privacy Page
@@ -129,7 +135,41 @@ export default function Composer({
 - Mobile: Sticky toolbar with mic + Save/History controls above vibe tags
 - Desktop: Minimal ghost chips (S/H) in bottom-right with 80% opacity → 100% on hover
 
-#### 2. MicButton Component
+#### 2. LanguageSelector Component
+
+Voice input language selection interface:
+
+```typescript
+// components/LanguageSelector.tsx
+export default function LanguageSelector({ className }: LanguageSelectorProps) {
+  const { language, setLanguage } = useVoiceSettings();
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className={className}>
+      <select
+        value={language}
+        onChange={(e) => setLanguage(e.target.value)}
+        className="language-select"
+      >
+        <option value="en-US">English (US)</option>
+        <option value="en-GB">English (UK)</option>
+        <option value="es-ES">Spanish</option>
+        <option value="fr-FR">French</option>
+        {/* More language options */}
+      </select>
+    </div>
+  );
+}
+```
+
+**Features**:
+- Language selection for Web Speech API
+- Persistent settings via VoiceSettingsProvider
+- Accessible from Settings → Display → Voice Input Language
+- Supports multiple language codes
+
+#### 3. MicButton Component
 
 Voice recording interface with recessed shell design and visual feedback:
 
@@ -166,9 +206,9 @@ export default function MicButton({
 }
 ```
 
-**Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle (no aggressive glow) for subtle visual feedback.
+**Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle (no aggressive glow) for subtle visual feedback. The button respects the selected voice language from VoiceSettingsProvider.
 
-#### 3. NotificationSettings Component
+#### 4. NotificationSettings Component
 
 Comprehensive notification and reminder configuration interface:
 
@@ -212,7 +252,7 @@ export default function NotificationSettings({ onClose }: NotificationSettingsPr
 - Test notification button
 - Unsaved changes tracking
 
-#### 4. AnalyticsDashboard Component
+#### 5. AnalyticsDashboard Component
 
 Usage analytics dashboard with comprehensive metrics:
 
@@ -251,7 +291,7 @@ export default function AnalyticsDashboard({ isVisible }: AnalyticsDashboardProp
 - Usage timeline (first/last used)
 - Privacy-first local storage
 
-#### 5. EntryList Component
+#### 6. EntryList Component
 
 Display and management of journal entries:
 
@@ -328,6 +368,38 @@ export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}
+
+// lib/voiceSettings.tsx
+const VoiceSettingsContext = createContext<VoiceSettingsContextType | undefined>(undefined);
+
+export function VoiceSettingsProvider({ children }: { children: React.ReactNode }) {
+  const [language, setLanguage] = useState<string>('en-US');
+
+  useEffect(() => {
+    // Load persisted language from localStorage
+    const saved = localStorage.getItem('heijo-voice-language');
+    if (saved) setLanguage(saved);
+  }, []);
+
+  const updateLanguage = (lang: string) => {
+    setLanguage(lang);
+    localStorage.setItem('heijo-voice-language', lang);
+  };
+
+  return (
+    <VoiceSettingsContext.Provider value={{ language, setLanguage: updateLanguage }}>
+      {children}
+    </VoiceSettingsContext.Provider>
+  );
+}
+
+export function useVoiceSettings() {
+  const context = useContext(VoiceSettingsContext);
+  if (context === undefined) {
+    throw new Error('useVoiceSettings must be used within a VoiceSettingsProvider');
   }
   return context;
 }

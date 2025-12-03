@@ -80,6 +80,47 @@
 
 ---
 
+### 🟢 Low Priority Fixes (continued)
+
+#### 6. Mobile Navigation - Sign Out Button
+**Issue:** Sign out button was only available on desktop, missing from mobile navigation.
+
+**Fix:**
+- Added Sign Out button to mobile bottom navigation pill
+- Button matches existing mobile navigation styling and sizing
+- Maintains consistent touch target size (44px minimum)
+- Files modified: `app/journal/page.tsx`
+
+**Testing:** On mobile viewport, verify Sign Out button appears in bottom navigation alongside Settings.
+
+---
+
+#### 7. Voice Language Selection
+**Issue:** Voice recognition was limited to browser default language.
+
+**Fix:**
+- Added LanguageSelector component for voice input language configuration
+- Integrated with voice settings context for persistence
+- Available in Settings → Display → Voice Input Language
+- Supports multiple languages for Web Speech API
+- Files modified: `components/LanguageSelector.tsx`, `lib/voiceSettings.tsx`, `lib/voiceToText.ts`, `components/Settings.tsx`, `components/MicButton.tsx`
+
+**Testing:** Change voice language in Settings and verify voice recognition uses selected language.
+
+---
+
+#### 8. Build Configuration
+**Issue:** Test files were being included in Next.js production build, causing type errors.
+
+**Fix:**
+- Excluded `tests` directory and `vitest.config.ts` from TypeScript compilation
+- Added `@ts-nocheck` to vitest config to prevent build type checking
+- Files modified: `tsconfig.json`, `vitest.config.ts`
+
+**Testing:** Verify production build completes successfully without test file errors.
+
+---
+
 ## Deployment Notes
 
 All changes are ready for deployment. After deployment:
@@ -89,6 +130,8 @@ All changes are ready for deployment. After deployment:
 3. Verify analytics counters match entry counts
 4. Test notification settings save functionality
 5. Verify app icon color on iOS home screen
+6. Test mobile sign out functionality
+7. Test voice language selection in Settings
 
 ---
 
@@ -98,15 +141,25 @@ All changes are ready for deployment. After deployment:
 - `lib/store.ts` - Strict user filtering and legacy cleanup
 - `lib/auth.tsx` - Sign out cleanup
 - `lib/analytics.ts` - Counter fixes
+- `lib/voiceSettings.tsx` - Voice language settings context (new)
+- `lib/voiceToText.ts` - Language selection integration
 
 ### Components
 - `components/Composer.tsx` - Mobile tooltip fix
-- `components/MicButton.tsx` - Mobile tooltip fix
+- `components/MicButton.tsx` - Mobile tooltip fix, language support
 - `components/NotificationSettings.tsx` - Save button enhancement
+- `components/LanguageSelector.tsx` - Voice language selector (new)
+- `components/Settings.tsx` - Voice language settings integration
+
+### Pages
+- `app/journal/page.tsx` - Mobile sign out button addition
+- `app/layout.tsx` - VoiceSettingsProvider integration
 
 ### Configuration
 - `public/site.webmanifest` - Theme color and icon updates
 - `app/layout.tsx` - Apple meta tags and viewport theme color
+- `tsconfig.json` - Test directory exclusions
+- `vitest.config.ts` - Build exclusion configuration
 
 ### Documentation
 - `docs/QA_MATRIX.md` - Updated with new test cases

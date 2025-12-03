@@ -11,6 +11,7 @@ Heijō Mini-Journal is a **privacy-first journaling application** that combines 
 #### Voice Recording
 - **Streaming Voice Recognition**: Real-time transcription with <300ms latency
 - **Web Speech API**: Browser-native voice recognition for privacy
+- **Language Selection**: Configurable voice input language via Settings
 - **Visual Feedback**: Animated recording button with pulse effects
 - **Error Handling**: Clear error messages for microphone issues
 - **Offline Support**: Voice recognition works without internet
@@ -337,6 +338,10 @@ Comprehensive settings interface accessible from the main journal interface:
 - **Font Size**: Adjustable font size (Small, Medium, Large)
   - Changes reading comfort without affecting layout
   - Persists across sessions
+- **Voice Input Language**: Select language for voice transcription
+  - Supports multiple languages via Web Speech API
+  - Settings persist across sessions
+  - Available in Settings → Display → Voice Input Language
 - **Daily Prompt**: 
   - "Show Today's Prompt" button (if prompt was dismissed earlier)
   - Displays prompt availability status

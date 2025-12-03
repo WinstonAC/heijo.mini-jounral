@@ -77,6 +77,23 @@
 
 ---
 
+### 3b) Voice Language Selection
+**Steps:**
+1. Go to Settings → Display → Voice Input Language.
+2. Select a different language (e.g., Spanish, French).
+3. Close Settings and start a voice recording.
+4. Speak in the selected language.
+5. Verify transcription uses the selected language.
+6. Reopen Settings and verify language selection persisted.
+
+**Expected:**
+- Language selector available in Settings
+- Selected language persists across sessions
+- Voice recognition uses selected language
+- Language setting stored in localStorage
+
+---
+
 ### 4) Mobile UI — Tooltip Behavior
 **Steps:**
 1. Open app on mobile device (or mobile viewport < 768px)
@@ -91,6 +108,23 @@
 - Tooltips hidden on mobile (< 768px)
 - Tooltips visible on desktop (≥ 768px)
 - No tooltips going off-screen on any device
+
+---
+
+### 4b) Mobile Navigation — Sign Out Button
+**Steps:**
+1. Open app on mobile device (or mobile viewport < 768px)
+2. Navigate to journal page.
+3. Scroll to bottom navigation pill.
+4. Verify Sign Out button appears alongside Settings button.
+5. Tap Sign Out button.
+6. Verify user is signed out and redirected to login page.
+
+**Expected:**
+- Sign Out button visible in mobile bottom navigation
+- Button matches existing navigation styling (44px minimum touch target)
+- Sign out functionality works correctly
+- Session cleared after sign out
 
 ---
 
@@ -211,4 +245,7 @@
 - ✅ Fixed analytics mismatch (Features Used vs Entry Types)
 - ✅ Enhanced notification settings save button visibility
 - ✅ Fixed app icon color (theme_color updated to match brand)
+- ✅ Added Sign Out button to mobile navigation
+- ✅ Added voice language selection feature
+- ✅ Fixed build configuration (excluded test files from production build)
 
