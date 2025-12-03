@@ -30,9 +30,10 @@ interface ComposerProps {
   setFontSize: (size: 'small' | 'medium' | 'large') => void;
   entryCount?: number; // Number of entries for this user
   onManualSaveReady?: (saveFn: () => Promise<void>) => void; // Optional callback to expose save function
+  onSaveStateChange?: (state: { isSaving: boolean; isSaved: boolean; error: string | null }) => void; // Optional callback to expose save states
 }
 
-export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize, entryCount = 0, onManualSaveReady }: ComposerProps) {
+export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize, entryCount = 0, onManualSaveReady, onSaveStateChange }: ComposerProps) {
   const [content, setContent] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [source, setSource] = useState<'text' | 'voice'>('text');
@@ -43,6 +44,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [interimTranscript, setInterimTranscript] = useState('');
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [showToast, setShowToast] = useState(false);
+  // Manual save states
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [promptState, setPromptState] = useState<'ticking' | 'showing' | 'selected' | 'hidden'>('ticking');
   const [currentPrompt, setCurrentPrompt] = useState<{ id: string; text: string } | null>(null);
   const [hasShownToday, setHasShownToday] = useState(false);
@@ -431,7 +436,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   };
 
   const handleManualSave = useCallback(async () => {
-    if (!content.trim()) return;
+    // Defensive check: don't save empty entries
+    if (!content.trim()) {
+      setSaveError('Entry cannot be empty');
+      setTimeout(() => setSaveError(null), 3000);
+      return;
+    }
     
     // Prevent rapid saves - debounce
     const now = Date.now();
@@ -442,15 +452,45 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     // Don't attempt save if rate limited
     if (isRateLimited) {
       console.warn('Save blocked: Rate limit exceeded');
+      setSaveError('Rate limit exceeded. Please try again later.');
+      setTimeout(() => setSaveError(null), 3000);
+      return;
+    }
+
+    // Don't save if already saving
+    if (isSaving) {
       return;
     }
 
     lastSaveAttemptRef.current = now;
-    setIsAutoSaving(true);
+    setIsSaving(true);
+    setIsSaved(false);
+    setSaveError(null);
+    setIsAutoSaving(true); // Keep for compatibility with existing UI
+
+    // Stop voice recording if active
+    if (isVoiceActive) {
+      // Stop the mic button by triggering its click
+      if (micButtonInternalRef.current) {
+        micButtonInternalRef.current.click();
+      } else {
+        // Fallback: find the mic button
+        const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
+        if (micButton) {
+          micButton.click();
+        }
+      }
+      setIsVoiceActive(false);
+      setInterimTranscript(''); // Clear interim transcript
+    }
 
     try {
+      // Save the content before clearing (defensive)
+      const contentToSave = content.trim();
+      
+      // Await the full save pipeline (localStorage + optional Supabase sync)
       await onSave({
-        content: content.trim(),
+        content: contentToSave,
         source,
         tags: selectedTags,
         created_at: new Date().toISOString(),
@@ -458,19 +498,33 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         sync_status: 'local_only'
       });
 
-      // Show toast confirmation
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
-
-      // Reset form
+      // Only clear and reset AFTER successful save
       setContent('');
       setSelectedTags([]);
+      setInterimTranscript(''); // Clear any interim transcript
       setSource('text');
       setLastSaved(new Date());
       setIsRateLimited(false);
       setRateLimitRetryAfter(null);
+
+      // Show success state
+      setIsSaved(true);
+      setShowToast(true);
+      
+      // Reset success state after 1.5-2 seconds
+      setTimeout(() => {
+        setIsSaved(false);
+      }, 1800);
+      
+      // Hide toast after 3 seconds
+      setTimeout(() => {
+        setShowToast(false);
+      }, 3000);
     } catch (error) {
       console.error('Manual save failed:', error);
+      
+      // Don't clear content on error - user shouldn't lose their work
+      setSaveError(null); // Clear any previous error first
       
       // Check if it's a rate limit error
       if (error instanceof Error && error.message.includes('Rate limit')) {
@@ -481,20 +535,32 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           // Default to 60 seconds if we can't parse the exact time
           setRateLimitRetryAfter(60);
         }
-        // Show error toast
+        setSaveError('Rate limit exceeded. Please try again later.');
         setShowToast(true);
-        setTimeout(() => setShowToast(false), 3000);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 3000);
         return; // Don't log as regular error
       }
       
+      // Generic error message
+      setSaveError('Failed to save entry. Please try again.');
+      setShowToast(true);
+      setTimeout(() => {
+        setShowToast(false);
+        setSaveError(null);
+      }, 3000);
+      
       // Check if this was a voice transcription that failed to save
       if (source === 'voice') {
-        console.warn('Mic transcription ready, but Supabase save failed:', error);
+        console.warn('Mic transcription ready, but save failed:', error);
       }
     } finally {
+      setIsSaving(false);
       setIsAutoSaving(false);
     }
-  }, [content, source, selectedTags, userId, onSave, isRateLimited]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive]);
 
   // Store latest handleManualSave in ref (update ref directly, no useEffect to avoid loops)
   handleManualSaveRef.current = handleManualSave;
@@ -512,6 +578,17 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       onManualSaveReady(stableSaveFn);
     }
   }, [onManualSaveReady, stableSaveFn]);
+
+  // Expose save states to parent for mobile button
+  useEffect(() => {
+    if (onSaveStateChange) {
+      onSaveStateChange({
+        isSaving,
+        isSaved,
+        error: saveError
+      });
+    }
+  }, [isSaving, isSaved, saveError, onSaveStateChange]);
 
   // Set up ref to MicButton's internal button for mobile
   useEffect(() => {
@@ -1091,10 +1168,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           <div className="hidden md:flex items-center gap-2 ml-auto">
               <button
                 onClick={handleManualSave}
-                disabled={!content.trim() || isRateLimited}
+                disabled={!content.trim() || isRateLimited || isSaving}
               className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
-                S
+                {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'S'}
               </button>
               <button
                 onClick={() => {
@@ -1112,7 +1189,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       {/* Toast Notifications */}
       {showToast && (
         <div className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-          {isRateLimited ? 'Rate limit exceeded. Please try again later.' : 'Saved locally'}
+          {saveError ? saveError : isRateLimited ? 'Rate limit exceeded. Please try again later.' : 'Saved locally'}
         </div>
       )}
       

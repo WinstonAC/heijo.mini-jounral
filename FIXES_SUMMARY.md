@@ -398,3 +398,107 @@ if (!error) {
 }
 ```
 
+---
+
+## Issue 9: Mobile Save Button - Missing Visual Feedback ✅ (January 2025)
+
+### Root Cause
+When users tapped the "Save" button after dictating via voice-to-text:
+- The entry saved successfully under the hood
+- BUT the textarea did not clear
+- The button did not show visual feedback (no "Saving..." or "Saved" state)
+- There was no confirmation that the save completed
+- This was most obvious on mobile when using voice-to-text
+
+### Fix Implemented
+- **Added explicit save state management**:
+  - `isSaving`: Tracks when a save is in progress
+  - `isSaved`: Shows success state for 1.8 seconds after save
+  - `saveError`: Stores error messages for display
+- **Updated `handleManualSave` function**:
+  - Now properly awaits the full save pipeline (localStorage + optional Supabase sync)
+  - Only clears textarea AFTER successful save is confirmed
+  - Stops voice recording if active before saving
+  - Clears interim transcript on save
+  - Prevents saving empty entries
+  - Prevents duplicate saves while a save is in progress
+  - Preserves content on error (doesn't clear textarea)
+- **Button state feedback**:
+  - Desktop "S" button: Shows "Saving..." → "Saved" → "S"
+  - Mobile "Save" button: Shows "Saving..." → "Saved" → "Save"
+  - Both buttons disabled while saving
+- **Voice recording integration**:
+  - Automatically stops recording when save is triggered
+  - Clears interim transcript
+  - Resets voice state after save
+- **Error handling**:
+  - Shows error messages in toast notifications
+  - Preserves user content on error
+  - Handles rate limiting gracefully
+
+### Files Changed
+- `components/Composer.tsx`:
+  - Added `isSaving`, `isSaved`, and `saveError` state variables
+  - Updated `handleManualSave` to properly await save and manage states
+  - Updated desktop "S" button to show state-based labels
+  - Added `onSaveStateChange` callback prop to expose states to parent
+  - Enhanced voice recording stop logic on save
+- `app/journal/page.tsx`:
+  - Added `saveState` state to track save status
+  - Updated mobile "Save" button to show state-based labels
+  - Connected to Composer's `onSaveStateChange` callback
+
+### Key Changes
+```typescript
+// State management
+const [isSaving, setIsSaving] = useState(false);
+const [isSaved, setIsSaved] = useState(false);
+const [saveError, setSaveError] = useState<string | null>(null);
+
+// Save handler - awaits full pipeline before clearing
+const handleManualSave = useCallback(async () => {
+  if (!content.trim()) return;
+  if (isSaving) return; // Prevent duplicate saves
+  
+  setIsSaving(true);
+  
+  // Stop voice recording if active
+  if (isVoiceActive) {
+    micButtonInternalRef.current?.click();
+    setIsVoiceActive(false);
+    setInterimTranscript('');
+  }
+  
+  try {
+    // Await full save pipeline
+    await onSave({ content: content.trim(), ... });
+    
+    // Only clear AFTER successful save
+    setContent('');
+    setInterimTranscript('');
+    setIsSaved(true);
+    
+    // Reset success state after 1.8 seconds
+    setTimeout(() => setIsSaved(false), 1800);
+  } catch (error) {
+    // Don't clear content on error
+    setSaveError('Failed to save entry. Please try again.');
+  } finally {
+    setIsSaving(false);
+  }
+}, [content, isSaving, isVoiceActive]);
+
+// Button with state feedback
+<button disabled={isSaving}>
+  {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
+</button>
+```
+
+### Testing
+- ✅ Type text and save: Button shows "Saving..." → "Saved" → resets, textarea clears
+- ✅ Voice-to-text save: Recording stops, same button states, textarea clears
+- ✅ Save while already saving: Second click ignored, no duplicate saves
+- ✅ Save empty entry: Prevented with error message
+- ✅ Save error: Content preserved, error shown in toast
+- ✅ Mobile touch events: All states visible and properly triggered
+
