@@ -1,3 +1,4 @@
+// @ts-nocheck - This file is for Vitest only, not part of Next.js build
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
