@@ -2,6 +2,29 @@ import { expect, afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
+// Type definitions for SpeechRecognition (not available in Node.js build environment)
+// Using type assertions to avoid conflicts with existing definitions
+type SpeechRecognitionType = {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  maxAlternatives: number;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onstart: ((this: any, ev: Event) => any) | null;
+  onend: ((this: any, ev: Event) => any) | null;
+  onresult: ((this: any, ev: any) => any) | null;
+  onerror: ((this: any, ev: any) => any) | null;
+  onspeechstart: ((this: any, ev: Event) => any) | null;
+  onspeechend: ((this: any, ev: Event) => any) | null;
+  onsoundstart: ((this: any, ev: Event) => any) | null;
+  onsoundend: ((this: any, ev: Event) => any) | null;
+  onaudiostart: ((this: any, ev: Event) => any) | null;
+  onaudioend: ((this: any, ev: Event) => any) | null;
+  onnomatch: ((this: any, ev: any) => any) | null;
+};
+
 // Cleanup after each test
 afterEach(() => {
   cleanup();
@@ -37,8 +60,8 @@ Object.defineProperty(window, 'localStorage', {
 });
 
 // Mock window.SpeechRecognition and window.webkitSpeechRecognition
-export function createMockSpeechRecognition() {
-  const mockRecognition = {
+export function createMockSpeechRecognition(): SpeechRecognitionType {
+  const mockRecognition: SpeechRecognitionType = {
     continuous: false,
     interimResults: false,
     lang: 'en-US',
@@ -46,17 +69,17 @@ export function createMockSpeechRecognition() {
     start: vi.fn(),
     stop: vi.fn(),
     abort: vi.fn(),
-    onstart: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onend: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onresult: null as ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null,
-    onerror: null as ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => any) | null,
-    onspeechstart: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onspeechend: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onsoundstart: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onsoundend: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onaudiostart: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onaudioend: null as ((this: SpeechRecognition, ev: Event) => any) | null,
-    onnomatch: null as ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => any) | null,
+    onstart: null,
+    onend: null,
+    onresult: null,
+    onerror: null,
+    onspeechstart: null,
+    onspeechend: null,
+    onsoundstart: null,
+    onsoundend: null,
+    onaudiostart: null,
+    onaudioend: null,
+    onnomatch: null,
   };
 
   return mockRecognition;
