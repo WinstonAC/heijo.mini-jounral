@@ -184,6 +184,15 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
           setIsSupported(true);
           setMicState('ready');
         } else {
+          // Full reset on initialization failure - clear ref so next click can retry cleanly
+          if (enhancedMicButtonRef.current) {
+            try {
+              enhancedMicButtonRef.current.destroy();
+            } catch (destroyError) {
+              // Ignore destroy errors
+            }
+            enhancedMicButtonRef.current = null;
+          }
           setIsSupported(false);
           setMicState('error');
           onErrorRef.current?.('Failed to initialize voice recognition.');
@@ -191,6 +200,15 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       } catch (error) {
         console.error('Failed to initialize microphone:', error);
         if (cancelled) return;
+        // Full reset on initialization failure - clear ref so next click can retry cleanly
+        if (enhancedMicButtonRef.current) {
+          try {
+            enhancedMicButtonRef.current.destroy();
+          } catch (destroyError) {
+            // Ignore destroy errors
+          }
+          enhancedMicButtonRef.current = null;
+        }
         setIsSupported(false);
         setMicState('error');
         const errorMessage = error instanceof Error ? error.message : 'Voice input is not supported on this device.';
@@ -255,6 +273,15 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
           setMicState('ready');
           // Continue to start listening below
         } else {
+          // Full reset on initialization failure - clear ref so next click can retry cleanly
+          if (enhancedMicButtonRef.current) {
+            try {
+              enhancedMicButtonRef.current.destroy();
+            } catch (destroyError) {
+              // Ignore destroy errors
+            }
+            enhancedMicButtonRef.current = null;
+          }
           setIsSupported(false);
           setMicState('error');
           onError?.('Failed to initialize voice recognition. Please try again.');
@@ -262,6 +289,15 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         }
       } catch (error) {
         console.error('[Heijo][Voice] MicButton: Re-initialization failed', error);
+        // Full reset on initialization failure - clear ref so next click can retry cleanly
+        if (enhancedMicButtonRef.current) {
+          try {
+            enhancedMicButtonRef.current.destroy();
+          } catch (destroyError) {
+            // Ignore destroy errors
+          }
+          enhancedMicButtonRef.current = null;
+        }
         setIsSupported(false);
         setMicState('error');
         onError?.('Failed to initialize voice recognition. Please try again.');
@@ -270,13 +306,15 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
     }
     
     // Prevent action if not ready (but allow if we just recovered from error)
-    if (micState !== 'ready' && micState !== 'recording' && micState !== 'initializing') {
+    if (micState === 'initializing') {
+      console.log('Mic button pressed but state is initializing');
+      onError?.('Voice recognition is still initializing. Please wait.');
+      return;
+    }
+    
+    if (micState !== 'ready' && micState !== 'recording') {
       console.log('Mic button pressed but state is:', micState);
-      if (micState === 'initializing') {
-        onError?.('Voice recognition is still initializing. Please wait.');
-      } else {
-        onError?.('Voice recognition is not available.');
-      }
+      onError?.('Voice recognition is not available.');
       return;
     }
     

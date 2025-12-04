@@ -362,9 +362,10 @@ class VoiceToTextEngine {
     let interimTranscript = '';
     let maxConfidence = 0;
 
-    // FIXED: Process ALL results from 0 to length, not just from resultIndex
-    // This ensures we capture all final results, not just the fragment at resultIndex
-    for (let i = 0; i < event.results.length; i++) {
+    // FIXED: Only process NEW results (from resultIndex onwards) to avoid duplicates
+    // WebSpeech repeats previous results in each event, so we must track what's new
+    // This prevents duplicate accumulation when WebSpeech repeats previous results
+    for (let i = event.resultIndex; i < event.results.length; i++) {
       const result = event.results[i];
       const transcript = result[0].transcript;
       const confidence = result[0].confidence || 0;
@@ -373,10 +374,7 @@ class VoiceToTextEngine {
         finalTranscript += transcript;
         maxConfidence = Math.max(maxConfidence, confidence);
       } else {
-        // Only include interim results from resultIndex onwards (to avoid duplicates)
-        if (i >= event.resultIndex) {
-          interimTranscript += transcript;
-        }
+        interimTranscript += transcript;
       }
     }
 
@@ -1049,9 +1047,12 @@ export class EnhancedMicButton {
       
       if (!voiceReady) {
         console.error('[Heijo][Voice] EnhancedMicButton.initialize HARD FAILURE (no webspeech)');
+        // Full engine reset on failure
+        this.destroy();
         this.isInitialized = false;
         this.vadInitialized = false;
         this.vadInitPromise = null;
+        this.isInitializing = false;
         return false;
       }
       
@@ -1107,12 +1108,23 @@ export class EnhancedMicButton {
     } catch (error) {
       // Only catch errors from voiceEngine.initialize() - if that fails, we're truly dead
       console.error('[Heijo][Voice] EnhancedMicButton.initialize HARD FAILURE (no webspeech)', error);
+      // Full engine reset on failure - destroy all resources
+      try {
+        this.destroy();
+      } catch (destroyError) {
+        // Ignore destroy errors during cleanup
+        console.warn('[Heijo][Voice] EnhancedMicButton: Error during cleanup', destroyError);
+      }
       this.isInitialized = false;
       this.vadInitialized = false;
       this.vadInitPromise = null;
+      this.isInitializing = false;
       return false;
     } finally {
-      this.isInitializing = false;
+      // Ensure isInitializing is always reset, even if destroy() throws
+      if (this.isInitializing && !this.isInitialized) {
+        this.isInitializing = false;
+      }
     }
   }
 
