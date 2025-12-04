@@ -231,7 +231,8 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       isInitializingRef.current = false;
       cancelled = true;
     };
-  }, [selectedLanguage, userProvider]); // Removed setProvider to prevent infinite loop
+  }, [selectedLanguage, userProvider]); // eslint-disable-line react-hooks/exhaustive-deps
+  // setProvider is intentionally excluded - it's memoized and causes infinite loops if included
 
   // Cleanup on unmount
   useEffect(() => {
