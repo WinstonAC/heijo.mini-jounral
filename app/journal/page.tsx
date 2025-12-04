@@ -132,6 +132,17 @@ export default function JournalPage() {
     return savedEntry;
   }, []); // Empty deps array since handleSave doesn't depend on any props/state
 
+  // FIXED: Memoize callbacks to prevent render loop
+  // These callbacks are passed to Composer and used in useEffect dependencies
+  // Without memoization, new function references on every render cause infinite loops
+  const handleManualSaveReady = useCallback((saveFn: () => Promise<void>) => {
+    setManualSaveFn(saveFn);
+  }, []);
+
+  const handleSaveStateChange = useCallback((state: { isSaving: boolean; isSaved: boolean; error: string | null }) => {
+    setSaveState(state);
+  }, []);
+
   const handleEntryClick = (entry: JournalEntry) => {
     // Navigate to entry detail page
     window.location.href = `/entry/${entry.id}`;
@@ -224,8 +235,8 @@ export default function JournalPage() {
               fontSize={fontSize}
               setFontSize={setFontSize}
               entryCount={entries.length}
-              onManualSaveReady={setManualSaveFn}
-              onSaveStateChange={setSaveState}
+              onManualSaveReady={handleManualSaveReady}
+              onSaveStateChange={handleSaveStateChange}
             />
           </div>
 

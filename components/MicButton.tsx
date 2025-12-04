@@ -220,8 +220,57 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
   }, []);
 
   const toggleListening = async () => {
-    // Prevent action if not ready
-    if (micState !== 'ready' && micState !== 'recording') {
+    console.log('[Heijo][Voice] MicButton click', { 
+      isListening, 
+      micState,
+      engineReady: enhancedMicButtonRef.current?.isActive() || false 
+    });
+    
+    // If in error state, try to re-initialize
+    if (micState === 'error') {
+      console.log('[Heijo][Voice] MicButton: Attempting to re-initialize from error state');
+      isInitializingRef.current = false; // Reset guard to allow retry
+      setMicState('initializing');
+      
+      try {
+        if (!enhancedMicButtonRef.current) {
+          // Need to create new instance
+          const capabilities = detectVoiceCapabilities();
+          const recommendedProvider = getRecommendedProvider(capabilities);
+          let effectiveProv: 'webspeech' | 'whisper' | 'google' = 'webspeech';
+          
+          if (recommendedProvider === 'backend') {
+            effectiveProv = userProvider === 'google' ? 'google' : 'whisper';
+          } else {
+            effectiveProv = userProvider === 'webspeech' ? 'webspeech' : 'whisper';
+          }
+          
+          const micButton = createEnhancedMicButton(selectedLanguage, effectiveProv);
+          enhancedMicButtonRef.current = micButton;
+        }
+        
+        const initialized = await enhancedMicButtonRef.current.initialize();
+        if (initialized) {
+          setIsSupported(true);
+          setMicState('ready');
+          // Continue to start listening below
+        } else {
+          setIsSupported(false);
+          setMicState('error');
+          onError?.('Failed to initialize voice recognition. Please try again.');
+          return;
+        }
+      } catch (error) {
+        console.error('[Heijo][Voice] MicButton: Re-initialization failed', error);
+        setIsSupported(false);
+        setMicState('error');
+        onError?.('Failed to initialize voice recognition. Please try again.');
+        return;
+      }
+    }
+    
+    // Prevent action if not ready (but allow if we just recovered from error)
+    if (micState !== 'ready' && micState !== 'recording' && micState !== 'initializing') {
       console.log('Mic button pressed but state is:', micState);
       if (micState === 'initializing') {
         onError?.('Voice recognition is still initializing. Please wait.');
@@ -230,8 +279,6 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       }
       return;
     }
-
-    console.log('Mic button pressed, current state:', micState);
     
     if (!enhancedMicButtonRef.current) {
       console.log('Enhanced mic button not initialized');
@@ -418,7 +465,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       <button
         ref={micRef}
         onClick={toggleListening}
-        disabled={micState !== 'ready' && micState !== 'recording' || permissionState === 'denied'}
+        disabled={(micState !== 'ready' && micState !== 'recording' && micState !== 'error') || permissionState === 'denied'}
         className={getButtonClass()}
         title={getTooltipText()}
         aria-pressed={isListening}

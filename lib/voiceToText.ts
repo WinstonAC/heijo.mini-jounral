@@ -1027,7 +1027,7 @@ export class EnhancedMicButton {
   async initialize(): Promise<boolean> {
     // Guard: Prevent concurrent initialization
     if (this.isInitializing) {
-      console.warn('EnhancedMicButton: Already initializing, skipping');
+      console.warn('[Heijo][Voice] EnhancedMicButton: Already initializing, skipping');
       return this.isInitialized;
     }
     
@@ -1039,42 +1039,74 @@ export class EnhancedMicButton {
     this.isInitializing = true;
     
     try {
-      console.log(`EnhancedMicButton: Initializing ${this.useBackend ? 'backend' : 'webspeech'} engine...`);
+      console.log('[Heijo][Voice] EnhancedMicButton.initialize start', { 
+        provider: this.currentProvider, 
+        language: this.currentLanguage 
+      });
+      
+      // Initialize WebSpeech engine - this is REQUIRED
       const voiceReady = await this.voiceEngine.initialize();
-      console.log('EnhancedMicButton: Voice engine ready:', voiceReady);
+      
+      if (!voiceReady) {
+        console.error('[Heijo][Voice] EnhancedMicButton.initialize HARD FAILURE (no webspeech)');
+        this.isInitialized = false;
+        this.vadInitialized = false;
+        this.vadInitPromise = null;
+        return false;
+      }
+      
+      console.log('[Heijo][Voice] EnhancedMicButton: Voice engine ready:', voiceReady);
       
       // VAD is optional for backend STT
       if (this.useBackend) {
         this.isInitialized = voiceReady;
         this.vadInitialized = false; // Backend doesn't use VAD
         this.vadInitPromise = null; // Clear promise
-        console.log('EnhancedMicButton: Backend STT initialized:', this.isInitialized);
+        console.log('[Heijo][Voice] EnhancedMicButton.initialize success (backend STT)', { vadEnabled: false });
         return this.isInitialized;
       }
       
       // For WebSpeech, try to initialize VAD (but don't fail if it doesn't work)
+      let vadEnabled = false;
       if (this.vad) {
-        if (!this.vadInitPromise) {
-          this.vadInitPromise = this.vad.initialize();
+        try {
+          if (!this.vadInitPromise) {
+            this.vadInitPromise = this.vad.initialize();
+          }
+          const vadReady = await this.vadInitPromise;
+          vadEnabled = vadReady;
+          if (!vadReady) {
+            console.warn('[Heijo][Voice] EnhancedMicButton.initialize VAD error, using webspeech-only');
+          }
+          console.log('[Heijo][Voice] EnhancedMicButton: VAD ready:', vadReady);
+        } catch (vadError) {
+          // VAD failure is NOT fatal - WebSpeech can work without it
+          console.warn('[Heijo][Voice] EnhancedMicButton.initialize VAD error, using webspeech-only', vadError);
+          vadEnabled = false;
+          // Clean up failed VAD attempt
+          this.vadInitPromise = null;
+          if (this.vad) {
+            try {
+              this.vad.destroy();
+            } catch (destroyError) {
+              // Ignore destroy errors
+            }
+            this.vad = null; // Clear VAD reference so we don't try again
+          }
         }
-        const vadReady = await this.vadInitPromise;
-        if (!vadReady) {
-          console.warn('EnhancedMicButton: VAD initialization failed, continuing without it');
-        }
-        console.log('EnhancedMicButton: VAD ready:', vadReady);
-        // VAD failure shouldn't prevent WebSpeech from working
-        this.isInitialized = voiceReady;
-        this.vadInitialized = vadReady; // Explicitly set based on VAD result
-      } else {
-        this.isInitialized = voiceReady;
-        this.vadInitialized = false; // No VAD instance
-        this.vadInitPromise = null; // Clear promise
       }
       
-      console.log('EnhancedMicButton: Overall initialization result:', this.isInitialized);
-      return this.isInitialized;
+      // WebSpeech is ready - that's all we need
+      this.isInitialized = true;
+      this.vadInitialized = vadEnabled;
+      this.vadInitPromise = null;
+      
+      console.log('[Heijo][Voice] EnhancedMicButton.initialize success (webspeech-only fallback?)', { vadEnabled });
+      return true;
+      
     } catch (error) {
-      console.error('EnhancedMicButton: Failed to initialize enhanced mic:', error);
+      // Only catch errors from voiceEngine.initialize() - if that fails, we're truly dead
+      console.error('[Heijo][Voice] EnhancedMicButton.initialize HARD FAILURE (no webspeech)', error);
       this.isInitialized = false;
       this.vadInitialized = false;
       this.vadInitPromise = null;
