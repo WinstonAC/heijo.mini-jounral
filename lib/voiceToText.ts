@@ -718,6 +718,7 @@ class VoiceActivityDetector {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private microphone: MediaStreamAudioSourceNode | null = null;
+  private stream: MediaStream | null = null; // Store stream reference for cleanup
   private dataArray: Uint8Array | null = null;
   private animationFrame: number | null = null;
   private isActive: boolean = false;
@@ -730,6 +731,16 @@ class VoiceActivityDetector {
   }
 
   async initialize(): Promise<boolean> {
+    // Idempotency check: If already initialized and stream is active, return true
+    if (this.audioContext && this.stream && this.stream.active && this.microphone) {
+      return true;
+    }
+    
+    // If partially initialized but stream is inactive, clean up first
+    if (this.audioContext && (!this.stream || !this.stream.active)) {
+      this.destroy();
+    }
+    
     try {
       console.log('VoiceActivityDetector: Initializing audio context and microphone access');
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -748,6 +759,19 @@ class VoiceActivityDetector {
         } 
       });
       
+      // Validate stream before use
+      if (!stream || !stream.active) {
+        throw new Error('Microphone stream is null or inactive');
+      }
+      
+      // Validate audioContext before use
+      if (!this.audioContext || !stream) {
+        throw new Error('AudioContext or stream is null');
+      }
+      
+      // Store stream reference for cleanup
+      this.stream = stream;
+      
       console.log('VoiceActivityDetector: Microphone access granted, setting up audio processing');
       this.microphone = this.audioContext.createMediaStreamSource(stream);
       this.microphone.connect(this.analyser);
@@ -756,6 +780,27 @@ class VoiceActivityDetector {
       console.log('VoiceActivityDetector: Initialized successfully');
       return true;
     } catch (error) {
+      // Clean up audioContext if it was created
+      if (this.audioContext) {
+        try {
+          this.audioContext.close();
+        } catch (_) {
+          // Ignore errors during cleanup
+        }
+        this.audioContext = null;
+      }
+      
+      // Clean up stream if it was obtained
+      if (this.stream) {
+        this.stream.getTracks().forEach(track => track.stop());
+        this.stream = null;
+      }
+      
+      // Clean up other resources
+      this.analyser = null;
+      this.microphone = null;
+      this.dataArray = null;
+      
       console.error('VoiceActivityDetector: Failed to initialize VAD:', error);
       return false;
     }
@@ -801,6 +846,10 @@ class VoiceActivityDetector {
 
   destroy(): void {
     this.stop();
+    if (this.stream) {
+      this.stream.getTracks().forEach(track => track.stop());
+      this.stream = null;
+    }
     if (this.audioContext) {
       this.audioContext.close();
       this.audioContext = null;
@@ -819,6 +868,7 @@ export class EnhancedMicButton {
   private voiceEngine: VoiceToTextEngine | BackendSTTEngine;
   private vad: VoiceActivityDetector | null = null;
   private isInitialized: boolean = false;
+  private isInitializing: boolean = false; // Guard to prevent concurrent initialization
   private vadInitialized: boolean = false;
   private vadInitPromise: Promise<boolean> | null = null;
   private currentLanguage: string;
@@ -942,6 +992,19 @@ export class EnhancedMicButton {
   }
 
   async initialize(): Promise<boolean> {
+    // Guard: Prevent concurrent initialization
+    if (this.isInitializing) {
+      console.warn('EnhancedMicButton: Already initializing, skipping');
+      return this.isInitialized;
+    }
+    
+    // If already initialized, return true
+    if (this.isInitialized) {
+      return true;
+    }
+    
+    this.isInitializing = true;
+    
     try {
       console.log(`EnhancedMicButton: Initializing ${this.useBackend ? 'backend' : 'webspeech'} engine...`);
       const voiceReady = await this.voiceEngine.initialize();
@@ -950,6 +1013,8 @@ export class EnhancedMicButton {
       // VAD is optional for backend STT
       if (this.useBackend) {
         this.isInitialized = voiceReady;
+        this.vadInitialized = false; // Backend doesn't use VAD
+        this.vadInitPromise = null; // Clear promise
         console.log('EnhancedMicButton: Backend STT initialized:', this.isInitialized);
         return this.isInitialized;
       }
@@ -960,16 +1025,24 @@ export class EnhancedMicButton {
         console.log('EnhancedMicButton: VAD ready:', vadReady);
         // VAD failure shouldn't prevent WebSpeech from working
         this.isInitialized = voiceReady;
-        this.vadInitialized = vadReady;
+        this.vadInitialized = vadReady; // Explicitly set based on VAD result
+        this.vadInitPromise = null; // Clear promise after completion
       } else {
         this.isInitialized = voiceReady;
+        this.vadInitialized = false; // No VAD instance
+        this.vadInitPromise = null; // Clear promise
       }
       
       console.log('EnhancedMicButton: Overall initialization result:', this.isInitialized);
       return this.isInitialized;
     } catch (error) {
       console.error('EnhancedMicButton: Failed to initialize enhanced mic:', error);
+      this.isInitialized = false;
+      this.vadInitialized = false;
+      this.vadInitPromise = null;
       return false;
+    } finally {
+      this.isInitializing = false;
     }
   }
 
@@ -995,21 +1068,10 @@ export class EnhancedMicButton {
     if (onEnd) this.voiceEngine.onEnd(onEnd);
 
     try {
-      // For WebSpeech, try to start VAD (optional)
+      // For WebSpeech, start VAD if it's already initialized (VAD should be initialized in initialize(), not here)
       if (!this.useBackend && this.vad) {
         if (!this.vadInitialized) {
-          if (!this.vadInitPromise) {
-            this.vadInitPromise = this.vad.initialize();
-          }
-
-          const vadReady = await this.vadInitPromise;
-          if (vadReady) {
-            this.vadInitialized = true;
-            this.vad.start();
-          } else {
-            console.warn('EnhancedMicButton: VAD failed to initialize, continuing without it');
-            this.vadInitPromise = null;
-          }
+          console.warn('EnhancedMicButton: VAD not initialized, starting without it');
         } else {
           this.vad.start();
         }
