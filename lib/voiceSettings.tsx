@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 
 export type VoiceProvider = 'webspeech' | 'whisper' | 'google';
 
@@ -82,7 +82,7 @@ export function VoiceSettingsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const setLanguage = (langCode: string) => {
+  const setLanguage = useCallback((langCode: string) => {
     if (!SUPPORTED_LANGUAGES.some(lang => lang.code === langCode)) {
       console.warn(`Unsupported language code: ${langCode}`);
       return;
@@ -101,9 +101,9 @@ export function VoiceSettingsProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn('Failed to save language to localStorage:', e);
     }
-  };
+  }, []);
 
-  const setProvider = (newProvider: VoiceProvider) => {
+  const setProvider = useCallback((newProvider: VoiceProvider) => {
     setProviderState(newProvider);
     
     // Persist to localStorage
@@ -117,7 +117,7 @@ export function VoiceSettingsProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       console.warn('Failed to save provider to localStorage:', e);
     }
-  };
+  }, []);
 
   return (
     <VoiceSettingsContext.Provider

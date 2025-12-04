@@ -534,7 +534,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       // Replace content with the full transcript (don't append - it's already complete)
       setContent(transcript);
       setInterimTranscript(''); // Clear interim
-      setSource('voice');
+        setSource('voice');
       setIsVoiceActive(true);
 
       // Clear existing pause timer
@@ -594,17 +594,23 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
   useEffect(() => {
     if (onManualSaveReady) {
+      // Defer to avoid setState during render
+      queueMicrotask(() => {
       onManualSaveReady(stableSaveFn);
+      });
     }
   }, [onManualSaveReady, stableSaveFn]);
 
   // Expose save states to parent for mobile button
   useEffect(() => {
     if (onSaveStateChange) {
+      // Defer to avoid setState during render
+      queueMicrotask(() => {
       onSaveStateChange({
         isSaving,
         isSaved,
         error: saveError
+        });
       });
     }
   }, [isSaving, isSaved, saveError, onSaveStateChange]);

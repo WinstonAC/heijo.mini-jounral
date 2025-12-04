@@ -45,6 +45,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
   const isInitializingRef = useRef<boolean>(false);
   const isStartingRef = useRef<boolean>(false); // Guard to prevent double-toggling during start
   const onErrorRef = useRef<MicButtonProps['onError']>();
+  const hasAutoSwitchedProviderRef = useRef(false);
 
   useEffect(() => {
     onErrorRef.current = onError;
@@ -104,13 +105,16 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         } else if (recommendedProvider === 'backend') {
           // Auto-select backend provider (prefer whisper, fallback to google)
           effectiveProv = userProvider === 'google' ? 'google' : 'whisper';
-          // Update context if needed
-          if (userProvider === 'webspeech') {
+          // Update context if needed - but only once to avoid loops
+          if (userProvider === 'webspeech' && !hasAutoSwitchedProviderRef.current) {
             setProvider('whisper');
+            hasAutoSwitchedProviderRef.current = true;
           }
         } else {
           // WebSpeech is available
           effectiveProv = userProvider === 'webspeech' ? 'webspeech' : 'whisper';
+          // Reset flag when WebSpeech is available
+          hasAutoSwitchedProviderRef.current = false;
         }
 
         if (cancelled) return;
@@ -150,15 +154,18 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         const existing = enhancedMicButtonRef.current;
         if (existing && existing.getProvider() === effectiveProv) {
           existing.setLanguage(selectedLanguage);
-          const initialized = await existing.initialize();
-          if (initialized) {
-            setIsSupported(true);
-            setMicState(prev => (prev === 'recording' ? prev : 'ready'));
-          } else {
-            setIsSupported(false);
-            setMicState('error');
-            onErrorRef.current?.('Failed to initialize voice recognition.');
-          }
+          
+          // FIXED: Don't call initialize() if instance already exists
+          // The instance is either already initialized or initializing
+          // Calling initialize() again causes "Already initializing, skipping" spam
+          // Just update language and mark mic as ready (instance will complete init on its own)
+          setIsSupported(true);
+          setMicState(prev => {
+            // If we're recording, keep recording
+            if (prev === 'recording') return prev;
+            // Otherwise, set to ready (instance exists, so it's either ready or will be soon)
+            return 'ready';
+          });
           return;
         }
 
@@ -224,7 +231,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       isInitializingRef.current = false;
       cancelled = true;
     };
-  }, [selectedLanguage, userProvider, setProvider]); // Re-initialize only when language/provider change
+  }, [selectedLanguage, userProvider]); // Removed setProvider to prevent infinite loop
 
   // Cleanup on unmount
   useEffect(() => {
@@ -241,14 +248,27 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
     console.log('[Heijo][Voice] MicButton click', { 
       isListening, 
       micState,
-      engineReady: enhancedMicButtonRef.current?.isActive() || false 
+      engineReady: enhancedMicButtonRef.current?.isActive() || false,
+      isInitializing: isInitializingRef.current,
+      isSupported,
+      enhancedMicButtonRef: !!enhancedMicButtonRef.current
     });
     
+    // Check for initializing state FIRST (before error retry)
+    // But only if we're not in error state (error state will retry below)
+    if (micState === 'initializing' && micState !== 'error') {
+      console.log('Mic button pressed but state is initializing');
+      onError?.('Voice recognition is still initializing. Please wait.');
+      return;
+    }
+    
     // If in error state, try to re-initialize
+    let recoveredFromError = false;
     if (micState === 'error') {
       console.log('[Heijo][Voice] MicButton: Attempting to re-initialize from error state');
       isInitializingRef.current = false; // Reset guard to allow retry
-      setMicState('initializing');
+      // FIXED: Keep state as 'error' during recovery so button stays clickable
+      // Don't set to 'initializing' yet
       
       try {
         if (!enhancedMicButtonRef.current) {
@@ -271,7 +291,8 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         if (initialized) {
           setIsSupported(true);
           setMicState('ready');
-          // Continue to start listening below
+          recoveredFromError = true;
+          // Continue to start listening below - DON'T return here
         } else {
           // Full reset on initialization failure - clear ref so next click can retry cleanly
           if (enhancedMicButtonRef.current) {
@@ -305,14 +326,8 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       }
     }
     
-    // Prevent action if not ready (but allow if we just recovered from error)
-    if (micState === 'initializing') {
-      console.log('Mic button pressed but state is initializing');
-      onError?.('Voice recognition is still initializing. Please wait.');
-      return;
-    }
-    
-    if (micState !== 'ready' && micState !== 'recording') {
+    // Now check if ready (after potential error recovery)
+    if (micState !== 'ready' && micState !== 'recording' && !recoveredFromError) {
       console.log('Mic button pressed but state is:', micState);
       onError?.('Voice recognition is not available.');
       return;
@@ -476,7 +491,9 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
     }
   };
 
-  if (!isSupported) {
+  // Only show unsupported icon if truly unsupported (not just error state)
+  // Error state should show the button so user can retry
+  if (!isSupported && micState !== 'error') {
     return (
       <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-full mic-shell text-text-caption opacity-60 flex items-center justify-center cursor-not-allowed">
         <svg
