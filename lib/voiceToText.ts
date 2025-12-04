@@ -259,6 +259,11 @@ class VoiceToTextEngine {
     this.recognition.interimResults = this.config.interimResults;
     this.recognition.lang = this.config.language;
     this.recognition.maxAlternatives = this.config.maxAlternatives;
+    
+    // Verify continuous mode is set correctly (for debugging)
+    if (this.config.continuous && !this.recognition.continuous) {
+      console.warn('VoiceToTextEngine: Warning - continuous mode may not be supported by browser');
+    }
 
     this.recognition.onstart = () => {
       this.isListening = true;
@@ -352,14 +357,20 @@ class VoiceToTextEngine {
 
   /**
    * Start silence detection timer
+   * For WebSpeech, this provides a safety net for very long pauses
+   * but should be generous enough to allow natural speech patterns
    */
   private startSilenceTimer(): void {
     this.clearSilenceTimer();
-    this.silenceTimer = setTimeout(() => {
-      if (this.isListening) {
-        this.stop();
-      }
-    }, this.config.maxSilenceDuration);
+    // Only start timer if maxSilenceDuration is > 0 (allows disabling)
+    if (this.config.maxSilenceDuration > 0) {
+      this.silenceTimer = setTimeout(() => {
+        if (this.isListening) {
+          console.log('VoiceToTextEngine: Silence timeout reached, stopping recognition');
+          this.stop();
+        }
+      }, this.config.maxSilenceDuration);
+    }
   }
 
   /**
@@ -574,6 +585,7 @@ class BackendSTTEngine {
   private async processRecording(): Promise<void> {
     if (this.audioChunks.length === 0) {
       console.warn('BackendSTTEngine: No audio chunks to process');
+      this.onErrorCallback?.('We didn\'t capture any audio. Please try again and make sure mic access is allowed.');
       return;
     }
 
@@ -593,7 +605,10 @@ class BackendSTTEngine {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const errorMessage = errorData.error || `HTTP ${response.status}`;
+        console.error('BackendSTTEngine: API error:', errorMessage);
+        this.onErrorCallback?.('There was a problem transcribing your audio. Please try again.');
+        return;
       }
 
       const data = await response.json();
@@ -610,12 +625,13 @@ class BackendSTTEngine {
       } else {
         // Handle empty transcript gracefully
         console.warn('BackendSTTEngine: Received empty transcript from API');
-        this.onErrorCallback?.('No speech detected. Please try again.');
+        this.onErrorCallback?.('We couldn\'t hear anything clear. Try speaking a bit closer to the mic.');
       }
     } catch (error) {
       console.error('BackendSTTEngine: Transcription failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Transcription failed';
-      this.onErrorCallback?.(errorMessage);
+      // Surface network and other errors to user
+      this.onErrorCallback?.('There was a problem transcribing your audio. Please try again.');
     } finally {
       this.audioChunks = [];
     }
@@ -794,7 +810,7 @@ export class EnhancedMicButton {
         continuous: true,
         interimResults: true,
         chunkSize: 500, // 500ms chunks for low latency
-        maxSilenceDuration: 3000 // 3 seconds
+        maxSilenceDuration: 10000 // 10 seconds - more forgiving for natural speech pauses
       });
       this.vad = new VoiceActivityDetector(0.3);
     }

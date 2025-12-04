@@ -272,14 +272,28 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     // Content hash deduplication - prevent saving identical content
     const contentHash = `${contentToSave}-${selectedTags.join(',')}-${source}`;
     if (contentHash === lastSavedContentHashRef.current) {
-      console.log('Save skipped: content unchanged');
+      if (saveType === 'manual') {
+        setSaveError('This entry looks identical to your last saved entry.');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 3000);
+      }
       return;
     }
 
     // Prevent rapid saves - debounce
     const now = Date.now();
     if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
-      console.log('Save skipped: debounce');
+      if (saveType === 'manual') {
+        setSaveError('Saving too quickly, please wait a moment.');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 2000);
+      }
       return;
     }
 
@@ -287,14 +301,25 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     if (isRateLimited) {
       if (saveType === 'manual') {
         setSaveError('Rate limit exceeded. Please try again later.');
-        setTimeout(() => setSaveError(null), 3000);
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 3000);
       }
       return;
     }
 
     // Don't save if already saving
     if (isSaving) {
-      console.log('Save skipped: already saving');
+      if (saveType === 'manual') {
+        setSaveError('Still saving your previous entry...');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 2000);
+      }
       return;
     }
 
@@ -384,6 +409,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         // Local save failures will throw and be caught here
         setSaveError('Failed to save entry. Please try again.');
         setShowToast(true);
+        // Reset hash on error so user can retry with same content
+        lastSavedContentHashRef.current = null;
         setTimeout(() => {
           setShowToast(false);
           setSaveError(null);
