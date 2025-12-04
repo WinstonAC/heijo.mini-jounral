@@ -529,19 +529,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       // Track analytics for voice recording
       analyticsCollector.trackEvent('voice_recording_start');
       analyticsCollector.trackEvent('voice_to_text_used');
-      // Final transcript - add to content with smooth transitions
-      setContent(prev => {
-        let newContent = prev + (prev ? ' ' : '') + transcript;
-        
-        // Add line break on sentence endings
-        if (/[.!?]\s*$/.test(transcript)) {
-          newContent += '\n\n';
-        }
-        
-        setSource('voice');
-        return newContent;
-      });
-      setInterimTranscript('');
+      
+      // FIXED: transcript already contains the full accumulated sentence from WebSpeech
+      // Replace content with the full transcript (don't append - it's already complete)
+      setContent(transcript);
+      setInterimTranscript(''); // Clear interim
+      setSource('voice');
       setIsVoiceActive(true);
 
       // Clear existing pause timer

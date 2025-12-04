@@ -44,8 +44,14 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
   const capabilitiesRef = useRef<ReturnType<typeof detectVoiceCapabilities> | null>(null);
   const isInitializingRef = useRef<boolean>(false);
   const isStartingRef = useRef<boolean>(false); // Guard to prevent double-toggling during start
+  const onErrorRef = useRef<MicButtonProps['onError']>();
 
   useEffect(() => {
+    onErrorRef.current = onError;
+  }, [onError]);
+
+  useEffect(() => {
+    let cancelled = false;
     const initializeMic = async () => {
       // Prevent concurrent initialization
       if (isInitializingRef.current) {
@@ -53,7 +59,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       }
 
       isInitializingRef.current = true;
-      setMicState('initializing');
+      setMicState(prev => (prev === 'recording' ? prev : 'initializing'));
 
       try {
         // Detect browser capabilities
@@ -63,9 +69,10 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         // Check basic requirements
         if (!capabilities.hasMediaDevices) {
           console.log('Microphone not supported in this browser');
+          if (cancelled) return;
           setIsSupported(false);
           setMicState('error');
-          onError?.('Voice input is not supported on this device.');
+          onErrorRef.current?.('Voice input is not supported on this device.');
           return;
         }
 
@@ -76,9 +83,10 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         
         if (!capabilities.isSecure && !allowInsecureLocalhost) {
           console.log('Microphone requires HTTPS context');
+          if (cancelled) return;
           setIsSupported(false);
           setMicState('error');
-          onError?.('Voice input requires a secure connection (HTTPS).');
+          onErrorRef.current?.('Voice input requires a secure connection (HTTPS).');
           return;
         }
 
@@ -87,10 +95,11 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         let effectiveProv: 'webspeech' | 'whisper' | 'google' = 'webspeech';
 
         if (recommendedProvider === 'unsupported') {
+          if (cancelled) return;
           setIsSupported(false);
           setMicState('error');
           const supportMessage = getVoiceSupportMessage(capabilities);
-          onError?.(supportMessage || 'Voice input is not supported on this device.');
+          onErrorRef.current?.(supportMessage || 'Voice input is not supported on this device.');
           return;
         } else if (recommendedProvider === 'backend') {
           // Auto-select backend provider (prefer whisper, fallback to google)
@@ -104,6 +113,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
           effectiveProv = userProvider === 'webspeech' ? 'webspeech' : 'whisper';
         }
 
+        if (cancelled) return;
         setEffectiveProvider(effectiveProv);
 
         // Log provider selection for debugging (desktop focus)
@@ -136,6 +146,30 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
           }
         }
 
+        // Reuse existing instance when possible to avoid repeated init/log spam
+        const existing = enhancedMicButtonRef.current;
+        if (existing && existing.getProvider() === effectiveProv) {
+          existing.setLanguage(selectedLanguage);
+          const initialized = await existing.initialize();
+          if (initialized) {
+            setIsSupported(true);
+            setMicState(prev => (prev === 'recording' ? prev : 'ready'));
+          } else {
+            setIsSupported(false);
+            setMicState('error');
+            onErrorRef.current?.('Failed to initialize voice recognition.');
+          }
+          return;
+        }
+
+        // Clean up old instance if provider changed
+        if (existing) {
+          if (existing.isActive()) {
+            existing.stopListening();
+          }
+          existing.destroy();
+        }
+
         // Initialize enhanced mic button
         console.log(`Initializing enhanced microphone with language: ${selectedLanguage}, provider: ${effectiveProv}...`);
         const micButton = createEnhancedMicButton(selectedLanguage, effectiveProv);
@@ -144,20 +178,23 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         const initialized = await micButton.initialize();
         console.log('Enhanced microphone initialization result:', initialized);
         
+        if (cancelled) return;
+
         if (initialized) {
           setIsSupported(true);
           setMicState('ready');
         } else {
           setIsSupported(false);
           setMicState('error');
-          onError?.('Failed to initialize voice recognition.');
+          onErrorRef.current?.('Failed to initialize voice recognition.');
         }
       } catch (error) {
         console.error('Failed to initialize microphone:', error);
+        if (cancelled) return;
         setIsSupported(false);
         setMicState('error');
         const errorMessage = error instanceof Error ? error.message : 'Voice input is not supported on this device.';
-        onError?.(errorMessage);
+        onErrorRef.current?.(errorMessage);
       } finally {
         isInitializingRef.current = false;
       }
@@ -167,12 +204,20 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
 
     return () => {
       isInitializingRef.current = false;
+      cancelled = true;
+    };
+  }, [selectedLanguage, userProvider, setProvider]); // Re-initialize only when language/provider change
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isInitializingRef.current = false;
       if (enhancedMicButtonRef.current) {
         enhancedMicButtonRef.current.destroy();
         enhancedMicButtonRef.current = null;
       }
     };
-  }, [selectedLanguage, userProvider, setProvider, onError]); // Re-initialize if language or provider changes
+  }, []);
 
   const toggleListening = async () => {
     // Prevent action if not ready
@@ -414,6 +459,3 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
 }
 
 // Speech Recognition interfaces are defined in voiceToText.ts
-
-
-

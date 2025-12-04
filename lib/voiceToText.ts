@@ -129,6 +129,11 @@ class VoiceToTextEngine {
    * Initialize the voice recognition engine
    */
   async initialize(): Promise<boolean> {
+    // If we've already created a recognition instance, reuse it
+    if (this.recognition) {
+      return true;
+    }
+
     if (typeof window === 'undefined') {
       console.log('VoiceToTextEngine: Window not available (SSR)');
       return false;
@@ -218,7 +223,6 @@ class VoiceToTextEngine {
 
     try {
       this.recognition.start();
-      this.onStartCallback?.();
     } catch (error) {
       this.isListening = false;
       throw new Error(`Failed to start voice recognition: ${error}`);
@@ -280,6 +284,7 @@ class VoiceToTextEngine {
 
     this.recognition.onstart = () => {
       this.isListening = true;
+      console.log('[Heijo][Voice][WebSpeech] onstart');
       this.onStartCallback?.();
     };
 
@@ -290,7 +295,11 @@ class VoiceToTextEngine {
     this.recognition.onerror = (event) => {
       this.isListening = false;
       this.clearSilenceTimer();
-      this.onErrorCallback?.(event.error);
+      console.error('[Heijo][Voice][WebSpeech] onerror', {
+        error: (event as SpeechRecognitionErrorEvent).error,
+        message: (event as SpeechRecognitionErrorEvent).message
+      });
+      this.onErrorCallback?.((event as SpeechRecognitionErrorEvent).error);
     };
 
     this.recognition.onend = () => {
@@ -308,16 +317,31 @@ class VoiceToTextEngine {
         this.accumulatedFinalTranscript = '';
       }
       
+      console.log('[Heijo][Voice][WebSpeech] onend');
       this.onEndCallback?.();
+    };
+
+    this.recognition.onaudiostart = () => {
+      console.log('[Heijo][Voice][WebSpeech] onaudiostart');
     };
 
     this.recognition.onspeechstart = () => {
       this.lastSpeechTime = performance.now();
       this.clearSilenceTimer();
+      console.log('[Heijo][Voice][WebSpeech] onspeechstart');
     };
 
     this.recognition.onspeechend = () => {
       this.startSilenceTimer();
+      console.log('[Heijo][Voice][WebSpeech] onspeechend');
+    };
+
+    this.recognition.onaudioend = () => {
+      console.log('[Heijo][Voice][WebSpeech] onaudioend');
+    };
+
+    this.recognition.onnomatch = () => {
+      console.warn('[Heijo][Voice][WebSpeech] onnomatch');
     };
   }
 
@@ -356,6 +380,15 @@ class VoiceToTextEngine {
       }
     }
 
+    // Debug logging to help validate behavior
+    console.log('WebSpeech onresult:', {
+      resultIndex: event.resultIndex,
+      resultsLength: event.results.length,
+      finalTranscript,
+      interimTranscript,
+      accumulatedFinalTranscript: this.accumulatedFinalTranscript
+    });
+
     // Accumulate final transcripts across multiple events
     if (finalTranscript) {
       this.accumulatedFinalTranscript += (this.accumulatedFinalTranscript ? ' ' : '') + finalTranscript;
@@ -366,8 +399,8 @@ class VoiceToTextEngine {
         isFinal: true,
         timestamp: currentTime
       });
-      // Reset accumulated transcript after emitting (WebSpeech may continue with new sentence)
-      this.accumulatedFinalTranscript = '';
+      // NOTE: Do NOT reset accumulatedFinalTranscript here - it should persist for the entire mic session
+      // The accumulator is reset in start() when a new session begins, and in stop()/onend when the session ends
     }
 
     // Track first partial result latency
@@ -1021,12 +1054,17 @@ export class EnhancedMicButton {
       
       // For WebSpeech, try to initialize VAD (but don't fail if it doesn't work)
       if (this.vad) {
-        const vadReady = await this.vad.initialize();
+        if (!this.vadInitPromise) {
+          this.vadInitPromise = this.vad.initialize();
+        }
+        const vadReady = await this.vadInitPromise;
+        if (!vadReady) {
+          console.warn('EnhancedMicButton: VAD initialization failed, continuing without it');
+        }
         console.log('EnhancedMicButton: VAD ready:', vadReady);
         // VAD failure shouldn't prevent WebSpeech from working
         this.isInitialized = voiceReady;
         this.vadInitialized = vadReady; // Explicitly set based on VAD result
-        this.vadInitPromise = null; // Clear promise after completion
       } else {
         this.isInitialized = voiceReady;
         this.vadInitialized = false; // No VAD instance
@@ -1123,8 +1161,4 @@ export class EnhancedMicButton {
 export function createEnhancedMicButton(language: string = 'en-US', provider: VoiceProvider = 'webspeech'): EnhancedMicButton {
   return new EnhancedMicButton(language, provider);
 }
-
-
-
-
 
