@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { createEnhancedMicButton, VoiceMetrics, EnhancedMicButton } from '@/lib/voiceToText';
 import { useVoiceSettings } from '@/lib/voiceSettings';
+import { detectVoiceCapabilities, getRecommendedProvider, getVoiceSupportMessage } from '@/lib/browserCapabilities';
+
+type MicState = 'idle' | 'initializing' | 'ready' | 'recording' | 'error';
 
 /**
  * CODEX CHANGES INVESTIGATION:
@@ -29,113 +32,154 @@ interface MicButtonProps {
 }
 
 export default function MicButton({ onTranscript, onError, lang }: MicButtonProps) {
-  const { selectedLanguage, provider } = useVoiceSettings();
+  const { selectedLanguage, provider: userProvider, setProvider } = useVoiceSettings();
+  const [micState, setMicState] = useState<MicState>('idle');
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [metrics, setMetrics] = useState<VoiceMetrics | null>(null);
   const [permissionState, setPermissionState] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
+  const [effectiveProvider, setEffectiveProvider] = useState<'webspeech' | 'whisper' | 'google'>('webspeech');
   const micRef = useRef<HTMLButtonElement>(null);
   const enhancedMicButtonRef = useRef<EnhancedMicButton | null>(null);
+  const capabilitiesRef = useRef<ReturnType<typeof detectVoiceCapabilities> | null>(null);
+  const isInitializingRef = useRef<boolean>(false);
 
   useEffect(() => {
     const initializeMic = async () => {
+      // Prevent concurrent initialization
+      if (isInitializingRef.current) {
+        return;
+      }
+
+      isInitializingRef.current = true;
+      setMicState('initializing');
+
       try {
-        // Check for microphone API availability
-        if (!navigator.mediaDevices) {
+        // Detect browser capabilities
+        const capabilities = detectVoiceCapabilities();
+        capabilitiesRef.current = capabilities;
+
+        // Check basic requirements
+        if (!capabilities.hasMediaDevices) {
           console.log('Microphone not supported in this browser');
           setIsSupported(false);
+          setMicState('error');
           onError?.('Voice input is not supported on this device.');
           return;
         }
 
-        // [Heijo Remediation 2025-01-06] Secure context fallback for localhost
-        const isSecure = window.isSecureContext;
+        // Check secure context (with localhost exception)
         const allowInsecureLocalhost = 
-          !isSecure && 
+          !capabilities.isSecure && 
           (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
         
-        if (!isSecure && !allowInsecureLocalhost) {
+        if (!capabilities.isSecure && !allowInsecureLocalhost) {
           console.log('Microphone requires HTTPS context');
           setIsSupported(false);
+          setMicState('error');
           onError?.('Voice input requires a secure connection (HTTPS).');
           return;
         }
-        
-        if (allowInsecureLocalhost) {
-          console.warn('[Heijo][Mic] Insecure context detected — falling back for localhost testing');
-        }
 
-        // Check for speech recognition support
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-          console.log('Speech recognition not supported in this browser');
+        // Determine effective provider based on capabilities
+        const recommendedProvider = getRecommendedProvider(capabilities);
+        let effectiveProv: 'webspeech' | 'whisper' | 'google' = 'webspeech';
+
+        if (recommendedProvider === 'unsupported') {
           setIsSupported(false);
-          onError?.('Voice input is not supported on this device.');
+          setMicState('error');
+          const supportMessage = getVoiceSupportMessage(capabilities);
+          onError?.(supportMessage || 'Voice input is not supported on this device.');
           return;
+        } else if (recommendedProvider === 'backend') {
+          // Auto-select backend provider (prefer whisper, fallback to google)
+          effectiveProv = userProvider === 'google' ? 'google' : 'whisper';
+          // Update context if needed
+          if (userProvider === 'webspeech') {
+            setProvider('whisper');
+          }
+        } else {
+          // WebSpeech is available
+          effectiveProv = userProvider === 'webspeech' ? 'webspeech' : 'whisper';
         }
 
-        // iOS Safari detection
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-        if (isIOS && isSafari) {
-          console.warn('[Heijo][Mic] iOS Safari detected - voice dictation may have limitations');
+        setEffectiveProvider(effectiveProv);
+
+        // Show info message if backend is required
+        const supportMessage = getVoiceSupportMessage(capabilities);
+        if (supportMessage && recommendedProvider === 'backend') {
+          console.log('[Heijo][Mic]', supportMessage);
         }
 
-        console.log('Speech recognition and microphone APIs are available');
-
-        // [Heijo Remediation 2025-01-06] Defensive permissions handling
+        // Check permissions
         if (navigator.permissions) {
           try {
             const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
-            console.log('Microphone permission state:', permission.state);
             setPermissionState(permission.state);
             
             if (permission.state === 'denied') {
               console.warn('[Heijo][Mic] Microphone access blocked — check browser settings');
-              // Don't return here, allow user to try again
             }
             
             permission.onchange = () => {
-              console.log('Microphone permission changed to:', permission.state);
               setPermissionState(permission.state);
             };
           } catch (error) {
-            // Safari/Edge fallback — silently continue
             console.warn('[Heijo][Mic] Permission API not supported, continuing:', error);
           }
         }
 
-        // Initialize enhanced mic button with current language and provider
-        // Use selectedLanguage from context (will be loaded from localStorage by VoiceSettingsProvider)
-        console.log(`Initializing enhanced microphone with language: ${selectedLanguage}, provider: ${provider}...`);
-        const micButton = createEnhancedMicButton(selectedLanguage, provider);
+        // Initialize enhanced mic button
+        console.log(`Initializing enhanced microphone with language: ${selectedLanguage}, provider: ${effectiveProv}...`);
+        const micButton = createEnhancedMicButton(selectedLanguage, effectiveProv);
         enhancedMicButtonRef.current = micButton;
         
         const initialized = await micButton.initialize();
         console.log('Enhanced microphone initialization result:', initialized);
-        setIsInitialized(initialized);
-        setIsSupported(Boolean(SpeechRecognition));
+        
+        if (initialized) {
+          setIsSupported(true);
+          setMicState('ready');
+        } else {
+          setIsSupported(false);
+          setMicState('error');
+          onError?.('Failed to initialize voice recognition.');
+        }
       } catch (error) {
         console.error('Failed to initialize microphone:', error);
         setIsSupported(false);
+        setMicState('error');
         const errorMessage = error instanceof Error ? error.message : 'Voice input is not supported on this device.';
         onError?.(errorMessage);
+      } finally {
+        isInitializingRef.current = false;
       }
     };
 
     initializeMic();
 
     return () => {
+      isInitializingRef.current = false;
       if (enhancedMicButtonRef.current) {
         enhancedMicButtonRef.current.destroy();
         enhancedMicButtonRef.current = null;
       }
     };
-  }, [selectedLanguage, provider]); // Re-initialize if language or provider changes
+  }, [selectedLanguage, userProvider, setProvider, onError]); // Re-initialize if language or provider changes
 
   const toggleListening = async () => {
-    console.log('Mic button pressed');
+    // Prevent action if not ready
+    if (micState !== 'ready' && micState !== 'recording') {
+      console.log('Mic button pressed but state is:', micState);
+      if (micState === 'initializing') {
+        onError?.('Voice recognition is still initializing. Please wait.');
+      } else {
+        onError?.('Voice recognition is not available.');
+      }
+      return;
+    }
+
+    console.log('Mic button pressed, current state:', micState);
     
     if (!enhancedMicButtonRef.current) {
       console.log('Enhanced mic button not initialized');
@@ -152,38 +196,36 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         console.error('[Heijo][Diag] Mic probe failed:', e);
       }
     }
-    
-    if (!isInitialized || !isSupported) {
-      console.log('Microphone not available or not initialized');
-      onError?.('Microphone not available or not initialized');
-      return;
-    }
 
-    if (isListening) {
+    if (isListening || micState === 'recording') {
       console.log('Stopping microphone listening');
       enhancedMicButtonRef.current.stopListening();
       setIsListening(false);
+      setMicState('ready');
     } else {
       try {
+        setMicState('recording');
+        
         // Ensure language is up to date before starting
         enhancedMicButtonRef.current.setLanguage(selectedLanguage);
         
         // Request microphone permission if needed
         if (permissionState === 'prompt' || permissionState === 'unknown') {
-          console.log('getUserMedia called');
+          console.log('Requesting microphone permission...');
           try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             console.log('Mic permission granted');
-            console.log('Audio stream started successfully');
+            stream.getTracks().forEach(track => track.stop()); // Stop immediately, we'll get it again in startListening
             setPermissionState('granted');
           } catch (error) {
             console.log('Mic permission denied');
             console.error('Audio stream failed:', error);
+            setMicState('ready');
             throw error;
           }
         }
 
-        console.log(`Starting enhanced microphone listening with language: ${selectedLanguage}...`);
+        console.log(`Starting enhanced microphone listening with language: ${selectedLanguage}, provider: ${effectiveProvider}...`);
         await enhancedMicButtonRef.current.startListening(
           (text, isFinal) => {
             onTranscript(text, isFinal);
@@ -195,33 +237,28 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
           (error) => {
             console.error('Voice recognition error:', error);
             setIsListening(false);
-            
-            // iOS Safari specific error handling
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-            if (isIOS && isSafari && error.includes('no-speech')) {
-              onError?.('Voice dictation may not be supported on iOS Safari.');
-            } else {
-              onError?.(error);
-            }
+            setMicState('ready');
+            onError?.(error);
           },
           () => {
             console.log('Voice recognition started');
             setIsListening(true);
+            setMicState('recording');
           },
           () => {
             console.log('Voice recognition stopped');
             setIsListening(false);
+            setMicState('ready');
             setMetrics(enhancedMicButtonRef.current?.getMetrics() || null);
           }
         );
         setPermissionState('granted');
       } catch (error) {
-        console.error('Mic initialization failed:', error);
-        // [Heijo Remediation 2025-01-06] Unified error messaging
+        console.error('Mic start failed:', error);
         const errorMessage = getMicrophoneErrorMessage(error);
         onError?.(errorMessage);
         setPermissionState('denied');
+        setMicState('ready'); // Return to ready state, allow retry
       }
     }
   };
@@ -246,10 +283,12 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
   };
 
   const getButtonState = () => {
-    if (!isSupported) return 'unsupported';
+    if (!isSupported || micState === 'error') return 'unsupported';
     if (permissionState === 'denied') return 'denied';
-    if (isListening) return 'listening';
-    return 'ready';
+    if (micState === 'initializing') return 'initializing';
+    if (isListening || micState === 'recording') return 'listening';
+    if (micState === 'ready') return 'ready';
+    return 'unsupported';
   };
 
   const getButtonClass = () => {
@@ -259,6 +298,8 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
     switch (state) {
       case 'listening':
         return `${baseClass} recording text-[#fc7b3e]`;
+      case 'initializing':
+        return `${baseClass} text-text-caption opacity-60 cursor-wait animate-pulse`;
       case 'denied':
         return `${baseClass} text-red-500 opacity-60 cursor-not-allowed`;
       case 'unsupported':
@@ -273,6 +314,8 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
     switch (state) {
       case 'listening':
         return 'Stop recording';
+      case 'initializing':
+        return 'Initializing voice recognition...';
       case 'denied':
         return 'Permission denied — enable mic in browser.';
       case 'unsupported':
@@ -309,7 +352,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       <button
         ref={micRef}
         onClick={toggleListening}
-        disabled={!isSupported || permissionState === 'denied'}
+        disabled={micState !== 'ready' && micState !== 'recording' || permissionState === 'denied'}
         className={getButtonClass()}
         title={getTooltipText()}
         aria-pressed={isListening}

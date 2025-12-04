@@ -64,6 +64,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
   const lastSaveAttemptRef = useRef<number>(0);
   const SAVE_DEBOUNCE_MS = 2000; // Minimum 2 seconds between save attempts
+  const lastSavedContentHashRef = useRef<string | null>(null);
   
   // Mobile detection hook
   const isMobile = useIsMobile();
@@ -256,68 +257,152 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
   }, [content, showWelcomeOverlay, handleDismissWelcome]);
 
-  const handleAutoSave = useCallback(async () => {
-    if (!content.trim()) return;
+  // Canonical save function - all save paths should use this
+  const saveEntry = useCallback(async (saveType: 'manual' | 'auto' | 'voice') => {
+    const contentToSave = content.trim();
     
-    // Prevent rapid saves - debounce
-    const now = Date.now();
-    if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
-      return;
-    }
-    
-    // Don't attempt save if rate limited
-    if (isRateLimited) {
+    if (!contentToSave) {
+      if (saveType === 'manual') {
+        setSaveError('Entry cannot be empty');
+        setTimeout(() => setSaveError(null), 3000);
+      }
       return;
     }
 
-    setIsAutoSaving(true);
+    // Content hash deduplication - prevent saving identical content
+    const contentHash = `${contentToSave}-${selectedTags.join(',')}-${source}`;
+    if (contentHash === lastSavedContentHashRef.current) {
+      console.log('Save skipped: content unchanged');
+      return;
+    }
+
+    // Prevent rapid saves - debounce
+    const now = Date.now();
+    if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
+      console.log('Save skipped: debounce');
+      return;
+    }
+
+    // Don't attempt save if rate limited
+    if (isRateLimited) {
+      if (saveType === 'manual') {
+        setSaveError('Rate limit exceeded. Please try again later.');
+        setTimeout(() => setSaveError(null), 3000);
+      }
+      return;
+    }
+
+    // Don't save if already saving
+    if (isSaving) {
+      console.log('Save skipped: already saving');
+      return;
+    }
+
+    // Cancel auto-save timeout if manual save is triggered
+    if (saveType === 'manual' && autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
+
     lastSaveAttemptRef.current = now;
-    
+    setIsSaving(true);
+    setIsAutoSaving(saveType === 'auto');
+    setIsSaved(false);
+    setSaveError(null);
+
+    // Stop voice recording if active and this is a manual save
+    if (saveType === 'manual' && isVoiceActive) {
+      if (micButtonInternalRef.current) {
+        micButtonInternalRef.current.click();
+      } else {
+        const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
+        if (micButton) {
+          micButton.click();
+        }
+      }
+      setIsVoiceActive(false);
+      setInterimTranscript('');
+    }
+
     try {
       const savedEntry = await onSave({
-        content: content.trim(),
+        content: contentToSave,
         source,
         tags: selectedTags,
         created_at: new Date().toISOString(),
-        user_id: userId, // Let storage handle undefined - it will get real userId
+        user_id: userId,
         sync_status: 'local_only'
       });
+
+      // Update content hash after successful save
+      lastSavedContentHashRef.current = contentHash;
       setLastSaved(new Date());
       setIsRateLimited(false);
       setRateLimitRetryAfter(null);
+
+      // Only clear content and show success for manual saves
+      if (saveType === 'manual') {
+        setContent('');
+        setSelectedTags([]);
+        setInterimTranscript('');
+        setSource('text');
+        lastSavedContentHashRef.current = null; // Reset hash after clearing
+        setIsSaved(true);
+        setShowToast(true);
+        setTimeout(() => setIsSaved(false), 1800);
+        setTimeout(() => setShowToast(false), 3000);
+      }
     } catch (error) {
-      console.error('Auto-save failed:', error);
-      
-      // Check if it's a rate limit error
+      console.error(`${saveType} save failed:`, error);
+
       if (error instanceof Error && error.message.includes('Rate limit')) {
         setIsRateLimited(true);
-        // Extract retry after if available
         const retryMatch = error.message.match(/try again later/i);
         if (retryMatch) {
-          // Default to 60 seconds if we can't parse the exact time
           setRateLimitRetryAfter(60);
         }
-        // Clear auto-save timeout to prevent further attempts
         if (autoSaveTimeoutRef.current) {
           clearTimeout(autoSaveTimeoutRef.current);
           autoSaveTimeoutRef.current = null;
         }
-        return; // Don't log as regular error
+        if (saveType === 'manual') {
+          setSaveError('Rate limit exceeded. Please try again later.');
+          setShowToast(true);
+          setTimeout(() => {
+            setShowToast(false);
+            setSaveError(null);
+          }, 3000);
+        }
+        return;
       }
-      
-      // Check if this was a voice transcription that failed to save
+
+      if (saveType === 'manual') {
+        setSaveError('Failed to save entry. Please try again.');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 3000);
+      }
+
       if (source === 'voice') {
-        console.warn('Mic transcription ready, but Supabase save failed:', error);
+        console.warn('Mic transcription ready, but save failed:', error);
       }
     } finally {
+      setIsSaving(false);
       setIsAutoSaving(false);
     }
-  }, [content, source, selectedTags, userId, onSave, isRateLimited]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive]);
 
-  // Auto-save functionality (5-10 seconds)
+  const handleAutoSave = useCallback(async () => {
+    await saveEntry('auto');
+  }, [saveEntry]);
+
+  // Auto-save functionality (7 seconds after content changes)
+  // Disabled for voice entries until user manually saves
   useEffect(() => {
-    // Don't set up auto-save if rate limited
-    if (isRateLimited) {
+    // Don't set up auto-save if rate limited or already saving
+    if (isRateLimited || isSaving) {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
         autoSaveTimeoutRef.current = null;
@@ -325,7 +410,16 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       return;
     }
     
-    if (content.trim() && content.length > 10 && !isAutoSaving) {
+    // Don't auto-save voice entries - wait for manual save
+    if (source === 'voice') {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      return;
+    }
+    
+    if (content.trim() && content.length > 10 && !isAutoSaving && !isSaving) {
       // Clear existing timeout
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
@@ -334,7 +428,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       // Set new timeout for auto-save (7 seconds)
       autoSaveTimeoutRef.current = setTimeout(() => {
         // Double-check we're not already saving and not rate limited before executing
-        if (!isAutoSaving && !isRateLimited) {
+        if (!isAutoSaving && !isRateLimited && !isSaving) {
           handleAutoSave();
         }
       }, 7000);
@@ -345,7 +439,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [content, handleAutoSave, isAutoSaving, isRateLimited]);
+  }, [content, handleAutoSave, isAutoSaving, isRateLimited, isSaving, source]);
 
   // Keyboard shortcuts for save functionality
   useEffect(() => {
@@ -436,131 +530,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   };
 
   const handleManualSave = useCallback(async () => {
-    // Defensive check: don't save empty entries
-    if (!content.trim()) {
-      setSaveError('Entry cannot be empty');
-      setTimeout(() => setSaveError(null), 3000);
-      return;
-    }
-    
-    // Prevent rapid saves - debounce
-    const now = Date.now();
-    if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
-      return;
-    }
-    
-    // Don't attempt save if rate limited
-    if (isRateLimited) {
-      console.warn('Save blocked: Rate limit exceeded');
-      setSaveError('Rate limit exceeded. Please try again later.');
-      setTimeout(() => setSaveError(null), 3000);
-      return;
-    }
-
-    // Don't save if already saving
-    if (isSaving) {
-      return;
-    }
-
-    lastSaveAttemptRef.current = now;
-    setIsSaving(true);
-    setIsSaved(false);
-    setSaveError(null);
-    setIsAutoSaving(true); // Keep for compatibility with existing UI
-
-    // Stop voice recording if active
-    if (isVoiceActive) {
-      // Stop the mic button by triggering its click
-      if (micButtonInternalRef.current) {
-        micButtonInternalRef.current.click();
-      } else {
-        // Fallback: find the mic button
-        const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
-        if (micButton) {
-          micButton.click();
-        }
-      }
-      setIsVoiceActive(false);
-      setInterimTranscript(''); // Clear interim transcript
-    }
-
-    try {
-      // Save the content before clearing (defensive)
-      const contentToSave = content.trim();
-      
-      // Await the full save pipeline (localStorage + optional Supabase sync)
-      await onSave({
-        content: contentToSave,
-        source,
-        tags: selectedTags,
-        created_at: new Date().toISOString(),
-        user_id: userId, // Let storage handle undefined - it will get real userId
-        sync_status: 'local_only'
-      });
-
-      // Only clear and reset AFTER successful save
-      setContent('');
-      setSelectedTags([]);
-      setInterimTranscript(''); // Clear any interim transcript
-      setSource('text');
-      setLastSaved(new Date());
-      setIsRateLimited(false);
-      setRateLimitRetryAfter(null);
-
-      // Show success state
-      setIsSaved(true);
-      setShowToast(true);
-      
-      // Reset success state after 1.5-2 seconds
-      setTimeout(() => {
-        setIsSaved(false);
-      }, 1800);
-      
-      // Hide toast after 3 seconds
-      setTimeout(() => {
-        setShowToast(false);
-      }, 3000);
-    } catch (error) {
-      console.error('Manual save failed:', error);
-      
-      // Don't clear content on error - user shouldn't lose their work
-      setSaveError(null); // Clear any previous error first
-      
-      // Check if it's a rate limit error
-      if (error instanceof Error && error.message.includes('Rate limit')) {
-        setIsRateLimited(true);
-        // Extract retry after if available
-        const retryMatch = error.message.match(/try again later/i);
-        if (retryMatch) {
-          // Default to 60 seconds if we can't parse the exact time
-          setRateLimitRetryAfter(60);
-        }
-        setSaveError('Rate limit exceeded. Please try again later.');
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-          setSaveError(null);
-        }, 3000);
-        return; // Don't log as regular error
-      }
-      
-      // Generic error message
-      setSaveError('Failed to save entry. Please try again.');
-      setShowToast(true);
-      setTimeout(() => {
-        setShowToast(false);
-        setSaveError(null);
-      }, 3000);
-      
-      // Check if this was a voice transcription that failed to save
-      if (source === 'voice') {
-        console.warn('Mic transcription ready, but save failed:', error);
-      }
-    } finally {
-      setIsSaving(false);
-      setIsAutoSaving(false);
-    }
-  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive]);
+    await saveEntry('manual');
+  }, [saveEntry]);
 
   // Store latest handleManualSave in ref (update ref directly, no useEffect to avoid loops)
   handleManualSaveRef.current = handleManualSave;
@@ -1021,25 +992,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   // Trigger silver glow animation
                   setShowSaveGlow(true);
                   setTimeout(() => setShowSaveGlow(false), 1000);
-                  // Call the actual save function
-                  if (content.trim()) {
-                    onSave({
-                      content: content.trim(),
-                      tags: selectedTags,
-                      source,
-                      created_at: new Date().toISOString(),
-                      user_id: userId, // Let storage handle undefined - it will get real userId
-                      sync_status: 'local_only'
-                    });
-                    // Clear form after save
-                    setContent('');
-                    setSelectedTags([]);
-                    setSource('text');
-                    setInterimTranscript('');
-                    setLastSaved(new Date());
+                  // Use canonical save function
+                  if (handleManualSaveRef.current) {
+                    handleManualSaveRef.current();
                   }
                 }}
-                disabled={!content.trim() || isAutoSaving}
+                disabled={!content.trim() || isAutoSaving || isSaving}
                 className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAutoSaving ? 'animate-pulse' : ''
                 } ${showSaveGlow ? 'silverGlow' : ''}`}

@@ -133,15 +133,16 @@ class VoiceToTextEngine {
       return false;
     }
 
-    // Only WebSpeech is implemented for now
+    // Only WebSpeech is supported by this engine
     if (this.config.provider !== 'webspeech') {
-      console.warn(`VoiceToTextEngine: Provider ${this.config.provider} not yet implemented, falling back to webspeech`);
+      console.warn(`VoiceToTextEngine: Provider ${this.config.provider} not supported. Use BackendSTTEngine instead.`);
+      return false;
     }
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.log('VoiceToTextEngine: Speech recognition not supported in this browser');
-      throw new Error('Speech recognition not supported in this browser');
+      return false; // Don't throw, return false so caller can handle gracefully
     }
 
     console.log(`VoiceToTextEngine: Initializing speech recognition with language: ${this.config.language}`);
@@ -405,6 +406,230 @@ class VoiceToTextEngine {
 }
 
 /**
+ * Backend STT Engine using API route
+ * Records audio and sends to backend for transcription
+ */
+class BackendSTTEngine {
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private stream: MediaStream | null = null;
+  private isRecording: boolean = false;
+  private currentLanguage: string;
+  private provider: 'whisper' | 'google';
+  private onResultCallback?: (result: TranscriptionResult) => void;
+  private onErrorCallback?: (error: string) => void;
+  private onStartCallback?: () => void;
+  private onEndCallback?: () => void;
+  private silenceTimer: NodeJS.Timeout | null = null;
+  private maxSilenceDuration: number = 3000; // 3 seconds
+
+  constructor(language: string = 'en-US', provider: 'whisper' | 'google' = 'whisper') {
+    this.currentLanguage = language;
+    this.provider = provider;
+  }
+
+  setLanguage(language: string): void {
+    this.currentLanguage = language;
+  }
+
+  getLanguage(): string {
+    return this.currentLanguage;
+  }
+
+  async initialize(): Promise<boolean> {
+    // Backend STT doesn't need browser API initialization
+    // Just verify MediaRecorder is available
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    if (typeof MediaRecorder === 'undefined') {
+      console.error('BackendSTTEngine: MediaRecorder not supported');
+      return false;
+    }
+
+    return true;
+  }
+
+  async start(): Promise<void> {
+    if (this.isRecording) {
+      console.warn('BackendSTTEngine: Already recording');
+      return;
+    }
+
+    try {
+      // Request microphone access
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      });
+
+      // Determine MIME type based on browser support
+      const options: MediaRecorderOptions = {};
+      if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+        options.mimeType = 'audio/webm;codecs=opus';
+      } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+        options.mimeType = 'audio/webm';
+      } else if (MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')) {
+        options.mimeType = 'audio/ogg;codecs=opus';
+      }
+
+      this.mediaRecorder = new MediaRecorder(this.stream, options);
+      this.audioChunks = [];
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.onstop = async () => {
+        await this.processRecording();
+      };
+
+      this.isRecording = true;
+      this.mediaRecorder.start(1000); // Collect data every second
+      this.onStartCallback?.();
+
+      // Start silence detection timer
+      this.startSilenceTimer();
+    } catch (error) {
+      this.isRecording = false;
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start recording';
+      this.onErrorCallback?.(errorMessage);
+      throw new Error(`Failed to start backend STT: ${errorMessage}`);
+    }
+  }
+
+  stop(): void {
+    if (!this.isRecording || !this.mediaRecorder) {
+      return;
+    }
+
+    this.clearSilenceTimer();
+    this.isRecording = false;
+
+    if (this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop();
+    }
+
+    // Stop all tracks
+    if (this.stream) {
+      this.stream.getTracks().forEach((track) => track.stop());
+      this.stream = null;
+    }
+
+    this.onEndCallback?.();
+  }
+
+  isActive(): boolean {
+    return this.isRecording;
+  }
+
+  private startSilenceTimer(): void {
+    this.clearSilenceTimer();
+    this.silenceTimer = setTimeout(() => {
+      if (this.isRecording) {
+        console.log('BackendSTTEngine: Silence timeout, stopping recording');
+        this.stop();
+      }
+    }, this.maxSilenceDuration);
+  }
+
+  private clearSilenceTimer(): void {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+      this.silenceTimer = null;
+    }
+  }
+
+  private async processRecording(): Promise<void> {
+    if (this.audioChunks.length === 0) {
+      console.warn('BackendSTTEngine: No audio chunks to process');
+      return;
+    }
+
+    try {
+      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      
+      // Send to backend API
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('language', this.currentLanguage);
+      formData.append('provider', this.provider);
+
+      const response = await fetch('/api/stt', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      const transcript = data.text || '';
+
+      if (transcript) {
+        this.onResultCallback?.({
+          text: transcript,
+          confidence: 1.0, // Backend doesn't provide confidence
+          isFinal: true,
+          timestamp: performance.now(),
+        });
+      }
+    } catch (error) {
+      console.error('BackendSTTEngine: Transcription failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Transcription failed';
+      this.onErrorCallback?.(errorMessage);
+    } finally {
+      this.audioChunks = [];
+    }
+  }
+
+  onResult(callback: (result: TranscriptionResult) => void): void {
+    this.onResultCallback = callback;
+  }
+
+  onError(callback: (error: string) => void): void {
+    this.onErrorCallback = callback;
+  }
+
+  onStart(callback: () => void): void {
+    this.onStartCallback = callback;
+  }
+
+  onEnd(callback: () => void): void {
+    this.onEndCallback = callback;
+  }
+
+  getMetrics(): VoiceMetrics {
+    // Backend STT doesn't track metrics the same way
+    return {
+      firstPartialLatency: 0,
+      finalLatency: 0,
+      totalDuration: 0,
+      chunksProcessed: 0,
+      averageChunkLatency: 0,
+    };
+  }
+
+  destroy(): void {
+    this.stop();
+    this.onResultCallback = undefined;
+    this.onErrorCallback = undefined;
+    this.onStartCallback = undefined;
+    this.onEndCallback = undefined;
+  }
+}
+
+/**
  * Voice Activity Detection (VAD) using Web Audio API
  */
 class VoiceActivityDetector {
@@ -506,30 +731,43 @@ class VoiceActivityDetector {
 
 /**
  * Enhanced MicButton component with streaming transcription
+ * Supports both WebSpeech and backend STT providers
  */
 export class EnhancedMicButton {
-  private voiceEngine: VoiceToTextEngine;
-  private vad: VoiceActivityDetector;
+  private voiceEngine: VoiceToTextEngine | BackendSTTEngine;
+  private vad: VoiceActivityDetector | null = null;
   private isInitialized: boolean = false;
   private vadInitialized: boolean = false;
   private vadInitPromise: Promise<boolean> | null = null;
   private currentLanguage: string;
   private currentProvider: VoiceProvider;
+  private useBackend: boolean;
 
   constructor(language: string = 'en-US', provider: VoiceProvider = 'webspeech') {
     this.currentLanguage = language;
     this.currentProvider = provider;
+    this.useBackend = provider === 'whisper' || provider === 'google';
     
-    this.voiceEngine = new VoiceToTextEngine({
-      language: language,
-      provider: provider,
-      continuous: true,
-      interimResults: true,
-      chunkSize: 500, // 500ms chunks for low latency
-      maxSilenceDuration: 3000 // 3 seconds
-    });
-
-    this.vad = new VoiceActivityDetector(0.3);
+    if (this.useBackend) {
+      // Use backend STT engine
+      this.voiceEngine = new BackendSTTEngine(
+        language,
+        provider === 'google' ? 'google' : 'whisper'
+      );
+      // VAD is optional for backend (can work without it)
+      this.vad = null;
+    } else {
+      // Use WebSpeech engine
+      this.voiceEngine = new VoiceToTextEngine({
+        language: language,
+        provider: provider,
+        continuous: true,
+        interimResults: true,
+        chunkSize: 500, // 500ms chunks for low latency
+        maxSilenceDuration: 3000 // 3 seconds
+      });
+      this.vad = new VoiceActivityDetector(0.3);
+    }
   }
 
   /**
@@ -567,7 +805,7 @@ export class EnhancedMicButton {
   }
 
   /**
-   * Update the provider (future-proof)
+   * Update the provider
    */
   setProvider(provider: VoiceProvider): void {
     if (this.currentProvider === provider) {
@@ -580,9 +818,38 @@ export class EnhancedMicButton {
       this.stopListening();
     }
 
+    // Destroy old engine
+    this.voiceEngine.destroy();
+    if (this.vad) {
+      this.vad.destroy();
+    }
+
+    // Create new engine based on provider
     this.currentProvider = provider;
-    // For now, only webspeech is supported, but the interface is ready
-    console.log(`EnhancedMicButton: Provider set to ${provider} (only webspeech is currently implemented)`);
+    this.useBackend = provider === 'whisper' || provider === 'google';
+    
+    if (this.useBackend) {
+      this.voiceEngine = new BackendSTTEngine(
+        this.currentLanguage,
+        provider === 'google' ? 'google' : 'whisper'
+      );
+      this.vad = null;
+    } else {
+      this.voiceEngine = new VoiceToTextEngine({
+        language: this.currentLanguage,
+        provider: provider,
+        continuous: true,
+        interimResults: true,
+        chunkSize: 500,
+        maxSilenceDuration: 3000
+      });
+      this.vad = new VoiceActivityDetector(0.3);
+    }
+
+    // Re-initialize
+    this.isInitialized = false;
+    this.vadInitialized = false;
+    this.vadInitPromise = null;
   }
 
   /**
@@ -594,14 +861,28 @@ export class EnhancedMicButton {
 
   async initialize(): Promise<boolean> {
     try {
-      console.log('EnhancedMicButton: Initializing voice engine and VAD...');
+      console.log(`EnhancedMicButton: Initializing ${this.useBackend ? 'backend' : 'webspeech'} engine...`);
       const voiceReady = await this.voiceEngine.initialize();
       console.log('EnhancedMicButton: Voice engine ready:', voiceReady);
       
-      const vadReady = await this.vad.initialize();
-      console.log('EnhancedMicButton: VAD ready:', vadReady);
+      // VAD is optional for backend STT
+      if (this.useBackend) {
+        this.isInitialized = voiceReady;
+        console.log('EnhancedMicButton: Backend STT initialized:', this.isInitialized);
+        return this.isInitialized;
+      }
       
-      this.isInitialized = voiceReady && vadReady;
+      // For WebSpeech, try to initialize VAD (but don't fail if it doesn't work)
+      if (this.vad) {
+        const vadReady = await this.vad.initialize();
+        console.log('EnhancedMicButton: VAD ready:', vadReady);
+        // VAD failure shouldn't prevent WebSpeech from working
+        this.isInitialized = voiceReady;
+        this.vadInitialized = vadReady;
+      } else {
+        this.isInitialized = voiceReady;
+      }
+      
       console.log('EnhancedMicButton: Overall initialization result:', this.isInitialized);
       return this.isInitialized;
     } catch (error) {
@@ -622,7 +903,7 @@ export class EnhancedMicButton {
       return;
     }
 
-    console.log('EnhancedMicButton: Starting voice recognition and VAD');
+    console.log(`EnhancedMicButton: Starting ${this.useBackend ? 'backend' : 'webspeech'} voice recognition`);
     this.voiceEngine.onResult((result) => {
       onTranscript(result.text, result.isFinal);
     });
@@ -632,24 +913,29 @@ export class EnhancedMicButton {
     if (onEnd) this.voiceEngine.onEnd(onEnd);
 
     try {
-      if (!this.vadInitialized) {
-        if (!this.vadInitPromise) {
-          this.vadInitPromise = this.vad.initialize();
-        }
+      // For WebSpeech, try to start VAD (optional)
+      if (!this.useBackend && this.vad) {
+        if (!this.vadInitialized) {
+          if (!this.vadInitPromise) {
+            this.vadInitPromise = this.vad.initialize();
+          }
 
-        const vadReady = await this.vadInitPromise;
-        if (!vadReady) {
-          this.vadInitPromise = null;
-          throw new Error('Voice activity detection failed to initialize');
+          const vadReady = await this.vadInitPromise;
+          if (vadReady) {
+            this.vadInitialized = true;
+            this.vad.start();
+          } else {
+            console.warn('EnhancedMicButton: VAD failed to initialize, continuing without it');
+            this.vadInitPromise = null;
+          }
+        } else {
+          this.vad.start();
         }
-
-        this.vadInitialized = true;
       }
 
       await this.voiceEngine.start();
-      this.vad.start();
     } catch (error) {
-      if (!this.vadInitialized) {
+      if (!this.useBackend && !this.vadInitialized) {
         this.vadInitPromise = null;
       }
       throw error instanceof Error ? error : new Error(String(error));
@@ -658,7 +944,9 @@ export class EnhancedMicButton {
 
   stopListening(): void {
     this.voiceEngine.stop();
-    this.vad.stop();
+    if (this.vad) {
+      this.vad.stop();
+    }
   }
 
   isActive(): boolean {
@@ -671,7 +959,9 @@ export class EnhancedMicButton {
 
   destroy(): void {
     this.voiceEngine.destroy();
-    this.vad.destroy();
+    if (this.vad) {
+      this.vad.destroy();
+    }
     this.isInitialized = false;
     this.vadInitialized = false;
     this.vadInitPromise = null;
