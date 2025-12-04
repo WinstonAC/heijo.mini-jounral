@@ -11,6 +11,11 @@ interface STTRequest {
   provider?: 'whisper' | 'google';
 }
 
+// GET handler for route discovery (Next.js needs at least one export)
+export async function GET() {
+  return NextResponse.json({ error: 'Method not allowed. Use POST to transcribe audio.' }, { status: 405 });
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();

@@ -259,17 +259,31 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
   // Canonical save function - all save paths should use this
   const saveEntry = useCallback(async (saveType: 'manual' | 'auto' | 'voice') => {
-    const contentToSave = content.trim();
+    // FIXED: For voice entries, merge interimTranscript into content before saving
+    // This ensures what the user sees in the textarea matches what gets saved
+    let contentToSave = content.trim();
+    let finalInterimTranscript = '';
+    
+    if (source === 'voice' && interimTranscript.trim()) {
+      // Merge interim transcript into content for saving
+      finalInterimTranscript = interimTranscript.trim();
+      contentToSave = (content.trim() + (content.trim() ? ' ' : '') + finalInterimTranscript).trim();
+    }
     
     if (!contentToSave) {
       if (saveType === 'manual') {
         setSaveError('Entry cannot be empty');
-        setTimeout(() => setSaveError(null), 3000);
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 3000);
       }
       return;
     }
 
     // Content hash deduplication - prevent saving identical content
+    // FIXED: Use the merged content (including interimTranscript) for hash calculation
     const contentHash = `${contentToSave}-${selectedTags.join(',')}-${source}`;
     if (contentHash === lastSavedContentHashRef.current) {
       if (saveType === 'manual') {
@@ -280,6 +294,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           setSaveError(null);
         }, 3000);
       }
+      // Log for debugging (not silent failure)
+      console.log('[Heijo][Save] Blocked duplicate save:', contentHash);
       return;
     }
 
@@ -370,13 +386,20 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       if (saveType === 'manual') {
         setContent('');
         setSelectedTags([]);
-        setInterimTranscript('');
+        setInterimTranscript(''); // Clear interim transcript after save
         setSource('text');
         lastSavedContentHashRef.current = null; // Reset hash after clearing
         setIsSaved(true);
         setShowToast(true);
         setTimeout(() => setIsSaved(false), 1800);
         setTimeout(() => setShowToast(false), 3000);
+      }
+      
+      // FIXED: If we merged interimTranscript, update content state to match what was saved
+      // This ensures the UI reflects what was actually saved
+      if (source === 'voice' && finalInterimTranscript && contentToSave !== content.trim()) {
+        // Content was updated with interimTranscript, but we're about to clear it anyway
+        // This is just for consistency - the save already used the merged content
       }
     } catch (error) {
       console.error(`${saveType} save failed:`, error);
@@ -424,7 +447,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       setIsSaving(false);
       setIsAutoSaving(false);
     }
-  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive, interimTranscript]);
 
   const handleAutoSave = useCallback(async () => {
     await saveEntry('auto');

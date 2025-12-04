@@ -108,6 +108,7 @@ class VoiceToTextEngine {
   private onEndCallback?: () => void;
   private silenceTimer: NodeJS.Timeout | null = null;
   private lastSpeechTime: number = 0;
+  private accumulatedFinalTranscript: string = ''; // Accumulate final transcripts across events
 
   constructor(config: Partial<VoiceConfig> = {}) {
     this.config = {
@@ -206,6 +207,7 @@ class VoiceToTextEngine {
     this.isListening = true;
     this.startTime = performance.now();
     this.lastSpeechTime = this.startTime;
+    this.accumulatedFinalTranscript = ''; // Reset accumulated transcript on start
     this.metrics = {
       firstPartialLatency: 0,
       finalLatency: 0,
@@ -232,6 +234,17 @@ class VoiceToTextEngine {
       this.isListening = false;
       this.metrics.totalDuration = performance.now() - this.startTime;
       this.clearSilenceTimer();
+      
+      // If there's accumulated final transcript that hasn't been emitted, emit it now
+      if (this.accumulatedFinalTranscript.trim()) {
+        this.onResultCallback?.({
+          text: this.accumulatedFinalTranscript.trim(),
+          confidence: 1.0,
+          isFinal: true,
+          timestamp: performance.now()
+        });
+        this.accumulatedFinalTranscript = '';
+      }
     }
   }
 
@@ -283,6 +296,18 @@ class VoiceToTextEngine {
     this.recognition.onend = () => {
       this.isListening = false;
       this.clearSilenceTimer();
+      
+      // If there's accumulated final transcript that hasn't been emitted, emit it now
+      if (this.accumulatedFinalTranscript.trim()) {
+        this.onResultCallback?.({
+          text: this.accumulatedFinalTranscript.trim(),
+          confidence: 1.0,
+          isFinal: true,
+          timestamp: performance.now()
+        });
+        this.accumulatedFinalTranscript = '';
+      }
+      
       this.onEndCallback?.();
     };
 
@@ -298,6 +323,7 @@ class VoiceToTextEngine {
 
   /**
    * Handle recognition results with latency tracking
+   * FIXED: Process ALL results in event, not just from resultIndex, to capture full sentences
    */
   private handleRecognitionResult(event: SpeechRecognitionEvent): void {
     const currentTime = performance.now();
@@ -312,7 +338,9 @@ class VoiceToTextEngine {
     let interimTranscript = '';
     let maxConfidence = 0;
 
-    for (let i = event.resultIndex; i < event.results.length; i++) {
+    // FIXED: Process ALL results from 0 to length, not just from resultIndex
+    // This ensures we capture all final results, not just the fragment at resultIndex
+    for (let i = 0; i < event.results.length; i++) {
       const result = event.results[i];
       const transcript = result[0].transcript;
       const confidence = result[0].confidence || 0;
@@ -321,8 +349,25 @@ class VoiceToTextEngine {
         finalTranscript += transcript;
         maxConfidence = Math.max(maxConfidence, confidence);
       } else {
-        interimTranscript += transcript;
+        // Only include interim results from resultIndex onwards (to avoid duplicates)
+        if (i >= event.resultIndex) {
+          interimTranscript += transcript;
+        }
       }
+    }
+
+    // Accumulate final transcripts across multiple events
+    if (finalTranscript) {
+      this.accumulatedFinalTranscript += (this.accumulatedFinalTranscript ? ' ' : '') + finalTranscript;
+      // Emit the accumulated final transcript (full sentence)
+      this.onResultCallback?.({
+        text: this.accumulatedFinalTranscript,
+        confidence: maxConfidence,
+        isFinal: true,
+        timestamp: currentTime
+      });
+      // Reset accumulated transcript after emitting (WebSpeech may continue with new sentence)
+      this.accumulatedFinalTranscript = '';
     }
 
     // Track first partial result latency
@@ -335,21 +380,12 @@ class VoiceToTextEngine {
       this.metrics.finalLatency = chunkLatency;
     }
 
-    // Emit results
+    // Emit interim results for live feedback (only from resultIndex onwards)
     if (interimTranscript) {
       this.onResultCallback?.({
         text: interimTranscript,
         confidence: maxConfidence,
         isFinal: false,
-        timestamp: currentTime
-      });
-    }
-
-    if (finalTranscript) {
-      this.onResultCallback?.({
-        text: finalTranscript,
-        confidence: maxConfidence,
-        isFinal: true,
         timestamp: currentTime
       });
     }

@@ -43,6 +43,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
   const enhancedMicButtonRef = useRef<EnhancedMicButton | null>(null);
   const capabilitiesRef = useRef<ReturnType<typeof detectVoiceCapabilities> | null>(null);
   const isInitializingRef = useRef<boolean>(false);
+  const isStartingRef = useRef<boolean>(false); // Guard to prevent double-toggling during start
 
   useEffect(() => {
     const initializeMic = async () => {
@@ -104,6 +105,12 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         }
 
         setEffectiveProvider(effectiveProv);
+
+        // Log provider selection for debugging (desktop focus)
+        if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_DEBUG === '1') {
+          const uaSnippet = typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 50) : 'SSR';
+          console.log(`[Heijo][Voice] Provider selected: ${effectiveProv}, requiresBackend: ${capabilities.requiresBackend}, userAgent: ${uaSnippet}`);
+        }
 
         // Show info message if backend is required
         const supportMessage = getVoiceSupportMessage(capabilities);
@@ -197,13 +204,22 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       }
     }
 
-    if (isListening || micState === 'recording') {
+    // Guard: Prevent double-toggling during start sequence
+    if (isStartingRef.current) {
+      console.log('[Heijo][Mic] Start already in progress, ignoring toggle');
+      return;
+    }
+
+    // Only allow stop if we are truly listening (not just in recording state from a previous attempt)
+    if (isListening || (micState === 'recording' && enhancedMicButtonRef.current?.isActive())) {
       console.log('Stopping microphone listening');
       enhancedMicButtonRef.current.stopListening();
       setIsListening(false);
       setMicState('ready');
+      isStartingRef.current = false; // Reset guard
     } else {
       try {
+        isStartingRef.current = true; // Set guard to prevent double-toggling
         setMicState('recording');
         
         // Ensure language is up to date before starting
@@ -221,6 +237,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
             console.log('Mic permission denied');
             console.error('Audio stream failed:', error);
             setMicState('ready');
+            isStartingRef.current = false; // Reset guard on error
             throw error;
           }
         }
@@ -238,17 +255,20 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
             console.error('Voice recognition error:', error);
             setIsListening(false);
             setMicState('ready');
+            isStartingRef.current = false; // Reset guard on error
             onError?.(error);
           },
           () => {
             console.log('Voice recognition started');
             setIsListening(true);
             setMicState('recording');
+            isStartingRef.current = false; // Reset guard when start callback fires successfully
           },
           () => {
             console.log('Voice recognition stopped');
             setIsListening(false);
             setMicState('ready');
+            isStartingRef.current = false; // Reset guard when stopped
             setMetrics(enhancedMicButtonRef.current?.getMetrics() || null);
           }
         );
@@ -259,6 +279,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         onError?.(errorMessage);
         setPermissionState('denied');
         setMicState('ready'); // Return to ready state, allow retry
+        isStartingRef.current = false; // Reset guard on error
       }
     }
   };
