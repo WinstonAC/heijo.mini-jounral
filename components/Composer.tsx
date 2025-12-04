@@ -899,8 +899,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   </div>
                   
                   <div className="space-y-3 text-sm sm:text-base leading-relaxed opacity-90">
-                    <p>1. Type or {isMobile ? 'tap' : 'click'} the mic to speak your thoughts.</p>
-                    <p>2. Use Save (or the S button on desktop) to store your entry.</p>
+                    <p>• Speak or type your thoughts</p>
+                    <p>• Save your entry</p>
+                    <p>• Multilingual voice support available in Settings</p>
                   </div>
                   
                   <p className="text-xs sm:text-sm opacity-75 italic">
