@@ -137,26 +137,34 @@ export default function Composer({
 
 #### 2. LanguageSelector Component
 
-Voice input language selection interface:
+Voice input language selection interface (mobile-safe, no overlay):
 
 ```typescript
 // components/LanguageSelector.tsx
-export default function LanguageSelector({ className }: LanguageSelectorProps) {
-  const { language, setLanguage } = useVoiceSettings();
-  const [isOpen, setIsOpen] = useState(false);
+export default function LanguageSelector({ className, variant }: LanguageSelectorProps) {
+  const { selectedLanguage, setLanguage } = useVoiceSettings();
 
   return (
     <div className={className}>
+      <label htmlFor="language-select" className="sr-only">
+        Select voice input language
+      </label>
       <select
-        value={language}
+        id="language-select"
+        value={selectedLanguage}
         onChange={(e) => setLanguage(e.target.value)}
         className="language-select"
+        style={{
+          WebkitAppearance: 'menulist',
+          MozAppearance: 'menulist',
+          appearance: 'menulist',
+        }}
       >
-        <option value="en-US">English (US)</option>
-        <option value="en-GB">English (UK)</option>
-        <option value="es-ES">Spanish</option>
-        <option value="fr-FR">French</option>
-        {/* More language options */}
+        {SUPPORTED_LANGUAGES.map((lang) => (
+          <option key={lang.code} value={lang.code}>
+            {lang.name}
+          </option>
+        ))}
       </select>
     </div>
   );
@@ -164,49 +172,62 @@ export default function LanguageSelector({ className }: LanguageSelectorProps) {
 ```
 
 **Features**:
-- Language selection for Web Speech API
+- Language selection for WebSpeech and Backend STT
+- Mobile-safe implementation (removed overlay SVG that blocked taps)
+- Native select styling for better mobile compatibility
 - Persistent settings via VoiceSettingsProvider
 - Accessible from Settings → Display → Voice Input Language
-- Supports multiple language codes
+- Supports 8 languages: English, Spanish, Portuguese, German, French, Hindi, Japanese, Chinese
 
 #### 3. MicButton Component
 
-Voice recording interface with recessed shell design and visual feedback:
+Voice recording interface with browser detection and dual-provider support (WebSpeech + Backend STT):
 
 ```typescript
 // components/MicButton.tsx
 export default function MicButton({ 
-  isRecording, 
-  onToggle, 
-  disabled 
+  onTranscript, 
+  onError 
 }: MicButtonProps) {
+  const { selectedLanguage, provider, setProvider } = useVoiceSettings();
+  const [micState, setMicState] = useState<MicState>('idle');
+  const capabilities = detectVoiceCapabilities();
+  
+  useEffect(() => {
+    // Auto-select provider based on browser
+    const recommended = getRecommendedProvider(capabilities);
+    if (recommended === 'backend' && provider === 'webspeech') {
+      setProvider('whisper'); // Auto-switch to backend
+    }
+    
+    // Initialize appropriate engine
+    const micButton = createEnhancedMicButton(
+      selectedLanguage, 
+      effectiveProvider
+    );
+    // ...
+  }, [selectedLanguage, provider]);
+  
   return (
     <button
-      onClick={onToggle}
-      disabled={disabled}
-      className={`
-        mic-shell
-        ${isRecording ? 'recording' : ''}
-        ${disabled ? 'disabled' : ''}
-      `}
-      aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-      aria-pressed={isRecording}
+      onClick={toggleListening}
+      disabled={micState !== 'ready' && micState !== 'recording'}
+      className={`mic-shell ${micState === 'recording' ? 'recording' : ''}`}
     >
-      <svg className="mic-icon" viewBox="0 0 24 24">
-        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-        <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-      </svg>
-      {isRecording && (
-        <div className="recording-ring">
-          <div className="absolute inset-[-6px] rounded-full border border-orange-400/60"></div>
-        </div>
-      )}
+      {/* Mic icon */}
     </button>
   );
 }
 ```
 
-**Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle (no aggressive glow) for subtle visual feedback. The button respects the selected voice language from VoiceSettingsProvider.
+**Features**:
+- **Browser Detection**: Automatically detects iOS Safari, Firefox, Chrome
+- **Provider Selection**: WebSpeech for Chrome/Edge, Backend STT for iOS Safari/Firefox
+- **State Machine**: idle → initializing → ready → recording → error
+- **Language Support**: Respects selected language from VoiceSettingsProvider
+- **Error Handling**: Clear error messages for unsupported browsers
+
+**Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle. Button states: disabled during initialization, enabled when ready, recording state shows orange ring.
 
 #### 4. NotificationSettings Component
 

@@ -1,12 +1,12 @@
 # Manual Testing Guide: Multilingual Voice Input
 
 ## Overview
-This guide explains how to manually test the multilingual voice input feature on real devices.
+This guide explains how to manually test the multilingual voice input feature on real devices. The system now supports both WebSpeech (browser-native) and backend STT (Whisper/Google) for broader browser compatibility.
 
 ## Prerequisites
 - A device with a microphone
-- Browser that supports Web Speech API (Chrome, Edge, Safari 14.1+)
 - HTTPS connection (or localhost for development)
+- For backend STT: API keys configured (WHISPER_API_KEY or GOOGLE_STT_KEY)
 
 ## Testing Language Selection Flow
 
@@ -57,33 +57,50 @@ This guide explains how to manually test the multilingual voice input feature on
 ## Browser-Specific Testing
 
 ### Chrome/Edge (Desktop)
-- Full Web Speech API support
-- All languages should work
-- Check DevTools Console for language logs
+- ✅ Uses WebSpeech API (no API keys required)
+- ✅ Full language support
+- ✅ Real-time streaming transcription
+- Check DevTools Console for: `Initializing webspeech engine...`
 
 ### Safari (Desktop)
-- Web Speech API support (Safari 14.1+)
-- May have limitations with some languages
+- ✅ Uses WebSpeech API (no API keys required)
+- ✅ Safari 14.1+ support
 - Check for any console warnings
 
 ### iOS Safari
-- Limited Web Speech API support
-- May show warning: "Voice dictation may not be supported on iOS Safari"
-- Test with English first, then try other languages
+- ✅ Automatically uses backend STT (Whisper/Google)
+- ✅ Requires API keys configured
+- ✅ All languages supported via backend
+- Check console for: `iOS Safari detected - using backend STT`
+- Check console for: `Initializing backend STT engine...`
 
 ### Firefox
-- Web Speech API not supported
-- Should show: "Voice input is not supported on this device"
-- Mic button should be disabled
+- ✅ Automatically uses backend STT (Whisper/Google)
+- ✅ Requires API keys configured
+- ✅ All languages supported via backend
+- Check console for: `Firefox detected - using backend STT`
+
+### Chrome iOS
+- ✅ Automatically uses backend STT (uses Safari engine)
+- ✅ Requires API keys configured
 
 ## Debugging
 
 ### Check Console Logs
-Look for these log messages:
-- `Initializing enhanced microphone with language: [lang]...`
-- `VoiceToTextEngine: Initializing speech recognition with language: [lang]`
-- `VoiceToTextEngine: Language set to [lang] before start`
-- `Starting enhanced microphone listening with language: [lang]...`
+
+**WebSpeech (Chrome/Edge Desktop):**
+- `Detecting browser capabilities...`
+- `WebSpeech available - using webspeech provider`
+- `Initializing webspeech engine with language: [lang]...`
+- `Starting webspeech voice recognition with language: [lang]...`
+
+**Backend STT (iOS Safari/Firefox):**
+- `Detecting browser capabilities...`
+- `Backend STT required - using whisper/google provider`
+- `Initializing backend STT engine with language: [lang]...`
+- `Starting backend STT recording...`
+- `Sending audio to /api/stt...`
+- `Received transcript: [text]`
 
 ### Verify Recognition Language
 1. Open DevTools Console
@@ -98,8 +115,17 @@ Look for these log messages:
 ### Check localStorage
 1. Open DevTools → Application → Local Storage
 2. Look for key: `heijo_voice_settings`
-3. Value should be: `{"language":"[lang-code]","provider":"webspeech"}`
-4. If missing or incorrect, language selector may not be saving
+3. Value should be: `{"language":"[lang-code]","provider":"webspeech"}` or `{"language":"[lang-code]","provider":"whisper"}`
+4. Provider will be auto-selected based on browser capabilities
+5. If missing or incorrect, language selector may not be saving
+
+### Check Mic State
+The mic button now has a state machine:
+- `idle` → Initial state
+- `initializing` → Setting up voice engine (button disabled)
+- `ready` → Ready to record (button enabled)
+- `recording` → Currently recording (button shows recording state)
+- `error` → Error occurred (button disabled)
 
 ## Common Issues
 
@@ -132,9 +158,24 @@ Look for these log messages:
 - Japanese - `ja-JP`
 - Chinese (Simplified) - `zh-CN`
 
+## Backend STT Configuration
+
+### Environment Variables Required
+- `WHISPER_API_KEY` or `OPENAI_API_KEY` - For Whisper transcription
+- `GOOGLE_STT_KEY` - For Google STT (optional)
+
+### Testing Backend STT
+1. Use iOS Safari or Firefox
+2. Ensure API keys are configured in environment
+3. Click mic button - should automatically use backend STT
+4. Speak and wait for transcription (may take 1-2 seconds)
+5. Check Network tab for POST request to `/api/stt`
+
 ## Notes
 - Language changes take effect on the next recording session
 - If recording is active when language changes, it will stop automatically
-- Some languages may have better accuracy than others depending on browser
-- iOS Safari has known limitations with Web Speech API
+- Backend STT provides consistent accuracy across all browsers
+- WebSpeech provides real-time streaming (lower latency)
+- Browser automatically selects the best provider based on capabilities
+- Language selector now works reliably on mobile Safari (overlay removed)
 

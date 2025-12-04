@@ -142,77 +142,110 @@ export function subscribeToEntries(
 }
 ```
 
-## Web Speech API Integration
+## Voice Recognition API
 
-### Voice Recognition
+### Architecture
 
-Browser-native voice recognition for privacy:
+The voice recognition system supports two providers:
+
+1. **WebSpeech API** (Browser-native, no API keys)
+   - Chrome/Edge Desktop
+   - Safari Desktop (14.1+)
+   - Real-time streaming transcription
+
+2. **Backend STT** (Requires API keys)
+   - iOS Safari
+   - Firefox
+   - Chrome iOS
+   - Uses Whisper (OpenAI) or Google STT
+
+### Browser Detection
+
+```typescript
+// lib/browserCapabilities.ts
+export function detectVoiceCapabilities(): VoiceCapabilities {
+  // Detects browser type, WebSpeech availability, secure context
+  // Returns capabilities object
+}
+
+export function getRecommendedProvider(capabilities: VoiceCapabilities): 'webspeech' | 'backend' | 'unsupported' {
+  // Auto-selects best provider based on browser
+}
+```
+
+### WebSpeech Engine
 
 ```typescript
 // lib/voiceToText.ts
-export class VoiceToTextManager {
+class VoiceToTextEngine {
   private recognition: SpeechRecognition | null = null;
-  private isSupported: boolean = false;
   
-  constructor() {
-    this.initializeRecognition();
-  }
-  
-  private initializeRecognition() {
-    if (typeof window === 'undefined') return;
-    
+  async initialize(): Promise<boolean> {
+    // Returns false if WebSpeech unavailable
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return false;
     
-    if (SpeechRecognition) {
-      this.recognition = new SpeechRecognition();
-      this.isSupported = true;
-      this.configureRecognition();
-    }
-  }
-  
-  private configureRecognition() {
-    if (!this.recognition) return;
-    
+    this.recognition = new SpeechRecognition();
+    this.recognition.lang = this.config.language;
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
-    this.recognition.maxAlternatives = 1;
+    return true;
   }
   
-  startRecording(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (!this.recognition || !this.isSupported) {
-        reject(new Error('Speech recognition not supported'));
-        return;
-      }
-      
-      this.recognition.onstart = () => resolve();
-      this.recognition.onerror = (event) => reject(new Error(event.error));
-      
-      this.recognition.start();
-    });
+  async start(): Promise<void> {
+    // Starts real-time streaming transcription
+    this.recognition.start();
+  }
+}
+```
+
+### Backend STT API Route
+
+```typescript
+// app/api/stt/route.ts
+export async function POST(request: NextRequest) {
+  const formData = await request.formData();
+  const audioFile = formData.get('audio') as File;
+  const language = formData.get('language') as string;
+  const provider = formData.get('provider') as 'whisper' | 'google';
+  
+  // Sends to Whisper or Google STT API
+  // Returns { text: string }
+}
+
+// Environment variables required:
+// - WHISPER_API_KEY or OPENAI_API_KEY
+// - GOOGLE_STT_KEY (optional)
+```
+
+### Backend STT Engine
+
+```typescript
+// lib/voiceToText.ts
+class BackendSTTEngine {
+  async start(): Promise<void> {
+    // Records audio using MediaRecorder
+    this.mediaRecorder = new MediaRecorder(stream);
+    this.mediaRecorder.start();
   }
   
-  stopRecording(): Promise<string> {
-    return new Promise((resolve) => {
-      if (!this.recognition) {
-        resolve('');
-        return;
-      }
-      
-      let finalTranscript = '';
-      
-      this.recognition.onresult = (event) => {
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
-        }
-      };
-      
-      this.recognition.onend = () => resolve(finalTranscript);
-      this.recognition.stop();
+  private async processRecording(): Promise<void> {
+    // Stops recording, creates blob
+    const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+    
+    // Sends to backend API
+    const formData = new FormData();
+    formData.append('audio', audioBlob);
+    formData.append('language', this.currentLanguage);
+    formData.append('provider', this.provider);
+    
+    const response = await fetch('/api/stt', {
+      method: 'POST',
+      body: formData,
     });
+    
+    const { text } = await response.json();
+    this.onResultCallback?.({ text, isFinal: true, ... });
   }
 }
 ```
