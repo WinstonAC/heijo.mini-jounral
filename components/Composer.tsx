@@ -341,6 +341,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       setRateLimitRetryAfter(null);
 
       // Only clear content and show success for manual saves
+      // This happens even if cloud sync failed - local save succeeded
       if (saveType === 'manual') {
         setContent('');
         setSelectedTags([]);
@@ -376,7 +377,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         return;
       }
 
+      // For manual saves, only show error if it's a critical failure (rate limit or local save failure)
+      // Cloud sync failures are handled gracefully - entry is saved locally and UI is updated
       if (saveType === 'manual') {
+        // Only show error for critical failures (rate limit already handled above)
+        // Local save failures will throw and be caught here
         setSaveError('Failed to save entry. Please try again.');
         setShowToast(true);
         setTimeout(() => {
@@ -908,8 +913,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 placeholder="Type or speak your thoughts..."
                 className={`w-full resize-none rounded-[14px] border border-white/10 bg-transparent focus:outline-none text-gray-100 p-3 sm:p-4 lg:p-5 journal-input transition-all duration-300 ${getFontSizeClass()} ${
                   promptState === "hidden"
-                    ? (isMobile ? "overflow-y-auto" : "h-full overflow-y-auto") // Scrollable on mobile, fill on desktop
-                    : "min-h-[160px] sm:min-h-[200px] overflow-y-auto" // Standard height with scroll
+                    ? (isMobile ? "overflow-y-auto scrollbar-thin" : "h-full overflow-y-auto scrollbar-thin") // Scrollable on mobile, fill on desktop
+                    : "min-h-[160px] sm:min-h-[200px] overflow-y-auto scrollbar-thin" // Standard height with scroll
                 }`}
                 style={{
                   fontFamily: 'Inter, system-ui, sans-serif',

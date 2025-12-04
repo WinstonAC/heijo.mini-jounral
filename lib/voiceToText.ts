@@ -421,7 +421,10 @@ class BackendSTTEngine {
   private onStartCallback?: () => void;
   private onEndCallback?: () => void;
   private silenceTimer: NodeJS.Timeout | null = null;
-  private maxSilenceDuration: number = 3000; // 3 seconds
+  private maxDurationTimer: NodeJS.Timeout | null = null;
+  private maxSilenceDuration: number = 0; // Disabled - only stop on manual tap or max duration
+  private maxRecordingDuration: number = 90000; // 90 seconds hard cap
+  private startTime: number = 0;
 
   constructor(language: string = 'en-US', provider: 'whisper' | 'google' = 'whisper') {
     this.currentLanguage = language;
@@ -493,11 +496,15 @@ class BackendSTTEngine {
       };
 
       this.isRecording = true;
+      this.startTime = performance.now();
       this.mediaRecorder.start(1000); // Collect data every second
       this.onStartCallback?.();
 
-      // Start silence detection timer
-      this.startSilenceTimer();
+      // Start max duration timer (hard cap to prevent runaway recordings)
+      this.startMaxDurationTimer();
+      
+      // Note: Silence timer is disabled for backend STT
+      // Recording stops only on manual tap or max duration reached
     } catch (error) {
       this.isRecording = false;
       const errorMessage = error instanceof Error ? error.message : 'Failed to start recording';
@@ -512,6 +519,7 @@ class BackendSTTEngine {
     }
 
     this.clearSilenceTimer();
+    this.clearMaxDurationTimer();
     this.isRecording = false;
 
     if (this.mediaRecorder.state === 'recording') {
@@ -532,19 +540,34 @@ class BackendSTTEngine {
   }
 
   private startSilenceTimer(): void {
-    this.clearSilenceTimer();
-    this.silenceTimer = setTimeout(() => {
-      if (this.isRecording) {
-        console.log('BackendSTTEngine: Silence timeout, stopping recording');
-        this.stop();
-      }
-    }, this.maxSilenceDuration);
+    // Disabled for backend STT - only stop on manual tap or max duration
+    // This prevents "first word only" recordings
   }
 
   private clearSilenceTimer(): void {
     if (this.silenceTimer) {
       clearTimeout(this.silenceTimer);
       this.silenceTimer = null;
+    }
+  }
+
+  private startMaxDurationTimer(): void {
+    this.clearMaxDurationTimer();
+    this.maxDurationTimer = setTimeout(() => {
+      if (this.isRecording) {
+        console.log('BackendSTTEngine: Max duration reached, stopping recording');
+        const duration = performance.now() - this.startTime;
+        this.stop();
+        // Show gentle message about duration limit
+        this.onErrorCallback?.('We captured up to about a minute of speech. For longer thoughts, consider pausing and saving between sections.');
+      }
+    }, this.maxRecordingDuration);
+  }
+
+  private clearMaxDurationTimer(): void {
+    if (this.maxDurationTimer) {
+      clearTimeout(this.maxDurationTimer);
+      this.maxDurationTimer = null;
     }
   }
 
@@ -576,13 +599,18 @@ class BackendSTTEngine {
       const data = await response.json();
       const transcript = data.text || '';
 
-      if (transcript) {
+      // Use full transcript as-is - no truncation or filtering
+      if (transcript && transcript.trim().length > 0) {
         this.onResultCallback?.({
-          text: transcript,
+          text: transcript.trim(), // Only trim whitespace, no other modification
           confidence: 1.0, // Backend doesn't provide confidence
           isFinal: true,
           timestamp: performance.now(),
         });
+      } else {
+        // Handle empty transcript gracefully
+        console.warn('BackendSTTEngine: Received empty transcript from API');
+        this.onErrorCallback?.('No speech detected. Please try again.');
       }
     } catch (error) {
       console.error('BackendSTTEngine: Transcription failed:', error);
@@ -622,6 +650,8 @@ class BackendSTTEngine {
 
   destroy(): void {
     this.stop();
+    this.clearSilenceTimer();
+    this.clearMaxDurationTimer();
     this.onResultCallback = undefined;
     this.onErrorCallback = undefined;
     this.onStartCallback = undefined;

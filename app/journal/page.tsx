@@ -82,57 +82,54 @@ export default function JournalPage() {
   };
 
   const handleSave = useCallback(async (entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'>) => {
-    try {
-      // Check rate limiting
-      const rateLimitCheck = await rateLimiter.isAllowed();
-      if (!rateLimitCheck.allowed) {
-        const errorMessage = rateLimitCheck.reason || 'Rate limit exceeded, please try again later';
-        const error = new Error(errorMessage);
-        // Add retryAfter to error for UI display
-        if (rateLimitCheck.retryAfter) {
-          (error as any).retryAfter = rateLimitCheck.retryAfter;
-        }
-        throw error;
+    // Check rate limiting first
+    const rateLimitCheck = await rateLimiter.isAllowed();
+    if (!rateLimitCheck.allowed) {
+      const errorMessage = rateLimitCheck.reason || 'Rate limit exceeded, please try again later';
+      const error = new Error(errorMessage);
+      // Add retryAfter to error for UI display
+      if (rateLimitCheck.retryAfter) {
+        (error as any).retryAfter = rateLimitCheck.retryAfter;
       }
+      throw error;
+    }
 
+    let savedEntry: JournalEntry;
+    let syncError: Error | null = null;
+
+    try {
       // Always use regular storage (localStorage) for consistency
       // secureStorage uses IndexedDB which is separate from localStorage
       // This ensures entries are always accessible via localStorage
-      const savedEntry = await storage.saveEntry(entry);
-      
-      setEntries(prev => [savedEntry, ...prev]);
-      
-      // Track analytics
-      if (entry.source === 'voice') {
-        analyticsCollector.trackEvent('voice_recording_complete', {
-          length: entry.content.length,
-          latency: performance.now() // This would be more accurate with actual latency
-        });
-      } else {
-        analyticsCollector.trackEvent('text_entry_save', {
-          length: entry.content.length
-        });
-      }
-      
-      return savedEntry;
+      savedEntry = await storage.saveEntry(entry);
     } catch (error) {
-      console.error('Failed to save entry:', error);
-      
-      // Check if it's a Supabase conflict error
-      if (error instanceof Error && error.message.includes('409')) {
-        console.warn('Mic transcription ready, but Supabase save failed: [409 conflict]', error);
-        // Don't throw - let the user continue with their transcription
-        // The entry is still saved locally
-        return {
-          id: `local-${Date.now()}`,
-          ...entry,
-          sync_status: 'failed' as const,
-          last_synced: undefined
-        };
-      }
-      
-      throw error; // Re-throw for other errors
+      // If local save fails, we can't proceed - this is a critical error
+      console.error('Failed to save entry locally:', error);
+      throw error;
     }
+
+    // Always update UI state immediately after local save succeeds
+    // This ensures entries appear in drawer and composer clears even if cloud sync fails
+    setEntries(prev => [savedEntry, ...prev]);
+    
+    // Track analytics
+    if (entry.source === 'voice') {
+      analyticsCollector.trackEvent('voice_recording_complete', {
+        length: entry.content.length,
+        latency: performance.now() // This would be more accurate with actual latency
+      });
+    } else {
+      analyticsCollector.trackEvent('text_entry_save', {
+        length: entry.content.length
+      });
+    }
+
+    // Cloud sync happens in background - errors don't block UI updates
+    // The entry is already saved locally and UI is already updated
+    // If sync fails, entry will have sync_status: 'local_only' or 'sync_failed'
+    // which is handled gracefully by the storage layer
+    
+    return savedEntry;
   }, []); // Empty deps array since handleSave doesn't depend on any props/state
 
   const handleEntryClick = (entry: JournalEntry) => {
