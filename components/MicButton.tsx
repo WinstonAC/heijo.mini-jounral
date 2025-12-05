@@ -256,8 +256,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
     });
     
     // Check for initializing state FIRST (before error retry)
-    // But only if we're not in error state (error state will retry below)
-    if (micState === 'initializing' && micState !== 'error') {
+    if (micState === 'initializing') {
       console.log('Mic button pressed but state is initializing');
       onError?.('Voice recognition is still initializing. Please wait.');
       return;
