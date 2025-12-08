@@ -980,7 +980,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             ) : (
               <textarea
                 ref={textareaRef}
-                value={content + (interimTranscript ? ` ${interimTranscript}` : '')}
+                value={content}
                 onChange={(e) => {
                   setContent(e.target.value);
                   setSource('text');
