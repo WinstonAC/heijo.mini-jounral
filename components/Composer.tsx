@@ -30,7 +30,7 @@ interface ComposerProps {
   setFontSize: (size: 'small' | 'medium' | 'large') => void;
   entryCount?: number; // Number of entries for this user
   onManualSaveReady?: (saveFn: () => Promise<void>) => void; // Optional callback to expose save function
-  onSaveStateChange?: (state: { isSaving: boolean; isSaved: boolean; error: string | null }) => void; // Optional callback to expose save states
+  onSaveStateChange?: (state: { isSaving: boolean; isSaved: boolean; error: string | null; isTranscribing?: boolean }) => void; // Optional callback to expose save states
 }
 
 export default function Composer({ onSave, onExport, selectedPrompt, userId, fontSize, setFontSize, entryCount = 0, onManualSaveReady, onSaveStateChange }: ComposerProps) {
@@ -42,7 +42,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const [voicePauseTimer, setVoicePauseTimer] = useState<NodeJS.Timeout | null>(null);
   const [interimTranscript, setInterimTranscript] = useState('');
-  const [voiceError, setVoiceError] = useState<string | null>(null);
+  // voiceError state removed - voice errors are logged to console only, not displayed in UI
   const [showToast, setShowToast] = useState(false);
   // Manual save states
   const [isSaving, setIsSaving] = useState(false);
@@ -53,8 +53,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [hasShownToday, setHasShownToday] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const mobileMicButtonRef = useRef<HTMLButtonElement | null>(null);
-  const micButtonInternalRef = useRef<HTMLButtonElement | null>(null);
+  // Mobile mic refs removed - mobile no longer uses custom MicButton
   const handleManualSaveRef = useRef<() => Promise<void>>();
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
@@ -65,6 +64,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   type MicStatus = 'idle' | 'initializing' | 'ready' | 'unsupported' | 'error';
   const [micStatus, setMicStatus] = useState<MicStatus>('idle');
+  const [isTranscribing, setIsTranscribing] = useState(false); // Track when backend STT is recording or processing
   const lastSaveAttemptRef = useRef<number>(0);
   const SAVE_DEBOUNCE_MS = 2000; // Minimum 2 seconds between save attempts
   const lastSavedContentHashRef = useRef<string | null>(null);
@@ -358,15 +358,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     setSaveError(null);
 
     // Stop voice recording if active and this is a manual save
+    // Note: On mobile, users use keyboard mic, so this only applies to desktop MicButton
     if (saveType === 'manual' && isVoiceActive) {
-      if (micButtonInternalRef.current) {
-        micButtonInternalRef.current.click();
-      } else {
-        const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
-        if (micButton) {
-          micButton.click();
-        }
-      }
+      // Desktop MicButton handles its own stop logic
+      // Mobile no longer uses custom MicButton, so no action needed
       setIsVoiceActive(false);
       setInterimTranscript('');
     }
@@ -560,6 +555,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       setInterimTranscript(''); // Clear interim
       setSource('voice');
       setIsVoiceActive(true);
+      // Clear isTranscribing when final transcript arrives - processing is complete
+      setIsTranscribing(false);
 
       // Clear existing pause timer
       if (voicePauseTimer) {
@@ -597,48 +594,43 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   };
 
   const handleVoiceError = (error: string) => {
-    setVoiceError(error);
+    // Log voice errors to console for debugging, but do not show in UI
+    console.error('[Heijo][Voice] Error:', error);
     setIsVoiceActive(false);
     setInterimTranscript('');
     setMicStatus('error');
-    
-    // Clear error after 5 seconds
-    setTimeout(() => setVoiceError(null), 5000);
+    // Clear isTranscribing when error occurs - processing is done
+    setIsTranscribing(false);
+    // Do NOT set voiceError state - no UI messages for voice errors
   };
 
   // Mic lifecycle callbacks for mobile hero button
   const handleMicStart = useCallback(() => {
     setIsVoiceActive(true);
     setMicStatus('ready');
+    // Mark user interaction when mic starts recording
+    setHasUserInteracted(true);
+    // Set isTranscribing to true when recording starts (for backend STT)
+    setIsTranscribing(true);
   }, []);
 
   const handleMicStop = useCallback(() => {
     setIsVoiceActive(false);
     setMicStatus('ready');
+    // Keep isTranscribing true when recording stops - backend STT processing is about to start
+    // It will be set to false when final transcript arrives or error occurs
+    // This prevents Save during the async processing phase
   }, []);
 
   const handleMicUnsupported = useCallback(() => {
     setMicStatus('unsupported');
-    setVoiceError('Voice journaling isn\'t supported on this browser yet. Try Chrome on desktop.');
-    setTimeout(() => setVoiceError(null), 5000);
+    // Log unsupported state to console, but do not show in UI
+    console.warn('[Heijo][Voice] Unsupported: Voice journaling is not supported on this browser');
+    // Do NOT set voiceError state - no UI messages for voice errors
   }, []);
 
-  // Track mic initialization state on mobile
-  useEffect(() => {
-    if (isMobile) {
-      // When MicButton component mounts, it will start initializing
-      // Set initial state to 'initializing' until we get callbacks
-      const wrapper = document.querySelector('[data-mobile-mic-wrapper]');
-      if (wrapper) {
-        const button = wrapper.querySelector('button') as HTMLButtonElement;
-        if (button && micStatus === 'idle') {
-          // MicButton exists but we haven't received any callbacks yet
-          // This means it's likely initializing
-          setMicStatus('initializing');
-        }
-      }
-    }
-  }, [isMobile, micStatus]);
+  // Mobile mic ref setup removed - mobile no longer uses custom MicButton
+  // Desktop MicButton is rendered separately and doesn't need this ref setup
 
   const handleManualSave = useCallback(async () => {
     await saveEntry('manual');
@@ -668,38 +660,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       onSaveStateChange({
         isSaving,
         isSaved,
-        error: saveError
+        error: saveError,
+        isTranscribing // Expose isTranscribing state to parent for mobile Save button
         });
       });
     }
-  }, [isSaving, isSaved, saveError, onSaveStateChange]);
+  }, [isSaving, isSaved, saveError, isTranscribing, onSaveStateChange]);
 
-  // Set up ref to MicButton's internal button for mobile
-  // Also track mic initialization state for hero button
-  useEffect(() => {
-    const updateMicButtonRef = () => {
-      const wrapper = document.querySelector('[data-mobile-mic-wrapper]');
-      if (wrapper) {
-        const button = wrapper.querySelector('button') as HTMLButtonElement;
-        if (button) {
-          micButtonInternalRef.current = button;
-          // Check if button is disabled to infer mic state
-          // This is a fallback - the real state comes from callbacks
-          if (button.disabled && micStatus === 'idle') {
-            setMicStatus('initializing');
-          }
-        }
-      }
-    };
-    
-    // Try immediately
-    updateMicButtonRef();
-    
-    // Also try after a short delay to ensure MicButton has rendered
-    const timeout = setTimeout(updateMicButtonRef, 100);
-    
-    return () => clearTimeout(timeout);
-  }, [isMobile, showWelcomeOverlay, promptState, micStatus]);
+  // Mobile mic ref setup removed - mobile no longer uses custom MicButton
+  // Desktop MicButton is rendered separately and doesn't need this ref setup
 
   // Listen for mobile save event from bottom nav (fallback)
   useEffect(() => {
@@ -1155,99 +1124,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         )}
       </div>
 
-      {/* MOBILE HERO MIC (centered under card) */}
+      {/* Mobile keyboard mic hint - visible only on mobile */}
       {!showWelcomeOverlay && (promptState === 'hidden' || promptState === 'selected' || promptState === 'showing') && (
-        <div className="md:hidden flex justify-center mt-5">
-          <div className="relative">
-            <button
-              type="button"
-              ref={mobileMicButtonRef}
-              onClick={() => {
-                // Check mic status before forwarding click
-                if (micStatus === 'unsupported') {
-                  setVoiceError('Voice journaling isn\'t supported on this browser yet. Try Chrome on desktop.');
-                  setTimeout(() => setVoiceError(null), 5000);
-                  return;
-                }
-                
-                if (micStatus === 'initializing') {
-                  setVoiceError('Voice is initializing, please wait.');
-                  setTimeout(() => setVoiceError(null), 2000);
-                  return;
-                }
-                
-                if (micStatus === 'error') {
-                  setVoiceError('Voice isn\'t available right now. Please try again.');
-                  setTimeout(() => setVoiceError(null), 3000);
-                  return;
-                }
-
-                // Trigger the MicButton's internal button
-                if (micButtonInternalRef.current) {
-                  micButtonInternalRef.current.click();
-                } else {
-                  // Fallback: find button if ref not set yet
-                  const micButton = document.querySelector('[data-mobile-mic-wrapper] button') as HTMLButtonElement;
-                  if (micButton) {
-                    micButton.click();
-                  }
-                }
-              }}
-              disabled={micStatus === 'unsupported' || micStatus === 'initializing' || micStatus === 'error'}
-              className={`
-                relative flex items-center justify-center
-                w-20 h-20
-                rounded-full
-                bg-white
-                shadow-[0_14px_40px_rgba(0,0,0,0.22)]
-                border border-white/80
-                transition-transform duration-150
-                active:translate-y-[1px]
-                disabled:opacity-50 disabled:cursor-not-allowed
-                ${isVoiceActive ? "ring-2 ring-orange-400/80" : ""}
-              `}
-              aria-label={isVoiceActive ? "Stop recording" : "Start recording"}
-            >
-              <svg
-                className="w-6 h-6 text-gray-900"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-                <line x1="12" y1="19" x2="12" y2="23" />
-                <line x1="8" y1="23" x2="16" y2="23" />
-              </svg>
-            </button>
-            {/* MicButton for functionality - positioned off-screen but functional */}
-            <div 
-              data-mobile-mic-wrapper 
-              className="sr-only"
-              ref={(el) => {
-                // Store reference to MicButton's internal button
-                if (el) {
-                  const button = el.querySelector('button') as HTMLButtonElement;
-                  if (button) {
-                    micButtonInternalRef.current = button;
-                  }
-                }
-              }}
-            >
-              <MicButton 
-                onTranscript={handleVoiceTranscript} 
-                onError={handleVoiceError}
-                onStart={handleMicStart}
-                onStop={handleMicStop}
-                onUnsupported={handleMicUnsupported}
-              />
-            </div>
-          </div>
+        <div className="md:hidden flex justify-center mt-4">
+          <p className="text-xs text-text-caption text-center px-4 max-w-sm" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+            Tip: On your phone, use the microphone button on your keyboard to dictate your entry.
+          </p>
         </div>
       )}
 
@@ -1319,17 +1201,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         </div>
       )}
 
-      {/* Voice Error Notification */}
-      {voiceError && (
-        <div className="fixed top-4 left-4 bg-red-50 border border-red-200 text-red-800 px-4 py-2 rounded-lg shadow-lg z-50 max-w-sm">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <span className="text-sm" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>{voiceError}</span>
-          </div>
-        </div>
-      )}
+      {/* Voice Error Notification - REMOVED: Voice errors are logged to console only, not displayed in UI */}
     </div>
   );
 }

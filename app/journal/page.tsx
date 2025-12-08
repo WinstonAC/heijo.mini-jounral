@@ -141,7 +141,7 @@ export default function JournalPage() {
     setIsManualSaveReady(true);
   }, []);
 
-  const handleSaveStateChange = useCallback((state: { isSaving: boolean; isSaved: boolean; error: string | null }) => {
+  const handleSaveStateChange = useCallback((state: { isSaving: boolean; isSaved: boolean; error: string | null; isTranscribing?: boolean }) => {
     setSaveState(state);
   }, []);
 
@@ -263,7 +263,7 @@ export default function JournalPage() {
                       window.dispatchEvent(event);
                     }
                   }}
-                  disabled={!isManualSaveReady || !manualSaveFn || typeof manualSaveFn !== 'function' || saveState.isSaving}
+                  disabled={!isManualSaveReady || !manualSaveFn || typeof manualSaveFn !== 'function' || saveState.isSaving || saveState.isTranscribing}
                   className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saveState.isSaving ? 'Saving...' : saveState.isSaved ? 'Saved' : 'Save'}
