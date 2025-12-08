@@ -63,6 +63,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  type MicStatus = 'idle' | 'initializing' | 'ready' | 'unsupported' | 'error';
+  const [micStatus, setMicStatus] = useState<MicStatus>('idle');
   const lastSaveAttemptRef = useRef<number>(0);
   const SAVE_DEBOUNCE_MS = 2000; // Minimum 2 seconds between save attempts
   const lastSavedContentHashRef = useRef<string | null>(null);
@@ -598,10 +600,45 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     setVoiceError(error);
     setIsVoiceActive(false);
     setInterimTranscript('');
+    setMicStatus('error');
     
     // Clear error after 5 seconds
     setTimeout(() => setVoiceError(null), 5000);
   };
+
+  // Mic lifecycle callbacks for mobile hero button
+  const handleMicStart = useCallback(() => {
+    setIsVoiceActive(true);
+    setMicStatus('ready');
+  }, []);
+
+  const handleMicStop = useCallback(() => {
+    setIsVoiceActive(false);
+    setMicStatus('ready');
+  }, []);
+
+  const handleMicUnsupported = useCallback(() => {
+    setMicStatus('unsupported');
+    setVoiceError('Voice journaling isn\'t supported on this browser yet. Try Chrome on desktop.');
+    setTimeout(() => setVoiceError(null), 5000);
+  }, []);
+
+  // Track mic initialization state on mobile
+  useEffect(() => {
+    if (isMobile) {
+      // When MicButton component mounts, it will start initializing
+      // Set initial state to 'initializing' until we get callbacks
+      const wrapper = document.querySelector('[data-mobile-mic-wrapper]');
+      if (wrapper) {
+        const button = wrapper.querySelector('button') as HTMLButtonElement;
+        if (button && micStatus === 'idle') {
+          // MicButton exists but we haven't received any callbacks yet
+          // This means it's likely initializing
+          setMicStatus('initializing');
+        }
+      }
+    }
+  }, [isMobile, micStatus]);
 
   const handleManualSave = useCallback(async () => {
     await saveEntry('manual');
@@ -611,19 +648,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   handleManualSaveRef.current = handleManualSave;
 
   // Expose manual save function to parent for mobile bottom nav
-  // Use useCallback to create a stable reference
+  // Use useCallback to create a stable reference that directly calls saveEntry
   const stableSaveFn = useCallback(async () => {
-    if (handleManualSaveRef.current) {
-      await handleManualSaveRef.current();
-    }
-  }, []); // Empty deps - function always calls latest ref value
+    await saveEntry('manual');
+  }, [saveEntry]);
 
   useEffect(() => {
     if (onManualSaveReady) {
-      // Defer to avoid setState during render
-      queueMicrotask(() => {
+      // Call immediately - stableSaveFn is already stable and safe to use
       onManualSaveReady(stableSaveFn);
-      });
     }
   }, [onManualSaveReady, stableSaveFn]);
 
@@ -642,6 +675,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   }, [isSaving, isSaved, saveError, onSaveStateChange]);
 
   // Set up ref to MicButton's internal button for mobile
+  // Also track mic initialization state for hero button
   useEffect(() => {
     const updateMicButtonRef = () => {
       const wrapper = document.querySelector('[data-mobile-mic-wrapper]');
@@ -649,6 +683,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         const button = wrapper.querySelector('button') as HTMLButtonElement;
         if (button) {
           micButtonInternalRef.current = button;
+          // Check if button is disabled to infer mic state
+          // This is a fallback - the real state comes from callbacks
+          if (button.disabled && micStatus === 'idle') {
+            setMicStatus('initializing');
+          }
         }
       }
     };
@@ -660,7 +699,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     const timeout = setTimeout(updateMicButtonRef, 100);
     
     return () => clearTimeout(timeout);
-  }, [isMobile, showWelcomeOverlay, promptState]);
+  }, [isMobile, showWelcomeOverlay, promptState, micStatus]);
 
   // Listen for mobile save event from bottom nav (fallback)
   useEffect(() => {
@@ -1124,6 +1163,25 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
               type="button"
               ref={mobileMicButtonRef}
               onClick={() => {
+                // Check mic status before forwarding click
+                if (micStatus === 'unsupported') {
+                  setVoiceError('Voice journaling isn\'t supported on this browser yet. Try Chrome on desktop.');
+                  setTimeout(() => setVoiceError(null), 5000);
+                  return;
+                }
+                
+                if (micStatus === 'initializing') {
+                  setVoiceError('Voice is initializing, please wait.');
+                  setTimeout(() => setVoiceError(null), 2000);
+                  return;
+                }
+                
+                if (micStatus === 'error') {
+                  setVoiceError('Voice isn\'t available right now. Please try again.');
+                  setTimeout(() => setVoiceError(null), 3000);
+                  return;
+                }
+
                 // Trigger the MicButton's internal button
                 if (micButtonInternalRef.current) {
                   micButtonInternalRef.current.click();
@@ -1135,6 +1193,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   }
                 }
               }}
+              disabled={micStatus === 'unsupported' || micStatus === 'initializing' || micStatus === 'error'}
               className={`
                 relative flex items-center justify-center
                 w-20 h-20
@@ -1144,6 +1203,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 border border-white/80
                 transition-transform duration-150
                 active:translate-y-[1px]
+                disabled:opacity-50 disabled:cursor-not-allowed
                 ${isVoiceActive ? "ring-2 ring-orange-400/80" : ""}
               `}
               aria-label={isVoiceActive ? "Stop recording" : "Start recording"}
@@ -1182,6 +1242,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
               <MicButton 
                 onTranscript={handleVoiceTranscript} 
                 onError={handleVoiceError}
+                onStart={handleMicStart}
+                onStop={handleMicStop}
+                onUnsupported={handleMicUnsupported}
               />
             </div>
           </div>

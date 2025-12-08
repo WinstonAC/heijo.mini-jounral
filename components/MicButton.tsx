@@ -28,10 +28,13 @@ type MicState = 'idle' | 'initializing' | 'ready' | 'recording' | 'error';
 interface MicButtonProps {
   onTranscript: (text: string, isFinal?: boolean) => void;
   onError?: (error: string) => void;
+  onStart?: () => void;
+  onStop?: () => void;
+  onUnsupported?: () => void;
   lang?: string; // Deprecated: use voiceSettings context instead
 }
 
-export default function MicButton({ onTranscript, onError, lang }: MicButtonProps) {
+export default function MicButton({ onTranscript, onError, onStart, onStop, onUnsupported, lang }: MicButtonProps) {
   const { selectedLanguage, provider: userProvider, setProvider } = useVoiceSettings();
   const [micState, setMicState] = useState<MicState>('idle');
   const [isListening, setIsListening] = useState(false);
@@ -39,17 +42,23 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
   const [metrics, setMetrics] = useState<VoiceMetrics | null>(null);
   const [permissionState, setPermissionState] = useState<'granted' | 'denied' | 'prompt' | 'unknown'>('unknown');
   const [effectiveProvider, setEffectiveProvider] = useState<'webspeech' | 'whisper' | 'google'>('webspeech');
+  const [isUnsupported, setIsUnsupported] = useState(false);
   const micRef = useRef<HTMLButtonElement>(null);
   const enhancedMicButtonRef = useRef<EnhancedMicButton | null>(null);
   const capabilitiesRef = useRef<ReturnType<typeof detectVoiceCapabilities> | null>(null);
   const isInitializingRef = useRef<boolean>(false);
   const isStartingRef = useRef<boolean>(false); // Guard to prevent double-toggling during start
   const onErrorRef = useRef<MicButtonProps['onError']>();
+  const onUnsupportedRef = useRef<MicButtonProps['onUnsupported']>();
   const hasAutoSwitchedProviderRef = useRef(false);
 
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
+
+  useEffect(() => {
+    onUnsupportedRef.current = onUnsupported;
+  }, [onUnsupported]);
 
   useEffect(() => {
     let cancelled = false;
@@ -60,7 +69,11 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
       }
 
       isInitializingRef.current = true;
-      setMicState(prev => (prev === 'recording' ? prev : 'initializing'));
+      setMicState(prev => {
+        // Don't change state if already recording
+        if (prev === 'recording') return prev;
+        return 'initializing';
+      });
 
       try {
         // Detect browser capabilities
@@ -181,6 +194,17 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
         console.log(`Initializing enhanced microphone with language: ${selectedLanguage}, provider: ${effectiveProv}...`);
         const micButton = createEnhancedMicButton(selectedLanguage, effectiveProv);
         enhancedMicButtonRef.current = micButton;
+        
+        // Set up unsupported callback BEFORE initialize
+        micButton.onUnsupported(() => {
+          if (cancelled) return;
+          setIsUnsupported(true);
+          setIsSupported(false);
+          setMicState('error');
+          const unsupportedMessage = 'Voice journaling isn\'t supported on this browser yet. Try Chrome on desktop.';
+          onErrorRef.current?.(unsupportedMessage);
+          onUnsupportedRef.current?.();
+        });
         
         const initialized = await micButton.initialize();
         console.log('Enhanced microphone initialization result:', initialized);
@@ -408,6 +432,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
             setIsListening(true);
             setMicState('recording');
             isStartingRef.current = false; // Reset guard when start callback fires successfully
+            onStart?.(); // Call onStart callback
           },
           () => {
             console.log('Voice recognition stopped');
@@ -415,6 +440,7 @@ export default function MicButton({ onTranscript, onError, lang }: MicButtonProp
             setMicState('ready');
             isStartingRef.current = false; // Reset guard when stopped
             setMetrics(enhancedMicButtonRef.current?.getMetrics() || null);
+            onStop?.(); // Call onStop callback
           }
         );
         setPermissionState('granted');

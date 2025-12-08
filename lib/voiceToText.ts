@@ -498,6 +498,7 @@ class BackendSTTEngine {
   private onErrorCallback?: (error: string) => void;
   private onStartCallback?: () => void;
   private onEndCallback?: () => void;
+  private onUnsupportedCallback?: () => void;
   private silenceTimer: NodeJS.Timeout | null = null;
   private maxDurationTimer: NodeJS.Timeout | null = null;
   private maxSilenceDuration: number = 0; // Disabled - only stop on manual tap or max duration
@@ -526,6 +527,31 @@ class BackendSTTEngine {
 
     if (typeof MediaRecorder === 'undefined') {
       console.error('BackendSTTEngine: MediaRecorder not supported');
+      this.onUnsupportedCallback?.();
+      return false;
+    }
+
+    // Test if MediaRecorder supports any of the MIME types we need
+    // This catches cases where MediaRecorder exists but doesn't support the formats we need
+    const testMimeTypes = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/ogg;codecs=opus',
+      'audio/mp4',
+      'audio/aac'
+    ];
+    
+    const hasSupportedMimeType = testMimeTypes.some(mimeType => {
+      try {
+        return MediaRecorder.isTypeSupported(mimeType);
+      } catch (e) {
+        return false;
+      }
+    });
+    
+    if (!hasSupportedMimeType) {
+      console.error('BackendSTTEngine: MediaRecorder exists but no supported MIME types available');
+      this.onUnsupportedCallback?.();
       return false;
     }
 
@@ -720,6 +746,10 @@ class BackendSTTEngine {
     this.onEndCallback = callback;
   }
 
+  onUnsupported(callback: () => void): void {
+    this.onUnsupportedCallback = callback;
+  }
+
   getMetrics(): VoiceMetrics {
     // Backend STT doesn't track metrics the same way
     return {
@@ -905,6 +935,7 @@ export class EnhancedMicButton {
   private currentLanguage: string;
   private currentProvider: VoiceProvider;
   private useBackend: boolean;
+  private onUnsupportedCallback?: () => void;
 
   constructor(language: string = 'en-US', provider: VoiceProvider = 'webspeech') {
     this.currentLanguage = language;
@@ -1060,6 +1091,13 @@ export class EnhancedMicButton {
       
       // VAD is optional for backend STT
       if (this.useBackend) {
+        // Set up unsupported callback for backend STT
+        if (this.voiceEngine instanceof BackendSTTEngine) {
+          this.voiceEngine.onUnsupported(() => {
+            this.onUnsupportedCallback?.();
+          });
+        }
+        
         this.isInitialized = voiceReady;
         this.vadInitialized = false; // Backend doesn't use VAD
         this.vadInitPromise = null; // Clear promise
@@ -1181,6 +1219,10 @@ export class EnhancedMicButton {
 
   getMetrics(): VoiceMetrics {
     return this.voiceEngine.getMetrics();
+  }
+
+  onUnsupported(callback: () => void): void {
+    this.onUnsupportedCallback = callback;
   }
 
   destroy(): void {
