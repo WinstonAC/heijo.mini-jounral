@@ -132,8 +132,8 @@ export default function Composer({
 
 **Design Notes**: 
 - Textarea features subtle radial gradient background, 14px border radius, and breathing focus effect (scale 1.01 + shadow increase)
-- Mobile: Sticky toolbar with mic + Save/History controls above vibe tags
-- Desktop: Minimal ghost chips (S/H) in bottom-right with 80% opacity → 100% on hover
+- Mobile: Hero Save button (round, centered below card) + bottom nav with Save/History controls. Users use keyboard mic for voice input (no custom STT on mobile)
+- Desktop: MicButton positioned above textarea + minimal ghost chips (S/H) in bottom-right with 80% opacity → 100% on hover
 
 #### 2. LanguageSelector Component
 

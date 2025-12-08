@@ -21,7 +21,7 @@ export default function JournalPage() {
   const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [manualSaveFn, setManualSaveFn] = useState<(() => Promise<void>) | null>(null);
   const [isManualSaveReady, setIsManualSaveReady] = useState(false);
-  const [saveState, setSaveState] = useState<{ isSaving: boolean; isSaved: boolean; error: string | null }>({ isSaving: false, isSaved: false, error: null });
+  const [saveState, setSaveState] = useState<{ isSaving: boolean; isSaved: boolean; error: string | null; isTranscribing?: boolean }>({ isSaving: false, isSaved: false, error: null });
   const { user, loading: authLoading, signOut } = useAuth();
   const router = useRouter();
 

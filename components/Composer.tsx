@@ -1124,11 +1124,51 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         )}
       </div>
 
-      {/* Mobile keyboard mic hint - visible only on mobile */}
+      {/* MOBILE HERO SAVE BUTTON (centered under card) */}
       {!showWelcomeOverlay && (promptState === 'hidden' || promptState === 'selected' || promptState === 'showing') && (
-        <div className="md:hidden flex justify-center mt-4">
+        <div className="md:hidden flex flex-col items-center gap-3 mt-5">
+          {/* Hero Save Button */}
+          <button
+            type="button"
+            onClick={async () => {
+              // Call the same manual save handler used by the bottom nav
+              if (handleManualSaveRef.current) {
+                await handleManualSaveRef.current();
+              }
+            }}
+            disabled={!content.trim() || isSaving || isTranscribing}
+            className={`
+              relative flex items-center justify-center
+              w-20 h-20
+              rounded-full
+              bg-white
+              shadow-[0_14px_40px_rgba(0,0,0,0.22)]
+              border border-white/80
+              transition-transform duration-150
+              active:translate-y-[1px]
+              disabled:opacity-50 disabled:cursor-not-allowed
+              ${isSaving ? "animate-pulse" : ""}
+            `}
+            aria-label={isSaving ? "Saving..." : "Save entry"}
+          >
+            <svg
+              className="w-6 h-6 text-gray-900"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+          </button>
+          
+          {/* Mobile keyboard mic hint */}
           <p className="text-xs text-text-caption text-center px-4 max-w-sm" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
-            Tip: On your phone, use the microphone button on your keyboard to dictate your entry.
+            Tip: On your phone, use the microphone on your keyboard to dictate your entry.
           </p>
         </div>
       )}

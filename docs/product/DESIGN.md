@@ -592,7 +592,7 @@ Optimized for 320-430px widths with proper safe-area handling:
 }
 ```
 
-**Mobile Toolbar**: On mobile devices, the mic button and Save/History controls are moved into a compact sticky toolbar directly under the textarea and above the vibe tags, ensuring they remain visible when the keyboard opens.
+**Mobile Interface**: On mobile devices, a round hero Save button is centered below the journal card. Users can use the keyboard microphone button for voice dictation (no custom STT UI on mobile). The bottom navigation bar contains Save, History, Settings, and Sign Out controls.
 
 ### Breakpoint System
 
