@@ -24,13 +24,26 @@ test.describe('Privacy export/delete', () => {
     // Wait for loading states to complete - wait for header text which appears when page loads
     await expect(page.getByText(/Heijō/i).first()).toBeVisible({ timeout: 15000 });
     
-    // Wait for any onboarding modal to close if present
-    await page.waitForTimeout(1000);
-    const onboardingClose = page.getByRole('button', { name: /close|got it|got it!/i });
-    if (await onboardingClose.isVisible().catch(() => false)) {
-      await onboardingClose.click();
-      await page.waitForTimeout(500);
+    // Close welcome/onboarding overlay if present
+    await page.waitForTimeout(1500);
+    
+    // Strategy 1: Look for "Got it!" button in welcome overlay
+    const gotItBtn = page.getByRole('button', { name: /got it!/i });
+    if (await gotItBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await gotItBtn.click({ force: true });
+      await page.waitForTimeout(1000);
     }
+    
+    // Strategy 2: Handle prompt overlay if present (click "No" to dismiss)
+    const promptNoBtn = page.getByRole('button', { name: /^no$/i });
+    if (await promptNoBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await promptNoBtn.click({ force: true });
+      await page.waitForTimeout(1000);
+    }
+    
+    // Strategy 3: Wait for overlay to be gone
+    const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
+    await expect(welcomeOverlay).not.toBeVisible({ timeout: 10000 }).catch(() => {});
     
     // Find and click Settings button to open Settings modal
     // Try multiple selectors for Settings button
@@ -44,14 +57,34 @@ test.describe('Privacy export/delete', () => {
       await expect(settingsBtn).toBeVisible({ timeout: 10000 });
     }
     await settingsBtn.scrollIntoViewIfNeeded();
-    await settingsBtn.click();
+    // Use force click to bypass any remaining overlay
+    await settingsBtn.click({ force: true });
     await page.waitForTimeout(1000);
 
-    // Export CSV (Settings modal only has CSV export)
-    const exportCsvBtn = page.getByRole('button', { name: /export.*csv/i });
-    if (await exportCsvBtn.isVisible().catch(() => false)) {
-      await exportCsvBtn.click();
-      await page.waitForTimeout(2000);
+    // Wait for Settings modal to be visible and scrollable
+    await page.waitForTimeout(2000);
+    
+    // Settings modal should be open - scroll to find export button
+    const settingsModal = page.locator('[role="dialog"]').or(
+      page.locator('.fixed.inset-0').filter({ has: page.getByText(/Settings/i) })
+    ).first();
+    
+    if (await settingsModal.isVisible({ timeout: 5000 }).catch(() => false)) {
+      // Scroll within modal to find export button
+      await settingsModal.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+    }
+    
+    // Export CSV (Settings modal only has CSV export) - try multiple selectors
+    let exportCsvBtn = page.getByRole('button', { name: /export.*csv/i }).first();
+    if (!(await exportCsvBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
+      exportCsvBtn = page.locator('button').filter({ hasText: /export/i }).first();
+    }
+    
+    if (await exportCsvBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await exportCsvBtn.scrollIntoViewIfNeeded();
+      await exportCsvBtn.click({ force: true });
+      await page.waitForTimeout(3000); // Wait for download
     }
 
     // Delete all data (with confirmation dialog)

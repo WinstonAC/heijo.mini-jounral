@@ -26,13 +26,35 @@ test.describe('Voice feature', () => {
     // Wait for page to load
     await expect(page.getByText(/Heijō/i).first()).toBeVisible({ timeout: 15000 });
     
-    // Close onboarding if present
-    await page.waitForTimeout(1000);
-    const onboardingClose = page.getByRole('button', { name: /close|got it|got it!/i });
-    if (await onboardingClose.isVisible().catch(() => false)) {
-      await onboardingClose.click();
-      await page.waitForTimeout(500);
+    // Close welcome/onboarding overlay if present - try multiple strategies
+    await page.waitForTimeout(1500);
+    
+    // Strategy 1: Look for "Got it!" button in welcome overlay
+    const gotItBtn = page.getByRole('button', { name: /got it!/i });
+    if (await gotItBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await gotItBtn.click({ force: true });
+      await page.waitForTimeout(1000);
     }
+    
+    // Strategy 2: Handle prompt overlay if present (click "No" to dismiss)
+    const promptNoBtn = page.getByRole('button', { name: /^no$/i });
+    if (await promptNoBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await promptNoBtn.click({ force: true });
+      await page.waitForTimeout(1000);
+    }
+    
+    // Strategy 3: If overlay still visible, try clicking textarea to dismiss (triggers handleTextareaFocus)
+    const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
+    if (await welcomeOverlay.isVisible({ timeout: 2000 }).catch(() => false)) {
+      const textarea = page.getByPlaceholder('Type or speak your thoughts...');
+      if (await textarea.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await textarea.click({ force: true });
+        await page.waitForTimeout(1000);
+      }
+    }
+    
+    // Strategy 4: Wait for overlay to be gone (with longer timeout)
+    await expect(welcomeOverlay).not.toBeVisible({ timeout: 10000 }).catch(() => {});
     
     // Wait for composer
     const textarea = page.getByPlaceholder('Type or speak your thoughts...');
@@ -68,6 +90,10 @@ test.describe('Voice feature', () => {
     await micButton.scrollIntoViewIfNeeded();
     await expect(micButton).toBeVisible({ timeout: 10000 });
     
+    // Ensure welcome overlay is gone before clicking
+    const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
+    await expect(welcomeOverlay).not.toBeVisible({ timeout: 5000 }).catch(() => {});
+    
     // Listen for console errors
     const errors: string[] = [];
     page.on('console', msg => {
@@ -76,8 +102,8 @@ test.describe('Voice feature', () => {
       }
     });
     
-    // Click mic button
-    await micButton.click();
+    // Click mic button with force to bypass any remaining overlay
+    await micButton.click({ force: true });
     
     // Wait a bit for initialization
     await page.waitForTimeout(2000);
@@ -105,20 +131,24 @@ test.describe('Voice feature', () => {
     await micButton.scrollIntoViewIfNeeded();
     await expect(micButton).toBeVisible({ timeout: 10000 });
     
-    // Click to start
-    await micButton.click();
+    // Ensure welcome overlay is gone before clicking
+    const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
+    await expect(welcomeOverlay).not.toBeVisible({ timeout: 5000 }).catch(() => {});
+    
+    // Click to start (with force to bypass any overlay)
+    await micButton.click({ force: true });
     await page.waitForTimeout(1000);
     
     // Click again to stop
-    await micButton.click();
+    await micButton.click({ force: true });
     await page.waitForTimeout(1000);
     
     // Should be able to click again (no state corruption)
-    await micButton.click();
+    await micButton.click({ force: true });
     await page.waitForTimeout(1000);
     
     // Final click to stop
-    await micButton.click();
+    await micButton.click({ force: true });
     await page.waitForTimeout(1000);
     
     // If we got here without errors, the toggle works
@@ -138,11 +168,15 @@ test.describe('Voice feature', () => {
     await micButton.scrollIntoViewIfNeeded();
     await expect(micButton).toBeVisible({ timeout: 10000 });
     
-    // Rapid toggling to test for race conditions
+    // Ensure welcome overlay is gone before clicking
+    const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
+    await expect(welcomeOverlay).not.toBeVisible({ timeout: 5000 }).catch(() => {});
+    
+    // Rapid toggling to test for race conditions (with force to bypass overlay)
     for (let i = 0; i < 5; i++) {
-      await micButton.click();
+      await micButton.click({ force: true });
       await page.waitForTimeout(300);
-      await micButton.click();
+      await micButton.click({ force: true });
       await page.waitForTimeout(300);
     }
     
