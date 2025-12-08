@@ -370,43 +370,51 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
 
     try {
-      const savedEntry = await onSave({
-        content: contentToSave,
-        source,
-        tags: selectedTags,
-        created_at: new Date().toISOString(),
-        user_id: userId,
-        sync_status: 'local_only'
-      });
-
-      // Update content hash after successful save
-      lastSavedContentHashRef.current = contentHash;
-      setLastSaved(new Date());
-      setIsRateLimited(false);
-      setRateLimitRetryAfter(null);
-
-      // Only clear content and show success for manual saves
-      // This happens even if cloud sync failed - local save succeeded
+      // Only persist to backend/history for manual saves
+      // Auto and voice saveTypes are for local state management only
+      let savedEntry = null;
       if (saveType === 'manual') {
+        savedEntry = await onSave({
+          content: contentToSave,
+          source,
+          tags: selectedTags,
+          created_at: new Date().toISOString(),
+          user_id: userId,
+          sync_status: 'local_only'
+        });
+
+        // Update content hash after successful save
+        lastSavedContentHashRef.current = contentHash;
+        setLastSaved(new Date());
+        setIsRateLimited(false);
+        setRateLimitRetryAfter(null);
+
+        // Clear content and reset state after successful manual save
         setContent('');
         setSelectedTags([]);
         setInterimTranscript(''); // Clear interim transcript after save
         setSource('text');
+        setHasUserInteracted(false); // Reset interaction flag
+        setIsVoiceActive(false); // Ensure voice state is cleared
         lastSavedContentHashRef.current = null; // Reset hash after clearing
         setIsSaved(true);
         setShowToast(true);
         setTimeout(() => setIsSaved(false), 1800);
         setTimeout(() => setShowToast(false), 3000);
+      } else {
+        // For auto/voice saveTypes, only update local state (no backend persistence)
+        // Update content hash for deduplication, but don't persist
+        lastSavedContentHashRef.current = contentHash;
+        setLastSaved(new Date());
+        setIsRateLimited(false);
+        setRateLimitRetryAfter(null);
       }
       
-      // FIXED: If we merged interimTranscript, update content state to match what was saved
-      // This ensures the UI reflects what was actually saved
-      if (source === 'voice' && finalInterimTranscript && contentToSave !== content.trim()) {
-        // Content was updated with interimTranscript, but we're about to clear it anyway
-        // This is just for consistency - the save already used the merged content
-      }
     } catch (error) {
-      console.error(`${saveType} save failed:`, error);
+      // Only log errors for manual saves (auto/voice don't persist, so no error to report)
+      if (saveType === 'manual') {
+        console.error(`${saveType} save failed:`, error);
+      }
 
       if (error instanceof Error && error.message.includes('Rate limit')) {
         setIsRateLimited(true);
@@ -444,7 +452,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         }, 3000);
       }
 
-      if (source === 'voice') {
+      // Voice-specific error logging only for manual saves
+      if (saveType === 'manual' && source === 'voice') {
         console.warn('Mic transcription ready, but save failed:', error);
       }
     } finally {
