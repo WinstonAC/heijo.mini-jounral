@@ -62,6 +62,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [hasSeenWelcome, setHasSeenWelcome] = useState(true); // Default to true, will check localStorage
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
+  const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const lastSaveAttemptRef = useRef<number>(0);
   const SAVE_DEBOUNCE_MS = 2000; // Minimum 2 seconds between save attempts
   const lastSavedContentHashRef = useRef<string | null>(null);
@@ -271,7 +272,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
     
     if (!contentToSave) {
-      if (saveType === 'manual') {
+      // Only show error for manual saves AND if user has interacted
+      // This prevents toast on initial mount/login before user does anything
+      if (saveType === 'manual' && hasUserInteracted) {
         setSaveError('Entry cannot be empty');
         setShowToast(true);
         setTimeout(() => {
@@ -279,6 +282,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           setSaveError(null);
         }, 3000);
       }
+      // Silently return for auto-save or if user hasn't interacted yet
       return;
     }
 
@@ -447,7 +451,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       setIsSaving(false);
       setIsAutoSaving(false);
     }
-  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive, interimTranscript]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive, interimTranscript, hasUserInteracted]);
 
   const handleAutoSave = useCallback(async () => {
     await saveEntry('auto');
@@ -523,6 +527,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   }, [content, isRateLimited]); // Removed handleManualSave from deps - use ref instead
 
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
+    // Mark user interaction when voice transcript arrives
+    if (!hasUserInteracted) {
+      setHasUserInteracted(true);
+    }
+
     if (isFinal) {
       console.log('Mic transcription complete, ready for saving');
       
@@ -530,11 +539,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       analyticsCollector.trackEvent('voice_recording_start');
       analyticsCollector.trackEvent('voice_to_text_used');
       
-      // FIXED: transcript already contains the full accumulated sentence from WebSpeech
-      // Replace content with the full transcript (don't append - it's already complete)
-      setContent(transcript);
+      // FIXED: Merge final transcript with existing content (don't replace)
+      // This ensures voice additions append to any existing text
+      const mergedContent = content.trim() 
+        ? (content.trim() + ' ' + transcript.trim()).trim()
+        : transcript.trim();
+      
+      setContent(mergedContent);
       setInterimTranscript(''); // Clear interim
-        setSource('voice');
+      setSource('voice');
       setIsVoiceActive(true);
 
       // Clear existing pause timer
@@ -565,6 +578,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       // Interim transcript - show live updates with gentle fade
       setInterimTranscript(transcript);
       setSource('voice');
+      // Mark interaction on interim results too (recording has started)
+      if (!hasUserInteracted) {
+        setHasUserInteracted(true);
+      }
     }
   };
 
@@ -951,8 +968,18 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                   setContent(e.target.value);
                   setSource('text');
                   setInterimTranscript(''); // Clear interim when typing
+                  // Mark user interaction when typing
+                  if (!hasUserInteracted) {
+                    setHasUserInteracted(true);
+                  }
                 }}
-                onFocus={handleTextareaFocus}
+                onFocus={(e) => {
+                  handleTextareaFocus();
+                  // Mark user interaction when focusing textarea
+                  if (!hasUserInteracted) {
+                    setHasUserInteracted(true);
+                  }
+                }}
                 onKeyDown={handleKeyDown}
                 onScroll={(e) => {
                   const target = e.target as HTMLTextAreaElement;
