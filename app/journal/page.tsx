@@ -190,9 +190,9 @@ export default function JournalPage() {
   return (
     <>
     <div className="min-h-screen flex flex-col items-center px-2 sm:px-5 py-4 sm:py-14 md:py-16 safe-area-bottom overflow-y-auto" style={{ background: 'linear-gradient(180deg, #f5f5f5 0%, #f0f0f0 100%)' }}>
-      <div className="w-full max-w-[420px] min-w-[360px] sm:max-w-[420px] sm:min-w-[360px] md:max-w-[960px] md:min-w-[640px] lg:max-w-[960px] lg:min-w-[640px] mx-auto flex flex-col flex-1 mt-6 md:mt-10 pb-4 md:pb-0">
+      <div className="w-full max-w-[420px] min-w-[360px] sm:max-w-[420px] sm:min-w-[360px] md:max-w-[640px] md:min-w-[640px] lg:max-w-[640px] lg:min-w-[640px] mx-auto flex flex-col flex-1 mt-6 md:mt-10 pb-4 md:pb-0">
         {/* Main Journal Panel */}
-        <div className="brutalist-card relative min-h-[72vh] md:h-auto md:flex-1 flex flex-col bg-[#fefefe] rounded-[18px] px-4 sm:px-6 lg:px-8 py-4 pb-4 sm:py-6 gap-4">
+        <div className="brutalist-card relative min-h-[72vh] md:h-auto md:flex-1 flex flex-col bg-[#fefefe] rounded-[18px] px-4 sm:px-6 lg:px-8 py-6 sm:py-8 md:py-10 gap-4">
           {/* Header inside journal panel */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#ececec] flex-shrink-0">
             <div className="flex flex-col gap-1">
@@ -247,27 +247,8 @@ export default function JournalPage() {
             <div 
               className="w-full max-w-[calc(100%-2rem)] rounded-full bg-white/80 backdrop-blur-md flex items-center justify-between px-4 py-2.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)]"
             >
-              {/* Left cluster: Save, History */}
+              {/* Left cluster: History (Save button moved to hero) */}
               <div className="flex items-center gap-2">
-                <button
-                  onClick={async () => {
-                    if (manualSaveFn && typeof manualSaveFn === 'function') {
-                      try {
-                        await manualSaveFn();
-                      } catch (error) {
-                        console.error('Manual save failed:', error);
-                      }
-                    } else {
-                      // Fallback: dispatch event
-                      const event = new CustomEvent('mobileSave');
-                      window.dispatchEvent(event);
-                    }
-                  }}
-                  disabled={!isManualSaveReady || !manualSaveFn || typeof manualSaveFn !== 'function' || saveState.isSaving || saveState.isTranscribing}
-                  className="px-3 py-2 rounded-full text-sm font-medium tracking-[0.08em] text-[#4a4a4a] hover:text-[#1a1a1a] hover:bg-[#f5f5f5] transition-all duration-200 min-h-[44px] min-w-[44px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saveState.isSaving ? 'Saving...' : saveState.isSaved ? 'Saved' : 'Save'}
-                </button>
                 <button
                   onClick={() => {
                     const event = new CustomEvent('openJournalHistory');

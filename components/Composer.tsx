@@ -58,6 +58,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
+  const [isDismissingWelcome, setIsDismissingWelcome] = useState(false);
   const [hasSeenWelcome, setHasSeenWelcome] = useState(true); // Default to true, will check localStorage
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [rateLimitRetryAfter, setRateLimitRetryAfter] = useState<number | null>(null);
@@ -246,19 +247,31 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     setHasSeenWelcome(true);
   }, [userId]);
 
-  // Handle clicking into textarea or typing - dismiss welcome
+  // Handle clicking into textarea or typing - dismiss welcome with smooth transition
   const handleTextareaFocus = useCallback(() => {
-    if (showWelcomeOverlay) {
-      handleDismissWelcome();
+    if (showWelcomeOverlay && !isDismissingWelcome) {
+      // Start fade-out transition
+      setIsDismissingWelcome(true);
+      // Delay actual dismissal to allow transition
+      setTimeout(() => {
+        handleDismissWelcome();
+        setIsDismissingWelcome(false);
+      }, 150);
     }
-  }, [showWelcomeOverlay, handleDismissWelcome]);
+  }, [showWelcomeOverlay, handleDismissWelcome, isDismissingWelcome]);
 
-  // Handle typing - dismiss welcome if user starts typing
+  // Handle typing - dismiss welcome if user starts typing (with smooth transition)
   useEffect(() => {
-    if (showWelcomeOverlay && content.trim().length > 0) {
-      handleDismissWelcome();
+    if (showWelcomeOverlay && content.trim().length > 0 && !isDismissingWelcome) {
+      // Start fade-out transition
+      setIsDismissingWelcome(true);
+      // Delay actual dismissal to allow transition
+      setTimeout(() => {
+        handleDismissWelcome();
+        setIsDismissingWelcome(false);
+      }, 100);
     }
-  }, [content, showWelcomeOverlay, handleDismissWelcome]);
+  }, [content, showWelcomeOverlay, handleDismissWelcome, isDismissingWelcome]);
 
   // Canonical save function - all save paths should use this
   const saveEntry = useCallback(async (saveType: 'manual' | 'auto' | 'voice') => {
@@ -923,27 +936,30 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             {showWelcomeOverlay ? (
               // Welcome message displayed inside the textarea area
               <div 
-                className="w-full rounded-[14px] border border-white/10 journal-input p-6 sm:p-8 flex flex-col justify-center"
+                className="w-full rounded-[14px] border border-white/10 journal-input p-6 sm:p-8 flex flex-col justify-center transition-opacity duration-150"
                 style={{
                   fontFamily: 'Inter, system-ui, sans-serif',
                   background: '#171717',
                   color: 'var(--text-inverse)',
                   border: '1px solid rgba(255,255,255,0.08)',
                   boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.28), 0 6px 20px rgba(0,0,0,0.2)',
+                  opacity: isDismissingWelcome ? 0 : 1,
+                  pointerEvents: isDismissingWelcome ? 'none' : 'auto',
                   ...(promptState === "hidden"
                     ? (
                         isMobile
                           ? {
                               height: "calc(100dvh - 14rem)",
-                              transition: "height 0.3s ease",
+                              transition: "height 0.3s ease, opacity 0.15s ease",
                             }
                           : {
                               height: "clamp(360px, calc(100dvh - 21rem), 520px)",
-                              transition: "height 0.3s ease",
+                              transition: "height 0.3s ease, opacity 0.15s ease",
                             }
                       )
                     : {
                         minHeight: "200px",
+                        transition: "opacity 0.15s ease",
                       })
                 }}
               >
@@ -1138,8 +1154,8 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             }}
             disabled={!content.trim() || isSaving || isTranscribing}
             className={`
-              relative flex items-center justify-center
-              w-20 h-20
+              relative flex flex-col items-center justify-center gap-1.5
+              px-6 py-4
               rounded-full
               bg-white
               shadow-[0_14px_40px_rgba(0,0,0,0.22)]
@@ -1147,23 +1163,64 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
               transition-transform duration-150
               active:translate-y-[1px]
               disabled:opacity-50 disabled:cursor-not-allowed
+              min-w-[120px]
               ${isSaving ? "animate-pulse" : ""}
             `}
-            aria-label={isSaving ? "Saving..." : "Save entry"}
+            aria-label={isSaving ? "Saving..." : isSaved ? "Saved" : "Save entry"}
           >
-            <svg
-              className="w-6 h-6 text-gray-900"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M5 13l4 4L19 7" />
-            </svg>
+            {isSaving ? (
+              <>
+                <svg
+                  className="w-5 h-5 text-gray-900 animate-spin"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" />
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                </svg>
+                <span className="text-sm font-medium text-gray-900">Saving…</span>
+              </>
+            ) : isSaved ? (
+              <>
+                <svg
+                  className="w-5 h-5 text-gray-900"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-sm font-medium text-gray-900">Saved</span>
+              </>
+            ) : (
+              <>
+                <svg
+                  className="w-5 h-5 text-gray-900"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M5 13l4 4L19 7" />
+                </svg>
+                <span className="text-sm font-medium text-gray-900">Save</span>
+              </>
+            )}
           </button>
           
           {/* Mobile keyboard mic hint */}
@@ -1205,7 +1262,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 disabled={!content.trim() || isRateLimited || isSaving}
               className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
-                {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'S'}
+                {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
               </button>
               <button
                 onClick={() => {
@@ -1214,7 +1271,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 }}
               className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
-                H
+                History
               </button>
           </div>
         </div>
