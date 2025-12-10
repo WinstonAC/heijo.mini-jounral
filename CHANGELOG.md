@@ -28,3 +28,4 @@ All notable changes to this project will be documented in this file.
 
 ### Docs
 - Testing Readiness, Architecture overview, Deployment, Extension packaging
+- chore: test push from new Mac
