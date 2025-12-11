@@ -831,7 +831,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
               <p className="text-graphite-charcoal font-medium text-lg sm:text-xl mb-6 sm:mb-8 leading-relaxed subheading">
                 Would you like a prompt today?
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center mb-4" role="group" aria-label="Prompt response options">
                 <button
                   onClick={handlePromptYes}
                   className="px-6 py-3 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 min-h-[44px]"
@@ -863,7 +863,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             <p className="text-graphite-charcoal font-medium text-base flex-1 sm:pr-6 leading-relaxed body-text">
               {currentPrompt.text}
             </p>
-            <div className="flex flex-wrap items-center gap-2 justify-end sm:justify-start">
+            <div className="flex flex-wrap items-center gap-2 justify-end sm:justify-start" role="group" aria-label="Prompt actions">
               <button
                 onClick={handleSelectPrompt}
                 className="px-4 py-2 text-sm font-medium silver-button text-graphite-charcoal rounded-lg transition-all duration-300 min-w-[96px]"
@@ -1074,22 +1074,29 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             
             {/* Jump to live button */}
             {isUserScrolled && isVoiceActive && (
-              <div className="absolute bottom-4 left-4 bg-graphite-charcoal text-text-inverse text-sm px-4 py-2 rounded-lg cursor-pointer hover:bg-soft-silver hover:text-graphite-charcoal transition-all duration-300 animate-fade-in shadow-lg"
-                   onClick={() => {
-                     if (textareaRef.current) {
-                       textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
-                       setIsUserScrolled(false);
-                     }
-                   }}>
+              <button
+                className="absolute bottom-4 left-4 bg-graphite-charcoal text-text-inverse text-sm px-4 py-2 rounded-lg hover:bg-soft-silver hover:text-graphite-charcoal transition-all duration-300 animate-fade-in shadow-lg focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-300"
+                onClick={() => {
+                  if (textareaRef.current) {
+                    textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+                    setIsUserScrolled(false);
+                  }
+                }}
+                aria-label="Jump to live transcript"
+              >
                 Jump to live
-              </div>
+              </button>
             )}
             
             {/* Live transcript indicator */}
             {interimTranscript && (
-              <div className="absolute bottom-4 right-4 bg-graphite-charcoal text-text-inverse text-sm px-4 py-2 rounded-lg opacity-90 animate-fade-in shadow-lg">
+              <div 
+                className="absolute bottom-4 right-4 bg-graphite-charcoal text-text-inverse text-sm px-4 py-2 rounded-lg opacity-90 animate-fade-in shadow-lg"
+                aria-live="polite"
+                aria-atomic="true"
+              >
                 <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-soft-silver rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-soft-silver rounded-full animate-pulse" aria-hidden="true"></div>
                   <span>Listening...</span>
                 </div>
               </div>
@@ -1279,7 +1286,13 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
       {/* Toast Notifications */}
       {showToast && (
-        <div className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}>
+        <div 
+          className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" 
+          style={{ fontFamily: '"Indie Flower", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif' }}
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {saveError ? saveError : isRateLimited ? 'Rate limit exceeded. Please try again later.' : 'Saved locally'}
         </div>
       )}
