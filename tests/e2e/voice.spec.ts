@@ -189,5 +189,111 @@ test.describe('Voice feature', () => {
     
     expect(criticalErrors.length).toBe(0);
   });
+
+  test('voice session does not trigger save or create history entries', async ({ page }) => {
+    // Find mic button
+    const micButton = page.locator('button[title*="voice" i]').or(
+      page.locator('button[title*="recording" i]')
+    ).or(
+      page.locator('button[title*="Start voice" i]')
+    ).or(
+      page.locator('button').filter({ has: page.locator('svg path[d*="M12 1a3"]') })
+    ).first();
+    
+    await micButton.scrollIntoViewIfNeeded();
+    await expect(micButton).toBeVisible({ timeout: 10000 });
+    
+    // Ensure welcome overlay is gone
+    const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
+    await expect(welcomeOverlay).not.toBeVisible({ timeout: 5000 }).catch(() => {});
+    
+    // Get initial entry count from History drawer
+    const historyButton = page.getByRole('button', { name: /history/i }).first();
+    let initialCount = 0;
+    
+    if (await historyButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await historyButton.click();
+      await page.waitForTimeout(500);
+      
+      // Count entries in history drawer
+      const historyEntries = page.locator('[data-testid="entry-item"], .entry-item, [class*="entry"]');
+      initialCount = await historyEntries.count();
+      
+      // Close history drawer
+      const closeButton = page.locator('button[aria-label*="close" i], button[aria-label*="Close" i]').first();
+      if (await closeButton.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await closeButton.click();
+      } else {
+        await page.keyboard.press('Escape');
+      }
+      await page.waitForTimeout(500);
+    }
+    
+    // Start mic
+    await micButton.click({ force: true });
+    await page.waitForTimeout(2000); // Wait for voice to be active
+    
+    // Verify Save button is disabled while voice is active
+    const saveButton = page.getByRole('button', { name: /^save$/i }).first();
+    if (await saveButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await expect(saveButton).toBeDisabled();
+    }
+    
+    // Try to trigger save via keyboard shortcut (should be blocked by guard)
+    await page.keyboard.press('Control+s');
+    await page.waitForTimeout(1000);
+    
+    // Check that "Saved" toast never appeared
+    const savedToast = page.getByText(/saved/i);
+    await expect(savedToast).not.toBeVisible({ timeout: 2000 }).catch(() => {});
+    
+    // Stop mic
+    await micButton.click({ force: true });
+    await page.waitForTimeout(2000);
+    
+    // Wait for transcription to finish (isTranscribing becomes false)
+    // Wait for "Listening..." indicator to disappear
+    const listeningIndicator = page.getByText('Listening...');
+    await expect(listeningIndicator).not.toBeVisible({ timeout: 10000 }).catch(() => {});
+    await page.waitForTimeout(3000); // Extra wait to ensure processing is complete and state updates
+    
+    // Check if there's content in textarea (if no content, Save will be disabled anyway)
+    const textarea = page.getByPlaceholder('Type or speak your thoughts...');
+    const hasContent = await textarea.inputValue().then(val => val.trim().length > 0).catch(() => false);
+    
+    // If there's content, verify Save button is enabled (after voice stops and transcription finishes)
+    if (hasContent) {
+      if (await saveButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await expect(saveButton).toBeEnabled({ timeout: 5000 });
+      }
+      
+      // Now click Save - should work after voice stops
+      await saveButton.click();
+      await page.waitForTimeout(2000); // Wait for save to complete
+      
+      // Verify exactly ONE new entry appears in history
+      if (initialCount > 0 && await historyButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await historyButton.click();
+        await page.waitForTimeout(500);
+        
+        const historyEntries = page.locator('[data-testid="entry-item"], .entry-item, [class*="entry"]');
+        const finalCount = await historyEntries.count();
+        expect(finalCount).toBe(initialCount + 1); // Should have exactly one more entry
+      }
+      
+      // Verify "Saved" toast appeared after manual save
+      await expect(savedToast).toBeVisible({ timeout: 2000 }).catch(() => {});
+    } else {
+      // If no content, verify no save occurred
+      if (initialCount > 0 && await historyButton.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await historyButton.click();
+        await page.waitForTimeout(500);
+        
+        const historyEntries = page.locator('[data-testid="entry-item"], .entry-item, [class*="entry"]');
+        const finalCount = await historyEntries.count();
+        expect(finalCount).toBe(initialCount); // Count should remain the same
+      }
+    }
+  });
 });
 

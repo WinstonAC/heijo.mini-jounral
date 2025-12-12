@@ -55,6 +55,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Mobile mic refs removed - mobile no longer uses custom MicButton
   const handleManualSaveRef = useRef<() => Promise<void>>();
+  const userInitiatedSaveRef = useRef<boolean>(false); // Guard to ensure only user-initiated saves proceed
   const [isUserScrolled, setIsUserScrolled] = useState(false);
   const [showSaveGlow, setShowSaveGlow] = useState(false);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
@@ -85,6 +86,14 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   
   // Beta: Disable auto-save completely - manual save only
   const ENABLE_AUTO_SAVE = process.env.NEXT_PUBLIC_ENABLE_AUTO_SAVE === 'true';
+
+  // Environment sanity check (dev-only)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[ENV CHECK]', {
+      ENABLE_AUTO_SAVE,
+      NEXT_PUBLIC_ENABLE_AUTO_SAVE: process.env.NEXT_PUBLIC_ENABLE_AUTO_SAVE
+    });
+  }
 
   // Check if user has seen welcome (account-based, Supabase-first)
   // Show onboarding if has_seen_onboarding is false AND heijo_hasSeenWelcome is not 'true'
@@ -285,6 +294,32 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
   // Canonical save function - all save paths should use this
   const saveEntry = useCallback(async (saveType: 'manual' | 'auto' | 'voice') => {
+    // Single-point guard: Block manual saves only while voice is active or transcription is processing
+    // After voice stops and transcription finishes, user CAN save even if source === 'voice'
+    if (saveType === 'manual' && (isVoiceActive || isTranscribing)) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[SAVE BLOCKED] manual save blocked during voice session', {
+          isVoiceActive,
+          isTranscribing,
+          source,
+          contentLength: content.length
+        });
+      }
+      return; // Return early - no persistence, no clearing, no "Saved" toast
+    }
+    
+    // Regression-proof guard: Only allow manual saves if user-initiated
+    if (saveType === 'manual' && !userInitiatedSaveRef.current) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[SAVE BLOCKED] manual save blocked - not user-initiated', {
+          isVoiceActive,
+          source,
+          contentLength: content.length
+        });
+      }
+      return; // Return early - prevents any non-user-initiated saves
+    }
+    
     // FIXED: For voice entries, merge interimTranscript into content before saving
     // This ensures what the user sees in the textarea matches what gets saved
     let contentToSave = content.trim();
@@ -474,6 +509,13 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         setRateLimitRetryAfter(null);
 
         // Clear content and reset state after successful manual save
+        if (process.env.NODE_ENV === 'development') {
+          console.trace('[CONTENT CLEAR]', {
+            saveType,
+            source,
+            contentLength: content.length
+          });
+        }
         setContent('');
         setSelectedTags([]);
         setInterimTranscript(''); // Clear interim transcript after save
@@ -557,7 +599,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         isSaveInProgressRef.current = false;
       }
     }
-  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive, interimTranscript, hasUserInteracted]);
+  }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive, isTranscribing, interimTranscript, hasUserInteracted]);
 
   const handleAutoSave = useCallback(async () => {
     await saveEntry('auto');
@@ -613,7 +655,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [content, handleAutoSave, isAutoSaving, isRateLimited, isSaving, source, ENABLE_AUTO_SAVE]);
+  }, [content, handleAutoSave, isAutoSaving, isRateLimited, isSaving, source, ENABLE_AUTO_SAVE, isVoiceActive, isTranscribing]);
 
   // Keyboard shortcuts for save functionality
   useEffect(() => {
@@ -625,13 +667,27 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         if (content.trim() && !isRateLimited) {
           if (process.env.NODE_ENV === 'development') {
             console.info('Save triggered via keyboard shortcut');
+            console.trace('[TRACE] keyboard shortcut triggered save', {
+              key: event.key,
+              metaKey: event.metaKey,
+              ctrlKey: event.ctrlKey,
+              isVoiceActive,
+              source,
+              contentLength: content.length
+            });
           }
           // Trigger silver glow animation
           setShowSaveGlow(true);
           setTimeout(() => setShowSaveGlow(false), 1000);
           // Use ref to call handleManualSave to respect rate limits and debouncing
-          if (handleManualSaveRef.current) {
-            handleManualSaveRef.current();
+          // Set user-initiated flag before calling
+          try {
+            userInitiatedSaveRef.current = true;
+            if (handleManualSaveRef.current) {
+              handleManualSaveRef.current();
+            }
+          } finally {
+            userInitiatedSaveRef.current = false;
           }
         } else if (isRateLimited) {
           if (process.env.NODE_ENV === 'development') {
@@ -643,7 +699,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [content, isRateLimited]); // Removed handleManualSave from deps - use ref instead
+  }, [content, isRateLimited, isVoiceActive, source]); // Removed handleManualSave from deps - use ref instead
 
   const handleVoiceTranscript = (transcript: string, isFinal?: boolean) => {
     // Mark user interaction when voice transcript arrives
@@ -748,8 +804,21 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Desktop MicButton is rendered separately and doesn't need this ref setup
 
   const handleManualSave = useCallback(async () => {
-    await saveEntry('manual');
-  }, [saveEntry]);
+    if (process.env.NODE_ENV === 'development') {
+      console.trace('[TRACE] handleManualSave called', {
+        isVoiceActive,
+        source,
+        isTranscribing,
+        contentLength: content.length
+      });
+    }
+    try {
+      userInitiatedSaveRef.current = true;
+      await saveEntry('manual');
+    } finally {
+      userInitiatedSaveRef.current = false;
+    }
+  }, [saveEntry, isVoiceActive, source, isTranscribing, content]);
 
   // Store latest handleManualSave in ref (update ref directly, no useEffect to avoid loops)
   handleManualSaveRef.current = handleManualSave;
@@ -788,13 +857,36 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Listen for mobile save event from bottom nav (fallback)
   useEffect(() => {
     const handleMobileSave = () => {
-      if (handleManualSaveRef.current) {
-        handleManualSaveRef.current();
+      if (process.env.NODE_ENV === 'development') {
+        console.trace('[TRACE] window mobileSave event received', {
+          isVoiceActive,
+          source,
+          isTranscribing,
+          contentLength: content.length
+        });
+      }
+      // Block save if voice is active (extra safety)
+      if (isVoiceActive) {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[MOBILE-SAVE] Blocked: voice is active');
+        }
+        return;
+      }
+      
+      // Only allow save if explicitly triggered by user action
+      // The mobile Save button should call handleManualSaveRef directly, not dispatch this event
+      try {
+        userInitiatedSaveRef.current = true;
+        if (handleManualSaveRef.current) {
+          handleManualSaveRef.current();
+        }
+      } finally {
+        userInitiatedSaveRef.current = false;
       }
     };
     window.addEventListener('mobileSave', handleMobileSave);
     return () => window.removeEventListener('mobileSave', handleMobileSave);
-  }, []); // Empty deps - use ref to get latest function
+  }, [isVoiceActive, source, content, isTranscribing]); // Include dependencies to check current state
 
   // Listen for manual prompt request from Settings
   useEffect(() => {
@@ -1216,15 +1308,28 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             <div className="relative group">
               <button
                 onClick={() => {
+                  if (process.env.NODE_ENV === 'development') {
+                    console.trace('[TRACE] FAB save button clicked save', {
+                      isVoiceActive,
+                      source,
+                      isTranscribing,
+                      contentLength: content.length
+                    });
+                  }
                   // Trigger silver glow animation
                   setShowSaveGlow(true);
                   setTimeout(() => setShowSaveGlow(false), 1000);
                   // Use canonical save function
-                  if (handleManualSaveRef.current) {
-                    handleManualSaveRef.current();
+                  try {
+                    userInitiatedSaveRef.current = true;
+                    if (handleManualSaveRef.current) {
+                      handleManualSaveRef.current();
+                    }
+                  } finally {
+                    userInitiatedSaveRef.current = false;
                   }
                 }}
-                disabled={!content.trim() || isAutoSaving || isSaving}
+                disabled={!content.trim() || isAutoSaving || isSaving || isTranscribing || isVoiceActive}
                 className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full silver-button flex items-center justify-center transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                   isAutoSaving ? 'animate-pulse' : ''
                 } ${showSaveGlow ? 'silverGlow' : ''}`}
@@ -1260,12 +1365,25 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           <button
             type="button"
             onClick={async () => {
+              if (process.env.NODE_ENV === 'development') {
+                console.trace('[TRACE] mobile hero save button clicked save', {
+                  isVoiceActive,
+                  source,
+                  isTranscribing,
+                  contentLength: content.length
+                });
+              }
               // Call the same manual save handler used by the bottom nav
-              if (handleManualSaveRef.current) {
-                await handleManualSaveRef.current();
+              try {
+                userInitiatedSaveRef.current = true;
+                if (handleManualSaveRef.current) {
+                  await handleManualSaveRef.current();
+                }
+              } finally {
+                userInitiatedSaveRef.current = false;
               }
             }}
-            disabled={!content.trim() || isSaving || isTranscribing}
+                disabled={!content.trim() || isSaving || isTranscribing || isVoiceActive}
             className={`
               relative flex flex-col items-center justify-center gap-1.5
               px-6 py-4
@@ -1371,8 +1489,18 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           {/* Desktop ghost chips - hidden on mobile */}
           <div className="hidden md:flex items-center gap-2 ml-auto">
               <button
-                onClick={handleManualSave}
-                disabled={!content.trim() || isRateLimited || isSaving}
+                onClick={() => {
+                  if (process.env.NODE_ENV === 'development') {
+                    console.trace('[TRACE] desktop Save ghost chip clicked save', {
+                      isVoiceActive,
+                      source,
+                      isTranscribing,
+                      contentLength: content.length
+                    });
+                  }
+                  handleManualSave();
+                }}
+                disabled={!content.trim() || isRateLimited || isSaving || isTranscribing || isVoiceActive}
               className="ghost-chip rounded-full px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] uppercase disabled:opacity-30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-800"
               >
                 {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save'}
