@@ -1,28 +1,12 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_EMAIL = process.env.TEST_EMAIL || 'testrunner+01@heijo.io';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || 'Heijo-Test-2025!';
-
 test.describe('Journal basics', () => {
   test('create entries, tag, and search', async ({ page }) => {
-    // Sign in first
-    await page.goto('/login');
+    // Navigate directly to journal (auth handled by global setup)
+    await page.goto('/journal');
     await page.waitForLoadState('networkidle');
     
-    const emailInput = page.getByPlaceholder('Enter your email');
-    const passwordInput = page.getByPlaceholder('Enter your password');
-    
-    await emailInput.fill(TEST_EMAIL);
-    await passwordInput.fill(TEST_PASSWORD);
-    
-    // Wait for button to be enabled
-    await page.waitForTimeout(500);
-    await page.getByRole('button', { name: /sign in/i }).click({ force: true });
-    
-    await page.waitForURL(/\/journal/, { timeout: 15000 });
-    
-    // Wait for loading states to complete - wait for header text which appears when page loads
-    // This confirms the page has passed the loading screen
+    // Wait for stable journal page marker (Heijō header)
     await expect(page.getByText(/Heijō/i).first()).toBeVisible({ timeout: 15000 });
     
     // Close welcome/onboarding overlay if present
