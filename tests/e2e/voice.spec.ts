@@ -1,29 +1,15 @@
 import { test, expect } from '@playwright/test';
 
-const TEST_EMAIL = process.env.TEST_EMAIL || 'testrunner+01@heijo.io';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || 'Heijo-Test-2025!';
-
 test.describe('Voice feature', () => {
   test.beforeEach(async ({ page, context }) => {
     // Grant microphone permissions for voice tests
     await context.grantPermissions(['microphone'], { origin: 'http://localhost:3000' });
     
-    // Sign in first
-    await page.goto('/login');
+    // Navigate directly to journal (auth handled by global setup)
+    await page.goto('/journal');
     await page.waitForLoadState('networkidle');
     
-    const emailInput = page.getByPlaceholder('Enter your email');
-    const passwordInput = page.getByPlaceholder('Enter your password');
-    
-    await emailInput.fill(TEST_EMAIL);
-    await passwordInput.fill(TEST_PASSWORD);
-    
-    await page.waitForTimeout(500);
-    await page.getByRole('button', { name: /sign in/i }).click({ force: true });
-    
-    await page.waitForURL(/\/journal/, { timeout: 15000 });
-    
-    // Wait for page to load
+    // Wait for stable journal page marker (Heijō header)
     await expect(page.getByText(/Heijō/i).first()).toBeVisible({ timeout: 15000 });
     
     // Close welcome/onboarding overlay if present - try multiple strategies

@@ -135,7 +135,9 @@ class VoiceToTextEngine {
     }
 
     if (typeof window === 'undefined') {
-      console.log('VoiceToTextEngine: Window not available (SSR)');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('VoiceToTextEngine: Window not available (SSR)');
+      }
       return false;
     }
 
@@ -147,14 +149,20 @@ class VoiceToTextEngine {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      console.log('VoiceToTextEngine: Speech recognition not supported in this browser');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('VoiceToTextEngine: Speech recognition not supported in this browser');
+      }
       return false; // Don't throw, return false so caller can handle gracefully
     }
 
-    console.log(`VoiceToTextEngine: Initializing speech recognition with language: ${this.config.language}`);
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`VoiceToTextEngine: Initializing speech recognition with language: ${this.config.language}`);
+    }
     this.recognition = new SpeechRecognition();
     this.setupRecognition();
-    console.log('VoiceToTextEngine: Speech recognition initialized successfully');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('VoiceToTextEngine: Speech recognition initialized successfully');
+    }
     return true;
   }
 
@@ -180,7 +188,9 @@ class VoiceToTextEngine {
     // Update recognition language if it exists
     if (this.recognition) {
       this.recognition.lang = language;
-      console.log(`VoiceToTextEngine: Language updated to ${language}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`VoiceToTextEngine: Language updated to ${language}`);
+      }
     }
   }
 
@@ -206,7 +216,9 @@ class VoiceToTextEngine {
     // Ensure language is set correctly before starting
     if (this.recognition.lang !== this.config.language) {
       this.recognition.lang = this.config.language;
-      console.log(`VoiceToTextEngine: Language set to ${this.config.language} before start`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`VoiceToTextEngine: Language set to ${this.config.language} before start`);
+      }
     }
 
     this.isListening = true;
@@ -284,7 +296,9 @@ class VoiceToTextEngine {
 
     this.recognition.onstart = () => {
       this.isListening = true;
-      console.log('[Heijo][Voice][WebSpeech] onstart');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Heijo][Voice][WebSpeech] onstart');
+      }
       this.onStartCallback?.();
     };
 
@@ -317,27 +331,37 @@ class VoiceToTextEngine {
         this.accumulatedFinalTranscript = '';
       }
       
-      console.log('[Heijo][Voice][WebSpeech] onend');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Heijo][Voice][WebSpeech] onend');
+      }
       this.onEndCallback?.();
     };
 
     this.recognition.onaudiostart = () => {
-      console.log('[Heijo][Voice][WebSpeech] onaudiostart');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Heijo][Voice][WebSpeech] onaudiostart');
+      }
     };
 
     this.recognition.onspeechstart = () => {
       this.lastSpeechTime = performance.now();
       this.clearSilenceTimer();
-      console.log('[Heijo][Voice][WebSpeech] onspeechstart');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Heijo][Voice][WebSpeech] onspeechstart');
+      }
     };
 
     this.recognition.onspeechend = () => {
       this.startSilenceTimer();
-      console.log('[Heijo][Voice][WebSpeech] onspeechend');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Heijo][Voice][WebSpeech] onspeechend');
+      }
     };
 
     this.recognition.onaudioend = () => {
-      console.log('[Heijo][Voice][WebSpeech] onaudioend');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('[Heijo][Voice][WebSpeech] onaudioend');
+      }
     };
 
     this.recognition.onnomatch = () => {
@@ -379,13 +403,15 @@ class VoiceToTextEngine {
     }
 
     // Debug logging to help validate behavior
-    console.log('WebSpeech onresult:', {
-      resultIndex: event.resultIndex,
-      resultsLength: event.results.length,
-      finalTranscript,
-      interimTranscript,
-      accumulatedFinalTranscript: this.accumulatedFinalTranscript
-    });
+    if (process.env.NODE_ENV === 'development') {
+      console.log('WebSpeech onresult:', {
+        resultIndex: event.resultIndex,
+        resultsLength: event.results.length,
+        finalTranscript,
+        interimTranscript,
+        accumulatedFinalTranscript: this.accumulatedFinalTranscript
+      });
+    }
 
     // Accumulate final transcripts across multiple events
     if (finalTranscript) {
@@ -433,7 +459,9 @@ class VoiceToTextEngine {
     if (this.config.maxSilenceDuration > 0) {
       this.silenceTimer = setTimeout(() => {
         if (this.isListening) {
-          console.log('VoiceToTextEngine: Silence timeout reached, stopping recognition');
+          if (process.env.NODE_ENV === 'development') {
+            console.log('VoiceToTextEngine: Silence timeout reached, stopping recognition');
+          }
           this.stop();
         }
       }, this.config.maxSilenceDuration);

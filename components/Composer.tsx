@@ -69,12 +69,22 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const lastSaveAttemptRef = useRef<number>(0);
   const SAVE_DEBOUNCE_MS = 2000; // Minimum 2 seconds between save attempts
   const lastSavedContentHashRef = useRef<string | null>(null);
+  const lastManualSaveTimestampRef = useRef<number>(0); // Track last manual save timestamp for 5-second minimum
+  const lastSavedContentStringRef = useRef<string | null>(null); // Track last saved content string for duplicate detection
+  const isSaveInProgressRef = useRef<boolean>(false); // Guard to ensure onSave is only called once per save operation
+  const MIN_MANUAL_SAVE_INTERVAL_MS = 5000; // Minimum 5 seconds between manual saves
+  const DUPLICATE_SAVE_WINDOW_MS = 60000; // 60 seconds window for duplicate detection
+  const MIN_SAVING_DISPLAY_MS = 400; // Minimum time to show "Saving..." state
+  const MIN_SAVED_DISPLAY_MS = 1000; // Minimum time to show "Saved" state
   
   // Mobile detection hook
   const isMobile = useIsMobile();
   
   // Feature flag to disable FAB
   const ENABLE_FAB = false;
+  
+  // Beta: Disable auto-save completely - manual save only
+  const ENABLE_AUTO_SAVE = process.env.NEXT_PUBLIC_ENABLE_AUTO_SAVE === 'true';
 
   // Check if user has seen welcome (account-based, Supabase-first)
   // Show onboarding if has_seen_onboarding is false AND heijo_hasSeenWelcome is not 'true'
@@ -301,11 +311,37 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       return;
     }
 
-    // Content hash deduplication - prevent saving identical content
-    // FIXED: Use the merged content (including interimTranscript) for hash calculation
+    // Strong duplicate save protection - check content, tags, source, and timestamp
     const contentHash = `${contentToSave}-${selectedTags.join(',')}-${source}`;
-    if (contentHash === lastSavedContentHashRef.current) {
+    const now = Date.now();
+    const timeSinceLastSave = now - lastManualSaveTimestampRef.current;
+    
+    // Check if this is a duplicate save within the time window
+    if (saveType === 'manual' && lastSavedContentStringRef.current !== null) {
+      const isIdenticalContent = contentToSave === lastSavedContentStringRef.current;
+      const isIdenticalTags = selectedTags.join(',') === (lastSavedContentStringRef.current.split('|TAGS|')[1] || '');
+      const isIdenticalSource = source === (lastSavedContentStringRef.current.split('|SOURCE|')[1] || 'text');
+      
+      if (isIdenticalContent && isIdenticalTags && isIdenticalSource && timeSinceLastSave < DUPLICATE_SAVE_WINDOW_MS) {
+        if (process.env.NODE_ENV === 'development') {
+          console.info('[Heijo][Save] Duplicate or rapid save blocked');
+        }
+        setSaveError('This entry looks identical to your last saved entry.');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 3000);
+        return;
+      }
+    }
+    
+    // Also check hash for additional protection
+    if (contentHash === lastSavedContentHashRef.current && timeSinceLastSave < DUPLICATE_SAVE_WINDOW_MS) {
       if (saveType === 'manual') {
+        if (process.env.NODE_ENV === 'development') {
+          console.info('[Heijo][Save] Duplicate or rapid save blocked');
+        }
         setSaveError('This entry looks identical to your last saved entry.');
         setShowToast(true);
         setTimeout(() => {
@@ -313,13 +349,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           setSaveError(null);
         }, 3000);
       }
-      // Log for debugging (not silent failure)
-      console.log('[Heijo][Save] Blocked duplicate save:', contentHash);
       return;
     }
 
-    // Prevent rapid saves - debounce
-    const now = Date.now();
+    // Prevent rapid saves - debounce (general protection)
+    // Reuse 'now' variable declared earlier for duplicate save protection
     if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
       if (saveType === 'manual') {
         setSaveError('Saving too quickly, please wait a moment.');
@@ -330,6 +364,23 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         }, 2000);
       }
       return;
+    }
+
+    // Enforce minimum 5-second window between manual saves
+    if (saveType === 'manual') {
+      const timeSinceLastManualSave = now - lastManualSaveTimestampRef.current;
+      if (timeSinceLastManualSave > 0 && timeSinceLastManualSave < MIN_MANUAL_SAVE_INTERVAL_MS) {
+        if (process.env.NODE_ENV === 'development') {
+          console.info('[Heijo][Save] Duplicate or rapid save blocked');
+        }
+        setSaveError('Please wait a moment before saving again.');
+        setShowToast(true);
+        setTimeout(() => {
+          setShowToast(false);
+          setSaveError(null);
+        }, 2000);
+        return;
+      }
     }
 
     // Don't attempt save if rate limited
@@ -346,7 +397,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
 
     // Don't save if already saving
-    if (isSaving) {
+    if (isSaving || isSaveInProgressRef.current) {
       if (saveType === 'manual') {
         setSaveError('Still saving your previous entry...');
         setShowToast(true);
@@ -365,10 +416,19 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
 
     lastSaveAttemptRef.current = now;
+    if (saveType === 'manual') {
+      lastManualSaveTimestampRef.current = now;
+      isSaveInProgressRef.current = true; // Set guard to prevent double calls
+    }
+    
+    // Set saving state with minimum display time
     setIsSaving(true);
     setIsAutoSaving(saveType === 'auto');
     setIsSaved(false);
     setSaveError(null);
+    
+    // Track minimum display time for "Saving..." state
+    const savingStartTime = Date.now();
 
     // Stop voice recording if active and this is a manual save
     // Note: On mobile, users use keyboard mic, so this only applies to desktop MicButton
@@ -384,17 +444,31 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       // Auto and voice saveTypes are for local state management only
       let savedEntry = null;
       if (saveType === 'manual') {
-        savedEntry = await onSave({
-          content: contentToSave,
-          source,
-          tags: selectedTags,
-          created_at: new Date().toISOString(),
-          user_id: userId,
-          sync_status: 'local_only'
-        });
+        // Ensure minimum "Saving..." display time
+        const savingElapsed = Date.now() - savingStartTime;
+        const remainingSavingTime = Math.max(0, MIN_SAVING_DISPLAY_MS - savingElapsed);
+        
+        if (remainingSavingTime > 0) {
+          await new Promise(resolve => setTimeout(resolve, remainingSavingTime));
+        }
+        
+        // Call onSave exactly once per manual save (guard ensures no double calls)
+        if (isSaveInProgressRef.current) {
+          savedEntry = await onSave({
+            content: contentToSave,
+            source,
+            tags: selectedTags,
+            created_at: new Date().toISOString(),
+            user_id: userId,
+            sync_status: 'local_only'
+          });
+          // Clear guard after successful save
+          isSaveInProgressRef.current = false;
+        }
 
-        // Update content hash after successful save
-        lastSavedContentHashRef.current = contentHash;
+        // Persist saved content string for duplicate detection (keep for 60 seconds)
+        lastSavedContentStringRef.current = `${contentToSave}|TAGS|${selectedTags.join(',')}|SOURCE|${source}`;
+        lastSavedContentHashRef.current = contentHash; // Keep hash for additional protection
         setLastSaved(new Date());
         setIsRateLimited(false);
         setRateLimitRetryAfter(null);
@@ -406,10 +480,18 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         setSource('text');
         setHasUserInteracted(false); // Reset interaction flag
         setIsVoiceActive(false); // Ensure voice state is cleared
-        lastSavedContentHashRef.current = null; // Reset hash after clearing
+        
+        // Show "Saved" state with minimum display time (manual saves only)
         setIsSaved(true);
         setShowToast(true);
-        setTimeout(() => setIsSaved(false), 1800);
+        
+        // Clear saved content string after duplicate window expires
+        setTimeout(() => {
+          lastSavedContentStringRef.current = null;
+        }, DUPLICATE_SAVE_WINDOW_MS);
+        
+        // Clear "Saved" state after minimum display time
+        setTimeout(() => setIsSaved(false), MIN_SAVED_DISPLAY_MS);
         setTimeout(() => setShowToast(false), 3000);
       } else {
         // For auto/voice saveTypes, only update local state (no backend persistence)
@@ -454,8 +536,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         // Local save failures will throw and be caught here
         setSaveError('Failed to save entry. Please try again.');
         setShowToast(true);
-        // Reset hash on error so user can retry with same content
+        // Reset hash and saved content on error so user can retry with same content
         lastSavedContentHashRef.current = null;
+        lastSavedContentStringRef.current = null;
         setTimeout(() => {
           setShowToast(false);
           setSaveError(null);
@@ -469,6 +552,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     } finally {
       setIsSaving(false);
       setIsAutoSaving(false);
+      // Clear save guard in finally to ensure it's reset even on error
+      if (saveType === 'manual') {
+        isSaveInProgressRef.current = false;
+      }
     }
   }, [content, source, selectedTags, userId, onSave, isRateLimited, isSaving, isVoiceActive, interimTranscript, hasUserInteracted]);
 
@@ -477,8 +564,17 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   }, [saveEntry]);
 
   // Auto-save functionality (7 seconds after content changes)
-  // Disabled for voice entries until user manually saves
+  // BETA: Disabled completely - manual save only
   useEffect(() => {
+    if (!ENABLE_AUTO_SAVE) {
+      // Clear any existing timeout if auto-save is disabled
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      return;
+    }
+    
     // Don't set up auto-save if rate limited or already saving
     if (isRateLimited || isSaving) {
       if (autoSaveTimeoutRef.current) {
@@ -517,7 +613,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         clearTimeout(autoSaveTimeoutRef.current);
       }
     };
-  }, [content, handleAutoSave, isAutoSaving, isRateLimited, isSaving, source]);
+  }, [content, handleAutoSave, isAutoSaving, isRateLimited, isSaving, source, ENABLE_AUTO_SAVE]);
 
   // Keyboard shortcuts for save functionality
   useEffect(() => {
@@ -527,7 +623,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         event.preventDefault(); // Prevent browser save dialog
         
         if (content.trim() && !isRateLimited) {
-          console.info('Save triggered via keyboard shortcut');
+          if (process.env.NODE_ENV === 'development') {
+            console.info('Save triggered via keyboard shortcut');
+          }
           // Trigger silver glow animation
           setShowSaveGlow(true);
           setTimeout(() => setShowSaveGlow(false), 1000);
@@ -536,7 +634,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             handleManualSaveRef.current();
           }
         } else if (isRateLimited) {
-          console.warn('Save blocked: Rate limit exceeded');
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Save blocked: Rate limit exceeded');
+          }
         }
       }
     };
@@ -552,7 +652,9 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
 
     if (isFinal) {
-      console.log('Mic transcription complete, ready for saving');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Mic transcription complete, ready for saving');
+      }
       
       // Track analytics for voice recording
       analyticsCollector.trackEvent('voice_recording_start');
@@ -996,7 +1098,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             ) : (
               <textarea
                 ref={textareaRef}
-                value={content}
+                value={
+                  isVoiceActive && interimTranscript
+                    ? content + (content.trim() ? ' ' : '') + interimTranscript
+                    : content
+                }
                 onChange={(e) => {
                   setContent(e.target.value);
                   setSource('text');
@@ -1284,7 +1390,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         </div>
       </div>
 
-      {/* Toast Notifications */}
+      {/* Toast Notifications - Manual save only */}
       {showToast && (
         <div 
           className="fixed top-4 right-4 bg-[#F8F8F8] border border-[#B8B8B8] text-[#1A1A1A] px-4 py-2 rounded-lg shadow-lg z-50" 
@@ -1293,21 +1399,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           aria-live="polite"
           aria-atomic="true"
         >
-          {saveError ? saveError : isRateLimited ? 'Rate limit exceeded. Please try again later.' : 'Saved locally'}
-        </div>
-      )}
-      
-      {/* Rate Limit Warning */}
-      {isRateLimited && (
-        <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-auto bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-2 rounded-lg shadow-lg z-50 max-w-sm">
-          <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-            </svg>
-            <span className="text-sm">
-              Rate limit exceeded. {rateLimitRetryAfter ? `Retry in ${rateLimitRetryAfter}s` : 'Please try again later.'}
-            </span>
-          </div>
+          {saveError || 'Saved'}
         </div>
       )}
 
