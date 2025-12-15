@@ -1,10 +1,4 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="silverGradient512" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#D9D9DC;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#D9D9DC;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <circle cx="256" cy="256" r="256" fill="url(#silverGradient512)"/>
-  <text x="256" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="320" font-weight="700" fill="#1A1A1A" text-anchor="middle" dominant-baseline="central">H</text>
+  <rect width="512" height="512" fill="white"/>
+  <text x="256" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="320" font-weight="700" fill="#000000" text-anchor="middle" dominant-baseline="central">H</text>
 </svg>
