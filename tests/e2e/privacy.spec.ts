@@ -96,17 +96,24 @@ test.describe('Privacy export/delete', () => {
     const deleteBtn = page.getByRole('button', { name: /delete.*all.*data/i });
     await expect(deleteBtn).toBeEnabled();
     
-    // If your app uses a custom modal instead of window.confirm, handle it here.
-    // If it truly uses native dialog, keep this:
-    page.once('dialog', d => d.accept());
-    
+    // Click delete button - opens custom confirmation modal (not native dialog)
     await deleteBtn.click();
+    
+    // Wait for custom confirmation modal to appear
+    const confirmModal = page.getByText(/confirm deletion|are you sure/i);
+    await expect(confirmModal).toBeVisible({ timeout: 5000 });
+    
+    // Click "Delete All" button in confirmation modal
+    const confirmDeleteBtn = page.getByRole('button', { name: /delete all/i });
+    await expect(confirmDeleteBtn).toBeEnabled();
+    await confirmDeleteBtn.click();
     
     // App should reload after delete
     await page.waitForLoadState('networkidle');
     
     // Assert empty state after delete (pick the most stable UI signal)
-    await expect(page.getByText(/total entries/i).locator('..').getByText('0')).toBeVisible();
+    // Wait for page to reload and show empty state
+    await expect(page.getByText(/total entries/i).locator('..').getByText('0')).toBeVisible({ timeout: 10000 });
   });
 });
 
