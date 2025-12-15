@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Voice feature', () => {
+  test.skip(({ browserName }) => browserName === 'webkit', 'WebKit/Playwright does not reliably support Web Speech API (SpeechRecognition)');
+  
   test.beforeEach(async ({ page, context }) => {
     // Grant microphone permissions for voice tests
     await context.grantPermissions(['microphone'], { origin: 'http://localhost:3000' });
