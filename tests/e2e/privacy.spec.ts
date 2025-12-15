@@ -45,6 +45,14 @@ test.describe('Privacy export/delete', () => {
     const welcomeOverlay = page.locator('.fixed.inset-0.bg-graphite-charcoal').first();
     await expect(welcomeOverlay).not.toBeVisible({ timeout: 10000 }).catch(() => {});
     
+    // --- Seed at least one entry so Export/Delete are enabled ---
+    const textbox = page.getByRole('textbox', { name: /type or speak/i });
+    await expect(textbox).toBeVisible();
+
+    await textbox.fill('Test entry for privacy export/delete');
+    await page.getByRole('button', { name: /^save$/i }).click();
+    await expect(page.getByText(/saved|entry/i)).toBeVisible().catch(() => {}); // optional if you have a toast
+    
     // Find and click Settings button to open Settings modal
     // Try multiple selectors for Settings button
     let settingsBtn;
@@ -75,27 +83,30 @@ test.describe('Privacy export/delete', () => {
       await page.waitForTimeout(1000);
     }
     
-    // Export CSV (Settings modal only has CSV export) - try multiple selectors
-    let exportCsvBtn = page.getByRole('button', { name: /export.*csv/i }).first();
-    if (!(await exportCsvBtn.isVisible({ timeout: 3000 }).catch(() => false))) {
-      exportCsvBtn = page.locator('button').filter({ hasText: /export/i }).first();
-    }
+    // Export CSV (best practice: wait for download)
+    const exportCsvBtn = page.getByRole('button', { name: /export.*csv/i });
+    await expect(exportCsvBtn).toBeEnabled();
     
-    if (await exportCsvBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await exportCsvBtn.scrollIntoViewIfNeeded();
-      await exportCsvBtn.click({ force: true });
-      await page.waitForTimeout(3000); // Wait for download
-    }
+    const downloadPromise = page.waitForEvent('download');
+    await exportCsvBtn.click();
+    const download = await downloadPromise;
+    await download.path(); // ensures it actually downloaded (or use saveAs)
 
-    // Delete all data (with confirmation dialog)
-    page.on('dialog', async d => { await d.accept(); });
+    // Delete all data
     const deleteBtn = page.getByRole('button', { name: /delete.*all.*data/i });
-    if (await deleteBtn.isVisible().catch(() => false)) {
-      await deleteBtn.click();
-      // App should reload after delete
-      await page.waitForLoadState('networkidle');
-      await expect(page.getByText(/Type or speak/i).or(page.getByText(/Welcome/))).toBeVisible({ timeout: 10000 });
-    }
+    await expect(deleteBtn).toBeEnabled();
+    
+    // If your app uses a custom modal instead of window.confirm, handle it here.
+    // If it truly uses native dialog, keep this:
+    page.once('dialog', d => d.accept());
+    
+    await deleteBtn.click();
+    
+    // App should reload after delete
+    await page.waitForLoadState('networkidle');
+    
+    // Assert empty state after delete (pick the most stable UI signal)
+    await expect(page.getByText(/total entries/i).locator('..').getByText('0')).toBeVisible();
   });
 });
 
