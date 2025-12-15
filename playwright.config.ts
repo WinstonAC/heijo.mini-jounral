@@ -33,7 +33,8 @@ export default defineConfig({
       },
       workers: 1, // Run serially to avoid auth conflicts
     },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    // Disabled for now: WebKit timeouts + SpeechRecognition unsupported
+    // { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
 });
 
