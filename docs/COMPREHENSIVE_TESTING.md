@@ -17,21 +17,18 @@ This comprehensive test suite covers all aspects of the Heijō Mini-Journal appl
 
 ### Prerequisites
 
-1. **Start the development server**:
-   ```bash
-   npm run dev
-   ```
-
-2. **Set environment variables** (optional, uses defaults if not set):
+1. **Set environment variables** (optional, uses defaults if not set):
    ```bash
    export TEST_EMAIL=testrunner+01@heijo.io
    export TEST_PASSWORD=Heijo-Test-2025!
    ```
 
-3. **Ensure test account is confirmed** in Supabase:
+2. **Ensure test account is confirmed** in Supabase:
    - Go to Supabase Dashboard → Authentication → Users
    - Find the test account email
    - Confirm the email if not already confirmed
+
+**Note**: The dev server starts automatically via Playwright's `webServer` configuration - no manual startup needed.
 
 ### Run All Comprehensive Tests
 

@@ -396,14 +396,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
    export TEST_EMAIL=testrunner+01@heijo.io
    export TEST_PASSWORD=Heijo-Test-2025!
    ```
-3. Run tests:
+3. Run tests (dev server starts automatically):
    ```bash
-   npx playwright test
+   npm run test:e2e
    ```
 4. Open HTML report:
    ```bash
-   npx playwright show-report
+   npm run test:e2e:report
    ```
+
+**Note**: The dev server starts automatically via Playwright's `webServer` configuration. Tests run on Chromium only (WebKit disabled due to SpeechRecognition limitations).
 
 ## Versioning & Changelog
 
