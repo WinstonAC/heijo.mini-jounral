@@ -492,7 +492,7 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-75 flex items-center justify-center z-60">
+        <div className="fixed inset-0 bg-graphite-charcoal bg-opacity-75 flex items-center justify-center z-60" data-testid="delete-confirm-modal">
           <div className="bg-mist-white border border-soft-silver rounded-lg p-6 max-w-md mx-4">
             <h3 className="text-lg font-medium text-graphite-charcoal mb-4 subheading">Confirm Deletion</h3>
             <p className="text-sm text-text-secondary mb-6">
@@ -508,6 +508,7 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
               <button
                 onClick={handleDeleteAll}
                 disabled={isDeleting}
+                data-testid="confirm-delete-button"
                 className="px-4 py-2 text-sm font-medium bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 rounded-lg"
               >
                 {isDeleting ? 'Deleting...' : 'Delete All'}
