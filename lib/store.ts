@@ -458,6 +458,10 @@ export class LocalStorage implements StorageBackend {
         existing[existingIndex] = updatedEntry;
         try {
           localStorage.setItem(storageKey, JSON.stringify(existing));
+          // Dispatch custom event for same-tab listeners (Settings metrics refresh)
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('heijo:storage-changed'));
+          }
         } catch (error) {
           if (error instanceof DOMException && error.name === 'QuotaExceededError') {
             console.error('localStorage quota exceeded');
@@ -483,6 +487,10 @@ export class LocalStorage implements StorageBackend {
     // Save to localStorage with error handling
     try {
       localStorage.setItem(storageKey, JSON.stringify(updated));
+      // Dispatch custom event for same-tab listeners (Settings metrics refresh)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('heijo:storage-changed'));
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         console.error('localStorage quota exceeded');
@@ -518,6 +526,10 @@ export class LocalStorage implements StorageBackend {
             if (newMigratedEntries.length > 0) {
               const allEntries = [...updated, ...newMigratedEntries];
               localStorage.setItem(storageKey, JSON.stringify(allEntries));
+              // Dispatch custom event for same-tab listeners (Settings metrics refresh)
+              if (typeof window !== 'undefined') {
+                window.dispatchEvent(new CustomEvent('heijo:storage-changed'));
+              }
               
               // Remove migrated entries from legacy key
               const remaining = legacyEntries.filter((e: any) => 
@@ -559,6 +571,10 @@ export class LocalStorage implements StorageBackend {
     const updated = entries.filter(entry => entry.id !== id);
     try {
       localStorage.setItem(storageKey, JSON.stringify(updated));
+      // Dispatch custom event for same-tab listeners (Settings metrics refresh)
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('heijo:storage-changed'));
+      }
     } catch (error) {
       if (error instanceof DOMException && error.name === 'QuotaExceededError') {
         console.error('localStorage quota exceeded');
@@ -617,6 +633,10 @@ export class LocalStorage implements StorageBackend {
                 }));
                 
                 localStorage.setItem(storageKey, JSON.stringify(migratedEntries));
+                // Dispatch custom event for same-tab listeners (Settings metrics refresh)
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('heijo:storage-changed'));
+                }
                 
                 // Clean up legacy key after successful migration
                 // Exclude entries that belong to this user (migrated) or are anonymous/undefined

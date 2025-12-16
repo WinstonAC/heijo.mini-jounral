@@ -37,6 +37,34 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
     }
   }, [isOpen]);
 
+  // Refresh metrics when storage changes (e.g., entry saved/deleted while Settings is open)
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleStorageChange = (e: StorageEvent) => {
+      // Check if the change is to journal entries storage
+      const storageKeyPattern = /^heijo-journal-entries/;
+      if (e.key && storageKeyPattern.test(e.key)) {
+        // Reload metrics when journal entries change
+        loadData();
+      }
+    };
+
+    // Listen for storage events (works across tabs/windows)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom events (for same-tab updates)
+    const handleCustomStorageChange = () => {
+      loadData();
+    };
+    window.addEventListener('heijo:storage-changed', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('heijo:storage-changed', handleCustomStorageChange);
+    };
+  }, [isOpen]);
+
   const loadData = async () => {
     const consentData = gdprManager.getConsentSettings();
     
@@ -86,6 +114,8 @@ export default function Settings({ isOpen, onClose, onExportCSV, fontSize, setFo
         const entries = await storage.exportEntries();
         exportEntriesAsCSV(entries);
       }
+      // Refresh metrics after export (in case entries changed)
+      await loadData();
     } catch (error) {
       console.error('Export failed:', error);
     } finally {
