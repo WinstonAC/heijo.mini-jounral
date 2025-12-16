@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { debugLog, warnLog } from './logger'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -7,7 +8,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 export const isSupabaseConfigured = () => {
   const configured = !!(supabaseUrl && supabaseAnonKey && supabaseUrl !== '' && supabaseAnonKey !== '')
   if (!configured) {
-    console.warn('Supabase not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local')
+    warnLog('Supabase not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local')
   }
   return configured
 }
@@ -22,8 +23,8 @@ export const supabase = (() => {
     
     // Log current origin for debugging CORS issues
     if (typeof window !== 'undefined') {
-      console.log('[Supabase] Client initialized with origin:', window.location.origin);
-      console.log('[Supabase] Supabase URL:', supabaseUrl);
+      debugLog('[Supabase] Client initialized with origin:', window.location.origin);
+      debugLog('[Supabase] Supabase URL:', supabaseUrl);
     }
     
     return createClient(supabaseUrl, supabaseAnonKey, {

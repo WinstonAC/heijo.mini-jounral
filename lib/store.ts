@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { traceLog, debugLog } from './logger'
 
 export interface JournalEntry {
   id: string;
@@ -29,13 +30,11 @@ class HybridStorage implements StorageBackend {
 
   async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'>): Promise<JournalEntry> {
     // Trace persistence (dev-only)
-    if (process.env.NODE_ENV === 'development') {
-      console.trace('[PERSIST TRACE]', {
-        source: entry.source,
-        contentLength: entry.content.length,
-        created_at: entry.created_at
-      });
-    }
+    traceLog('[PERSIST TRACE]', {
+      source: entry.source,
+      contentLength: entry.content.length,
+      created_at: entry.created_at
+    });
     
     const newEntry: JournalEntry = {
       ...entry,
@@ -229,14 +228,14 @@ class HybridStorage implements StorageBackend {
       // Check premium status
       const premium = user.user_metadata?.premium;
       if (premium !== true) {
-        console.log('User does not have premium, skipping Supabase sync');
+        debugLog('User does not have premium, skipping Supabase sync');
         return;
       }
 
       const localEntries = await this.localStorage.getEntries();
       const localOnlyEntries = localEntries.filter(entry => entry.sync_status === 'local_only');
 
-      console.log(`Syncing ${localOnlyEntries.length} local entries for user ${user.id}`);
+      debugLog(`Syncing ${localOnlyEntries.length} local entries for user ${user.id}`);
 
       for (const entry of localOnlyEntries) {
         try {
@@ -262,7 +261,7 @@ class HybridStorage implements StorageBackend {
               sync_status: 'synced',
               last_synced: new Date().toISOString()
             });
-            console.log(`Successfully synced entry ${entry.id}`);
+            debugLog(`Successfully synced entry ${entry.id}`);
           } else {
             console.warn(`Failed to sync entry ${entry.id}:`, error);
           }
@@ -426,13 +425,11 @@ export class LocalStorage implements StorageBackend {
 
   async saveEntry(entry: Omit<JournalEntry, 'id' | 'sync_status' | 'last_synced'> & { id?: string; sync_status?: JournalEntry['sync_status']; last_synced?: string }): Promise<JournalEntry> {
     // Trace persistence (dev-only)
-    if (process.env.NODE_ENV === 'development') {
-      console.trace('[PERSIST TRACE]', {
-        source: entry.source,
-        contentLength: entry.content.length,
-        created_at: entry.created_at
-      });
-    }
+    traceLog('[PERSIST TRACE]', {
+      source: entry.source,
+      contentLength: entry.content.length,
+      created_at: entry.created_at
+    });
     
     // Always try to get real userId first, ignore 'anonymous' from entry
     // This ensures entries are saved with real userId when user is logged in

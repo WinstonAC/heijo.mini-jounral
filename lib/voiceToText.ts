@@ -3,6 +3,8 @@
  * Optimized for low latency and best-in-class transcription quality
  */
 
+import { debugLog } from './logger';
+
 // Speech Recognition interfaces
 interface SpeechRecognition extends EventTarget {
   continuous: boolean;
@@ -136,7 +138,7 @@ class VoiceToTextEngine {
 
     if (typeof window === 'undefined') {
       if (process.env.NODE_ENV === 'development') {
-        console.log('VoiceToTextEngine: Window not available (SSR)');
+        debugLog('VoiceToTextEngine: Window not available (SSR)');
       }
       return false;
     }
@@ -150,18 +152,18 @@ class VoiceToTextEngine {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       if (process.env.NODE_ENV === 'development') {
-        console.log('VoiceToTextEngine: Speech recognition not supported in this browser');
+        debugLog('VoiceToTextEngine: Speech recognition not supported in this browser');
       }
       return false; // Don't throw, return false so caller can handle gracefully
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log(`VoiceToTextEngine: Initializing speech recognition with language: ${this.config.language}`);
+      debugLog(`VoiceToTextEngine: Initializing speech recognition with language: ${this.config.language}`);
     }
     this.recognition = new SpeechRecognition();
     this.setupRecognition();
     if (process.env.NODE_ENV === 'development') {
-      console.log('VoiceToTextEngine: Speech recognition initialized successfully');
+      debugLog('VoiceToTextEngine: Speech recognition initialized successfully');
     }
     return true;
   }
@@ -189,7 +191,7 @@ class VoiceToTextEngine {
     if (this.recognition) {
       this.recognition.lang = language;
       if (process.env.NODE_ENV === 'development') {
-        console.log(`VoiceToTextEngine: Language updated to ${language}`);
+        debugLog(`VoiceToTextEngine: Language updated to ${language}`);
       }
     }
   }
@@ -217,7 +219,7 @@ class VoiceToTextEngine {
     if (this.recognition.lang !== this.config.language) {
       this.recognition.lang = this.config.language;
       if (process.env.NODE_ENV === 'development') {
-        console.log(`VoiceToTextEngine: Language set to ${this.config.language} before start`);
+        debugLog(`VoiceToTextEngine: Language set to ${this.config.language} before start`);
       }
     }
 
@@ -297,7 +299,7 @@ class VoiceToTextEngine {
     this.recognition.onstart = () => {
       this.isListening = true;
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Heijo][Voice][WebSpeech] onstart');
+        debugLog('[Heijo][Voice][WebSpeech] onstart');
       }
       this.onStartCallback?.();
     };
@@ -332,14 +334,14 @@ class VoiceToTextEngine {
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Heijo][Voice][WebSpeech] onend');
+        debugLog('[Heijo][Voice][WebSpeech] onend');
       }
       this.onEndCallback?.();
     };
 
     this.recognition.onaudiostart = () => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Heijo][Voice][WebSpeech] onaudiostart');
+        debugLog('[Heijo][Voice][WebSpeech] onaudiostart');
       }
     };
 
@@ -347,20 +349,20 @@ class VoiceToTextEngine {
       this.lastSpeechTime = performance.now();
       this.clearSilenceTimer();
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Heijo][Voice][WebSpeech] onspeechstart');
+        debugLog('[Heijo][Voice][WebSpeech] onspeechstart');
       }
     };
 
     this.recognition.onspeechend = () => {
       this.startSilenceTimer();
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Heijo][Voice][WebSpeech] onspeechend');
+        debugLog('[Heijo][Voice][WebSpeech] onspeechend');
       }
     };
 
     this.recognition.onaudioend = () => {
       if (process.env.NODE_ENV === 'development') {
-        console.log('[Heijo][Voice][WebSpeech] onaudioend');
+        debugLog('[Heijo][Voice][WebSpeech] onaudioend');
       }
     };
 
@@ -404,7 +406,7 @@ class VoiceToTextEngine {
 
     // Debug logging to help validate behavior
     if (process.env.NODE_ENV === 'development') {
-      console.log('WebSpeech onresult:', {
+      debugLog('WebSpeech onresult:', {
         resultIndex: event.resultIndex,
         resultsLength: event.results.length,
         finalTranscript,
@@ -460,7 +462,7 @@ class VoiceToTextEngine {
       this.silenceTimer = setTimeout(() => {
         if (this.isListening) {
           if (process.env.NODE_ENV === 'development') {
-            console.log('VoiceToTextEngine: Silence timeout reached, stopping recognition');
+            debugLog('VoiceToTextEngine: Silence timeout reached, stopping recognition');
           }
           this.stop();
         }
@@ -687,7 +689,7 @@ class BackendSTTEngine {
     this.clearMaxDurationTimer();
     this.maxDurationTimer = setTimeout(() => {
       if (this.isRecording) {
-        console.log('BackendSTTEngine: Max duration reached, stopping recording');
+        debugLog('BackendSTTEngine: Max duration reached, stopping recording');
         const duration = performance.now() - this.startTime;
         this.stop();
         // Show gentle message about duration limit
@@ -831,13 +833,13 @@ class VoiceActivityDetector {
     }
     
     try {
-      console.log('VoiceActivityDetector: Initializing audio context and microphone access');
+      debugLog('VoiceActivityDetector: Initializing audio context and microphone access');
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
       this.analyser = this.audioContext.createAnalyser();
       this.analyser.fftSize = 256;
       this.analyser.smoothingTimeConstant = 0.8;
       
-      console.log('VoiceActivityDetector: Requesting microphone access...');
+      debugLog('VoiceActivityDetector: Requesting microphone access...');
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
           sampleRate: 16000,
@@ -861,12 +863,12 @@ class VoiceActivityDetector {
       // Store stream reference for cleanup
       this.stream = stream;
       
-      console.log('VoiceActivityDetector: Microphone access granted, setting up audio processing');
+      debugLog('VoiceActivityDetector: Microphone access granted, setting up audio processing');
       this.microphone = this.audioContext.createMediaStreamSource(stream);
       this.microphone.connect(this.analyser);
       
       this.dataArray = new Uint8Array(new ArrayBuffer(this.analyser.frequencyBinCount));
-      console.log('VoiceActivityDetector: Initialized successfully');
+      debugLog('VoiceActivityDetector: Initialized successfully');
       return true;
     } catch (error) {
       // Clean up audioContext if it was created
@@ -1015,7 +1017,7 @@ export class EnhancedMicButton {
     if (wasActive) {
       // Note: We can't restart here automatically because we need the callbacks
       // The caller should handle restarting if needed
-      console.log(`EnhancedMicButton: Language updated to ${language}. Restart listening to apply.`);
+      debugLog(`EnhancedMicButton: Language updated to ${language}. Restart listening to apply.`);
     }
   }
 
@@ -1096,7 +1098,7 @@ export class EnhancedMicButton {
     this.isInitializing = true;
     
     try {
-      console.log('[Heijo][Voice] EnhancedMicButton.initialize start', { 
+      debugLog('[Heijo][Voice] EnhancedMicButton.initialize start', { 
         provider: this.currentProvider, 
         language: this.currentLanguage 
       });
@@ -1115,7 +1117,7 @@ export class EnhancedMicButton {
         return false;
       }
       
-      console.log('[Heijo][Voice] EnhancedMicButton: Voice engine ready:', voiceReady);
+      debugLog('[Heijo][Voice] EnhancedMicButton: Voice engine ready:', voiceReady);
       
       // VAD is optional for backend STT
       if (this.useBackend) {
@@ -1129,7 +1131,7 @@ export class EnhancedMicButton {
         this.isInitialized = voiceReady;
         this.vadInitialized = false; // Backend doesn't use VAD
         this.vadInitPromise = null; // Clear promise
-        console.log('[Heijo][Voice] EnhancedMicButton.initialize success (backend STT)', { vadEnabled: false });
+        debugLog('[Heijo][Voice] EnhancedMicButton.initialize success (backend STT)', { vadEnabled: false });
         return this.isInitialized;
       }
       
@@ -1145,7 +1147,7 @@ export class EnhancedMicButton {
           if (!vadReady) {
             console.warn('[Heijo][Voice] EnhancedMicButton.initialize VAD error, using webspeech-only');
           }
-          console.log('[Heijo][Voice] EnhancedMicButton: VAD ready:', vadReady);
+          debugLog('[Heijo][Voice] EnhancedMicButton: VAD ready:', vadReady);
         } catch (vadError) {
           // VAD failure is NOT fatal - WebSpeech can work without it
           console.warn('[Heijo][Voice] EnhancedMicButton.initialize VAD error, using webspeech-only', vadError);
@@ -1168,7 +1170,7 @@ export class EnhancedMicButton {
       this.vadInitialized = vadEnabled;
       this.vadInitPromise = null;
       
-      console.log('[Heijo][Voice] EnhancedMicButton.initialize success (webspeech-only fallback?)', { vadEnabled });
+      debugLog('[Heijo][Voice] EnhancedMicButton.initialize success (webspeech-only fallback?)', { vadEnabled });
       return true;
       
     } catch (error) {
@@ -1201,12 +1203,12 @@ export class EnhancedMicButton {
     onEnd?: () => void
   ): Promise<void> {
     if (!this.isInitialized) {
-      console.log('EnhancedMicButton: Voice recognition not initialized');
+      debugLog('EnhancedMicButton: Voice recognition not initialized');
       onError('Voice recognition not initialized');
       return;
     }
 
-    console.log(`EnhancedMicButton: Starting ${this.useBackend ? 'backend' : 'webspeech'} voice recognition`);
+    debugLog(`EnhancedMicButton: Starting ${this.useBackend ? 'backend' : 'webspeech'} voice recognition`);
     this.voiceEngine.onResult((result) => {
       onTranscript(result.text, result.isFinal);
     });

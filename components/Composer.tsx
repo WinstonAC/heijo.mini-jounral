@@ -9,6 +9,7 @@ import { JournalEntry } from '@/lib/store';
 import { getPrompt, logPromptHistory } from '@/lib/pickPrompt';
 import { analyticsCollector } from '@/lib/analytics';
 import { supabase, isSupabaseConfigured } from '@/lib/supabaseClient';
+import { debugLog, traceLog, infoLog, warnLog } from '@/lib/logger';
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState<boolean>(false);
@@ -88,12 +89,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   const ENABLE_AUTO_SAVE = process.env.NEXT_PUBLIC_ENABLE_AUTO_SAVE === 'true';
 
   // Environment sanity check (dev-only)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('[ENV CHECK]', {
-      ENABLE_AUTO_SAVE,
-      NEXT_PUBLIC_ENABLE_AUTO_SAVE: process.env.NEXT_PUBLIC_ENABLE_AUTO_SAVE
-    });
-  }
+  debugLog('[ENV CHECK]', {
+    ENABLE_AUTO_SAVE,
+    NEXT_PUBLIC_ENABLE_AUTO_SAVE: process.env.NEXT_PUBLIC_ENABLE_AUTO_SAVE
+  });
 
   // Check if user has seen welcome (account-based, Supabase-first)
   // Show onboarding if has_seen_onboarding is false AND heijo_hasSeenWelcome is not 'true'
@@ -122,9 +121,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
                 // localStorage may be blocked, that's okay
               }
               
-              if (process.env.NODE_ENV === 'development') {
-                console.log('Onboarding state: using Supabase metadata (completed)');
-              }
+              debugLog('Onboarding state: using Supabase metadata (completed)');
               return;
             }
           }
@@ -153,17 +150,13 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           });
         }
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Onboarding state: using localStorage fallback (completed)');
-        }
+        debugLog('Onboarding state: using localStorage fallback (completed)');
       } else {
         // Show welcome for new users (has_seen_onboarding is false AND heijo_hasSeenWelcome is not 'true')
         setHasSeenWelcome(false);
         setShowWelcomeOverlay(true);
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Onboarding state: showing welcome (first-time user)');
-        }
+        debugLog('Onboarding state: showing welcome (first-time user)');
       }
     };
     
@@ -192,14 +185,10 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     
     if (isPromptOpen && isMobile) {
       document.body.style.overflow = 'hidden';
-      if (process.env.NODE_ENV === 'development') {
-        console.log('[Mobile UX] Prompt sheet opened - body scroll locked');
-      }
+      debugLog('[Mobile UX] Prompt sheet opened - body scroll locked');
     } else {
       document.body.style.overflow = '';
-      if (isPromptOpen && process.env.NODE_ENV === 'development') {
-        console.log('[Mobile UX] Prompt sheet closed - body scroll restored');
-      }
+      debugLog('[Mobile UX] Prompt sheet closed - body scroll restored');
     }
     
     return () => {
@@ -218,16 +207,14 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
   // Debug logging for mobile UX
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      if (showWelcomeOverlay) {
-        console.log('[Mobile UX] Welcome overlay shown');
-      }
-      if (promptState === 'ticking' && !hasShownToday) {
-        console.log('[Mobile UX] Prompt sheet opened');
-      }
-      if (promptState === 'hidden') {
-        console.log('[Mobile UX] Prompt sheet closed');
-      }
+    if (showWelcomeOverlay) {
+      debugLog('[Mobile UX] Welcome overlay shown');
+    }
+    if (promptState === 'ticking' && !hasShownToday) {
+      debugLog('[Mobile UX] Prompt sheet opened');
+    }
+    if (promptState === 'hidden') {
+      debugLog('[Mobile UX] Prompt sheet closed');
     }
   }, [showWelcomeOverlay, promptState, hasShownToday]);
 
@@ -297,26 +284,22 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     // Single-point guard: Block manual saves only while voice is active or transcription is processing
     // After voice stops and transcription finishes, user CAN save even if source === 'voice'
     if (saveType === 'manual' && (isVoiceActive || isTranscribing)) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[SAVE BLOCKED] manual save blocked during voice session', {
-          isVoiceActive,
-          isTranscribing,
-          source,
-          contentLength: content.length
-        });
-      }
+      warnLog('[SAVE BLOCKED] manual save blocked during voice session', {
+        isVoiceActive,
+        isTranscribing,
+        source,
+        contentLength: content.length
+      });
       return; // Return early - no persistence, no clearing, no "Saved" toast
     }
     
     // Regression-proof guard: Only allow manual saves if user-initiated
     if (saveType === 'manual' && !userInitiatedSaveRef.current) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('[SAVE BLOCKED] manual save blocked - not user-initiated', {
-          isVoiceActive,
-          source,
-          contentLength: content.length
-        });
-      }
+      warnLog('[SAVE BLOCKED] manual save blocked - not user-initiated', {
+        isVoiceActive,
+        source,
+        contentLength: content.length
+      });
       return; // Return early - prevents any non-user-initiated saves
     }
     
@@ -358,9 +341,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       const isIdenticalSource = source === (lastSavedContentStringRef.current.split('|SOURCE|')[1] || 'text');
       
       if (isIdenticalContent && isIdenticalTags && isIdenticalSource && timeSinceLastSave < DUPLICATE_SAVE_WINDOW_MS) {
-        if (process.env.NODE_ENV === 'development') {
-          console.info('[Heijo][Save] Duplicate or rapid save blocked');
-        }
+        infoLog('[Heijo][Save] Duplicate or rapid save blocked');
         setSaveError('This entry looks identical to your last saved entry.');
         setShowToast(true);
         setTimeout(() => {
@@ -374,9 +355,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     // Also check hash for additional protection
     if (contentHash === lastSavedContentHashRef.current && timeSinceLastSave < DUPLICATE_SAVE_WINDOW_MS) {
       if (saveType === 'manual') {
-        if (process.env.NODE_ENV === 'development') {
-          console.info('[Heijo][Save] Duplicate or rapid save blocked');
-        }
+        infoLog('[Heijo][Save] Duplicate or rapid save blocked');
         setSaveError('This entry looks identical to your last saved entry.');
         setShowToast(true);
         setTimeout(() => {
@@ -405,9 +384,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     if (saveType === 'manual') {
       const timeSinceLastManualSave = now - lastManualSaveTimestampRef.current;
       if (timeSinceLastManualSave > 0 && timeSinceLastManualSave < MIN_MANUAL_SAVE_INTERVAL_MS) {
-        if (process.env.NODE_ENV === 'development') {
-          console.info('[Heijo][Save] Duplicate or rapid save blocked');
-        }
+        infoLog('[Heijo][Save] Duplicate or rapid save blocked');
         setSaveError('Please wait a moment before saving again.');
         setShowToast(true);
         setTimeout(() => {
@@ -509,13 +486,11 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         setRateLimitRetryAfter(null);
 
         // Clear content and reset state after successful manual save
-        if (process.env.NODE_ENV === 'development') {
-          console.trace('[CONTENT CLEAR]', {
-            saveType,
-            source,
-            contentLength: content.length
-          });
-        }
+        traceLog('[CONTENT CLEAR]', {
+          saveType,
+          source,
+          contentLength: content.length
+        });
         setContent('');
         setSelectedTags([]);
         setInterimTranscript(''); // Clear interim transcript after save
@@ -665,17 +640,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
         event.preventDefault(); // Prevent browser save dialog
         
         if (content.trim() && !isRateLimited) {
-          if (process.env.NODE_ENV === 'development') {
-            console.info('Save triggered via keyboard shortcut');
-            console.trace('[TRACE] keyboard shortcut triggered save', {
-              key: event.key,
-              metaKey: event.metaKey,
-              ctrlKey: event.ctrlKey,
-              isVoiceActive,
-              source,
-              contentLength: content.length
-            });
-          }
+          infoLog('Save triggered via keyboard shortcut');
+          traceLog('[TRACE] keyboard shortcut triggered save', {
+            key: event.key,
+            metaKey: event.metaKey,
+            ctrlKey: event.ctrlKey,
+            isVoiceActive,
+            source,
+            contentLength: content.length
+          });
           // Trigger silver glow animation
           setShowSaveGlow(true);
           setTimeout(() => setShowSaveGlow(false), 1000);
@@ -690,9 +663,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             userInitiatedSaveRef.current = false;
           }
         } else if (isRateLimited) {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('Save blocked: Rate limit exceeded');
-          }
+          warnLog('Save blocked: Rate limit exceeded');
         }
       }
     };
@@ -708,9 +679,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     }
 
     if (isFinal) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Mic transcription complete, ready for saving');
-      }
+      debugLog('Mic transcription complete, ready for saving');
       
       // Track analytics for voice recording
       analyticsCollector.trackEvent('voice_recording_start');
@@ -804,14 +773,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Desktop MicButton is rendered separately and doesn't need this ref setup
 
   const handleManualSave = useCallback(async () => {
-    if (process.env.NODE_ENV === 'development') {
-      console.trace('[TRACE] handleManualSave called', {
-        isVoiceActive,
-        source,
-        isTranscribing,
-        contentLength: content.length
-      });
-    }
+    traceLog('[TRACE] handleManualSave called', {
+      isVoiceActive,
+      source,
+      isTranscribing,
+      contentLength: content.length
+    });
     try {
       userInitiatedSaveRef.current = true;
       await saveEntry('manual');
@@ -857,19 +824,15 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
   // Listen for mobile save event from bottom nav (fallback)
   useEffect(() => {
     const handleMobileSave = () => {
-      if (process.env.NODE_ENV === 'development') {
-        console.trace('[TRACE] window mobileSave event received', {
-          isVoiceActive,
-          source,
-          isTranscribing,
-          contentLength: content.length
-        });
-      }
+      traceLog('[TRACE] window mobileSave event received', {
+        isVoiceActive,
+        source,
+        isTranscribing,
+        contentLength: content.length
+      });
       // Block save if voice is active (extra safety)
       if (isVoiceActive) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('[MOBILE-SAVE] Blocked: voice is active');
-        }
+        warnLog('[MOBILE-SAVE] Blocked: voice is active');
         return;
       }
       
@@ -957,7 +920,7 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
 
         // Export as CSV
         exportEntriesAsCSV([currentEntry]);
-        console.info('Current entry exported as CSV');
+        infoLog('Current entry exported as CSV');
       });
     } catch (error) {
       console.error('Failed to export current entry:', error);
@@ -1308,14 +1271,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
             <div className="relative group">
               <button
                 onClick={() => {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.trace('[TRACE] FAB save button clicked save', {
-                      isVoiceActive,
-                      source,
-                      isTranscribing,
-                      contentLength: content.length
-                    });
-                  }
+                  traceLog('[TRACE] FAB save button clicked save', {
+                    isVoiceActive,
+                    source,
+                    isTranscribing,
+                    contentLength: content.length
+                  });
                   // Trigger silver glow animation
                   setShowSaveGlow(true);
                   setTimeout(() => setShowSaveGlow(false), 1000);
@@ -1365,14 +1326,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           <button
             type="button"
             onClick={async () => {
-              if (process.env.NODE_ENV === 'development') {
-                console.trace('[TRACE] mobile hero save button clicked save', {
-                  isVoiceActive,
-                  source,
-                  isTranscribing,
-                  contentLength: content.length
-                });
-              }
+              traceLog('[TRACE] mobile hero save button clicked save', {
+                isVoiceActive,
+                source,
+                isTranscribing,
+                contentLength: content.length
+              });
               // Call the same manual save handler used by the bottom nav
               try {
                 userInitiatedSaveRef.current = true;
@@ -1490,14 +1449,12 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
           <div className="hidden md:flex items-center gap-2 ml-auto">
               <button
                 onClick={() => {
-                  if (process.env.NODE_ENV === 'development') {
-                    console.trace('[TRACE] desktop Save ghost chip clicked save', {
-                      isVoiceActive,
-                      source,
-                      isTranscribing,
-                      contentLength: content.length
-                    });
-                  }
+                  traceLog('[TRACE] desktop Save ghost chip clicked save', {
+                    isVoiceActive,
+                    source,
+                    isTranscribing,
+                    contentLength: content.length
+                  });
                   handleManualSave();
                 }}
                 disabled={!content.trim() || isRateLimited || isSaving || isTranscribing || isVoiceActive}

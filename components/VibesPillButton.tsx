@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { debugLog } from '@/lib/logger';
 
 interface VibesPillButtonProps {
   selectedTags: string[];
@@ -26,9 +27,7 @@ export default function VibesPillButton({ selectedTags, onTagsChange }: VibesPil
 
   // Debug: Log when component renders
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[VibesPillButton] Component rendered', { selectedTagsCount: selectedTags.length });
-    }
+    debugLog('[VibesPillButton] Component rendered', { selectedTagsCount: selectedTags.length });
   }, [selectedTags.length]);
 
   const toggleTag = (tag: string) => {
