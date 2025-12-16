@@ -4,12 +4,14 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { micEnvProbe } from '@/lib/diagnostics/micProbe';
 
+const DEBUG_UI = process.env.NEXT_PUBLIC_DEBUG_UI === '1';
+
 export default function MicDebugPage() {
   const [probeResult, setProbeResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_DEBUG !== '1') {
+    if (!DEBUG_UI) {
       setLoading(false);
       return;
     }
@@ -29,13 +31,8 @@ export default function MicDebugPage() {
     runProbe();
   }, []);
 
-  if (process.env.NEXT_PUBLIC_DEBUG !== '1') {
-    return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <h1 className="text-2xl mb-4">Diagnostics Disabled</h1>
-        <p>Set NEXT_PUBLIC_DEBUG=1 to enable diagnostics.</p>
-      </div>
-    );
+  if (!DEBUG_UI) {
+    return null;
   }
 
   if (loading) {

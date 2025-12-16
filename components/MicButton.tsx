@@ -575,7 +575,7 @@ export default function MicButton({ onTranscript, onError, onStart, onStop, onUn
       </div>
 
       {/* Metrics display (for debugging) */}
-      {metrics && process.env.NODE_ENV === 'development' && (
+      {metrics && process.env.NEXT_PUBLIC_DEBUG_UI === '1' && (
         <div className="absolute top-full left-0 mt-2 p-2 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
           <div>First partial: {metrics.firstPartialLatency.toFixed(0)}ms</div>
           <div>Final: {metrics.finalLatency.toFixed(0)}ms</div>
