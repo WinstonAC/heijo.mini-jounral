@@ -7,13 +7,19 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 export const metadata: Metadata = {
   title: 'Heijō MiniJournal',
   description: 'A privacy-first, resilient voice journal with Dieter Rams design',
-  manifest: '/site.webmanifest',
+  manifest: '/site.webmanifest?v=4',
   robots: 'noindex, nofollow', // Privacy-first: don't index personal journals
   referrer: 'strict-origin-when-cross-origin',
   icons: {
-    icon: '/favicon.svg?v=3',
-    shortcut: '/favicon.svg?v=3',
-    apple: '/icon-192.svg?v=3',
+    icon: [
+      { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon.svg', sizes: 'any', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon-32.png',
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+    ],
   },
   appleWebApp: {
     capable: true,
