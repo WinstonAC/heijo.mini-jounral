@@ -7,7 +7,7 @@ import ErrorBoundary from '@/components/ErrorBoundary'
 export const metadata: Metadata = {
   title: 'Heijō MiniJournal',
   description: 'A privacy-first, resilient voice journal with Dieter Rams design',
-  manifest: '/site.webmanifest?v=6',
+  manifest: '/site.webmanifest?v=8',
   robots: 'noindex, nofollow', // Privacy-first: don't index personal journals
   referrer: 'strict-origin-when-cross-origin',
   icons: {
