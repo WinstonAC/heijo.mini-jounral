@@ -11,9 +11,9 @@ export const metadata: Metadata = {
   robots: 'noindex, nofollow', // Privacy-first: don't index personal journals
   referrer: 'strict-origin-when-cross-origin',
   icons: {
-    icon: '/favicon.svg?v=2',
-    shortcut: '/favicon.svg?v=2',
-    apple: '/icon-192.svg?v=2',
+    icon: '/favicon.svg?v=3',
+    shortcut: '/favicon.svg?v=3',
+    apple: '/icon-192.svg?v=3',
   },
   appleWebApp: {
     capable: true,
