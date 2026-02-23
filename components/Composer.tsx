@@ -369,14 +369,6 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
     // Prevent rapid saves - debounce (general protection)
     // Reuse 'now' variable declared earlier for duplicate save protection
     if (now - lastSaveAttemptRef.current < SAVE_DEBOUNCE_MS) {
-      if (saveType === 'manual') {
-        setSaveError('Saving too quickly, please wait a moment.');
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-          setSaveError(null);
-        }, 2000);
-      }
       return;
     }
 
@@ -385,12 +377,6 @@ export default function Composer({ onSave, onExport, selectedPrompt, userId, fon
       const timeSinceLastManualSave = now - lastManualSaveTimestampRef.current;
       if (timeSinceLastManualSave > 0 && timeSinceLastManualSave < MIN_MANUAL_SAVE_INTERVAL_MS) {
         infoLog('[Heijo][Save] Duplicate or rapid save blocked');
-        setSaveError('Please wait a moment before saving again.');
-        setShowToast(true);
-        setTimeout(() => {
-          setShowToast(false);
-          setSaveError(null);
-        }, 2000);
         return;
       }
     }
