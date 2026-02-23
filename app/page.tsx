@@ -1,39 +1,21 @@
-import { redirect } from "next/navigation";
-import type { Metadata } from 'next';
+'use client';
 
-// Get site URL from environment or use default
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://journal.heijo.io';
-const ogImageUrl = `${siteUrl}/og-image.png`;
-
-export const metadata: Metadata = {
-  title: 'Heijō MiniJournal',
-  description: 'A privacy-first, resilient voice journal with Dieter Rams design',
-  openGraph: {
-    type: 'website',
-    title: 'Heijō MiniJournal',
-    description: 'A privacy-first, resilient voice journal with Dieter Rams design',
-    url: siteUrl,
-    siteName: 'Heijō',
-    images: [
-      {
-        url: ogImageUrl,
-        width: 1200,
-        height: 630,
-        alt: 'Heijō MiniJournal - Micro-moments. Macro-clarity.',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Heijō MiniJournal',
-    description: 'A privacy-first, resilient voice journal with Dieter Rams design',
-    images: [ogImageUrl],
-  },
-};
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  redirect("/login");
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Client-side redirect so crawlers can see OG tags first
+    router.push('/login');
+  }, [router]);
+
+  // Return minimal HTML so crawlers can read OG tags from root layout
+  return (
+    <div style={{ display: 'none' }}>
+      {/* This page exists only to serve OG tags from root layout */}
+      {/* Users are redirected to /login via client-side navigation */}
+    </div>
+  );
 }
-
-
-
