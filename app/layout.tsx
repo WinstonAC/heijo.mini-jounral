@@ -11,15 +11,17 @@ const ogImageUrl = `${siteUrl}/og-image.png`
 export const metadata: Metadata = {
   title: 'Heijō MiniJournal',
   description: 'A privacy-first, resilient voice journal with Dieter Rams design',
-  manifest: '/site.webmanifest?v=17',
+  manifest: '/site.webmanifest?v=18',
   robots: 'noindex, nofollow', // Privacy-first: don't index personal journals
   referrer: 'strict-origin-when-cross-origin',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
       { url: '/icon.svg', sizes: 'any', type: 'image/svg+xml' },
       { url: '/favicon-192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
     ],
+    shortcut: '/favicon.ico',
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
