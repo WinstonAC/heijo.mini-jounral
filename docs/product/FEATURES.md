@@ -9,24 +9,33 @@ Heijō Mini-Journal is a **privacy-first journaling application** that combines 
 ### 1. Voice & Text Journaling
 
 #### Voice Recording
-- **Desktop**: Custom MicButton with Web Speech API for real-time transcription (<300ms latency)
-- **Mobile**: Uses device keyboard microphone button for native dictation (no custom STT UI)
-- **Language Selection**: Configurable voice input language via Settings (desktop only)
-- **Visual Feedback**: Animated recording button with pulse effects (desktop)
-- **Error Handling**: Clear error messages for microphone issues (desktop)
-- **Offline Support**: Voice recognition works without internet (desktop)
+- **Desktop (Chrome/Edge/Safari)**: Custom MicButton with Web Speech API for real-time transcription (<300ms latency)
+- **Mobile (iOS Safari/Firefox)**: Backend STT with Whisper/Google API for transcription
+- **Browser Detection**: Automatic provider selection based on browser capabilities
+- **Language Selection**: Configurable voice input language via Settings (8+ languages supported)
+- **Visual Feedback**: Animated recording button with pulse effects and orange ring indicator
+- **Error Handling**: Clear error messages for microphone issues and unsupported browsers
+- **Offline Support**: Web Speech API works without internet (desktop)
+- **Backend STT**: Requires `/api/stt` endpoint with Whisper or Google API keys
 
 ```typescript
-// Voice recording implementation
-const handleVoiceRecording = async () => {
-  if (isRecording) {
-    const result = await stopRecording();
-    setContent(prev => prev + result.transcript);
+// Voice recording implementation (via MicButton component)
+// MicButton handles provider selection automatically
+const handleVoiceTranscript = (transcript: string, isFinal: boolean) => {
+  if (isFinal) {
+    // Final transcript from WebSpeech or Backend STT
+    setContent(prev => prev + (prev ? ' ' : '') + transcript);
+    setInterimTranscript('');
   } else {
-    await startRecording();
+    // Interim transcript (WebSpeech only)
+    setInterimTranscript(transcript);
   }
-  setIsRecording(!isRecording);
+  setSource('voice');
 };
+
+// MicButton automatically selects provider:
+// - WebSpeech for Chrome/Edge/Safari Desktop
+// - Backend STT for iOS Safari/Firefox
 ```
 
 #### Text Input

@@ -12,7 +12,7 @@ Heijō Mini-Journal features a **modern React architecture** built with Next.js 
 - **TypeScript**: Type-safe JavaScript development
 - **Tailwind CSS**: Utility-first CSS framework
 - **React 18**: Modern React with hooks and concurrent features
-- **GSAP**: Animation library for smooth transitions
+- **CSS Transitions**: Lightweight CSS-based animations (no GSAP dependency)
 
 ### Design System
 
@@ -185,13 +185,20 @@ Voice recording interface with browser detection and dual-provider support (WebS
 
 ```typescript
 // components/MicButton.tsx
+type MicState = 'idle' | 'initializing' | 'ready' | 'recording' | 'error';
+
 export default function MicButton({ 
   onTranscript, 
-  onError 
+  onError,
+  onStart,
+  onStop,
+  onUnsupported,
+  lang
 }: MicButtonProps) {
   const { selectedLanguage, provider, setProvider } = useVoiceSettings();
   const [micState, setMicState] = useState<MicState>('idle');
   const capabilities = detectVoiceCapabilities();
+  const enhancedMicButtonRef = useRef<EnhancedMicButton | null>(null);
   
   useEffect(() => {
     // Auto-select provider based on browser
@@ -201,12 +208,26 @@ export default function MicButton({
     }
     
     // Initialize appropriate engine
-    const micButton = createEnhancedMicButton(
-      selectedLanguage, 
+    const effectiveProvider = recommended === 'backend' ? 'whisper' : 'webspeech';
+    enhancedMicButtonRef.current = createEnhancedMicButton(
+      selectedLanguage || lang || 'en-US', 
       effectiveProvider
     );
-    // ...
-  }, [selectedLanguage, provider]);
+    
+    // Set up callbacks
+    enhancedMicButtonRef.current.onResult((text, isFinal) => {
+      onTranscript?.(text, isFinal);
+    });
+    // ... error, start, stop callbacks
+  }, [selectedLanguage, provider, lang]);
+  
+  const toggleListening = async () => {
+    if (micState === 'recording') {
+      await enhancedMicButtonRef.current?.stopListening();
+    } else {
+      await enhancedMicButtonRef.current?.startListening();
+    }
+  };
   
   return (
     <button
@@ -221,11 +242,12 @@ export default function MicButton({
 ```
 
 **Features**:
-- **Browser Detection**: Automatically detects iOS Safari, Firefox, Chrome
-- **Provider Selection**: WebSpeech for Chrome/Edge, Backend STT for iOS Safari/Firefox
+- **Browser Detection**: Automatically detects iOS Safari, Firefox, Chrome via `browserCapabilities.ts`
+- **Provider Selection**: WebSpeech for Chrome/Edge/Safari Desktop, Backend STT for iOS Safari/Firefox
 - **State Machine**: idle → initializing → ready → recording → error
-- **Language Support**: Respects selected language from VoiceSettingsProvider
+- **Language Support**: Respects selected language from VoiceSettingsProvider or prop
 - **Error Handling**: Clear error messages for unsupported browsers
+- **Unified Interface**: Uses `createEnhancedMicButton` factory for consistent API across providers
 
 **Design Notes**: The mic button features a recessed shell with inner shadows for tactile depth. When recording, a thin orange ring (#fc7b3e) appears around the circle. Button states: disabled during initialization, enabled when ready, recording state shows orange ring.
 
@@ -547,38 +569,37 @@ Consistent component styling with Tailwind:
 
 ## Animation System
 
-### GSAP Animations
+### CSS Transitions
 
-Smooth, performant animations using GSAP:
+Lightweight CSS-based animations for smooth, performant transitions:
 
-```typescript
-// lib/animations.ts
-import { gsap } from 'gsap';
+```css
+/* Transition Classes */
+.transition-all {
+  transition: all 0.2s ease-in-out;
+}
 
-export const fadeIn = (element: HTMLElement) => {
-  gsap.fromTo(element, 
-    { opacity: 0, y: 20 },
-    { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
-  );
-};
+.transition-colors {
+  transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+}
 
-export const slideIn = (element: HTMLElement, direction: 'left' | 'right' = 'left') => {
-  const x = direction === 'left' ? -100 : 100;
-  gsap.fromTo(element,
-    { x, opacity: 0 },
-    { x: 0, opacity: 1, duration: 0.4, ease: 'power2.out' }
-  );
-};
+.transition-transform {
+  transition: transform 0.2s ease-in-out;
+}
 
-export const pulse = (element: HTMLElement) => {
-  gsap.to(element, {
-    scale: 1.1,
-    duration: 0.5,
-    yoyo: true,
-    repeat: -1,
-    ease: 'power2.inOut'
-  });
-};
+/* Mic Button Pulse Animation */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.mic-shell.recording {
+  animation: pulse 1.5s ease-in-out infinite;
+}
 ```
 
 ### CSS Transitions

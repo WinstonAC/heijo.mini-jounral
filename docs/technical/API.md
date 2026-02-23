@@ -146,30 +146,46 @@ export function subscribeToEntries(
 
 ### Architecture
 
-The voice recognition system supports two providers:
+The voice recognition system supports two providers with automatic browser detection:
 
 1. **WebSpeech API** (Browser-native, no API keys)
    - Chrome/Edge Desktop
    - Safari Desktop (14.1+)
-   - Real-time streaming transcription
+   - Real-time streaming transcription with interim results
+   - <300ms latency for first partial results
+   - Continuous mode with accumulated final transcripts
 
 2. **Backend STT** (Requires API keys)
    - iOS Safari
    - Firefox
    - Chrome iOS
    - Uses Whisper (OpenAI) or Google STT
+   - Records audio via MediaRecorder and sends to `/api/stt`
+   - 90-second maximum recording duration
 
 ### Browser Detection
 
 ```typescript
 // lib/browserCapabilities.ts
+export type VoiceCapabilities = {
+  hasWebSpeech: boolean;
+  hasMediaRecorder: boolean;
+  isSecureContext: boolean;
+  browser: 'chrome' | 'firefox' | 'safari' | 'edge' | 'unknown';
+  isMobile: boolean;
+};
+
 export function detectVoiceCapabilities(): VoiceCapabilities {
-  // Detects browser type, WebSpeech availability, secure context
-  // Returns capabilities object
+  // Detects browser type, WebSpeech availability, MediaRecorder support, secure context
+  // Returns capabilities object with browser-specific information
 }
 
 export function getRecommendedProvider(capabilities: VoiceCapabilities): 'webspeech' | 'backend' | 'unsupported' {
-  // Auto-selects best provider based on browser
+  // Auto-selects best provider based on browser:
+  // - Chrome/Edge Desktop → WebSpeech
+  // - Safari Desktop → WebSpeech
+  // - iOS Safari/Firefox → Backend STT
+  // - Unsupported browsers → 'unsupported'
 }
 ```
 
@@ -179,6 +195,7 @@ export function getRecommendedProvider(capabilities: VoiceCapabilities): 'webspe
 // lib/voiceToText.ts
 class VoiceToTextEngine {
   private recognition: SpeechRecognition | null = null;
+  private accumulatedFinalTranscript: string = ''; // Accumulates final transcripts across events
   
   async initialize(): Promise<boolean> {
     // Returns false if WebSpeech unavailable
@@ -189,13 +206,19 @@ class VoiceToTextEngine {
     this.recognition.lang = this.config.language;
     this.recognition.continuous = true;
     this.recognition.interimResults = true;
+    this.recognition.maxAlternatives = 1;
     return true;
   }
   
   async start(): Promise<void> {
+    // Resets accumulated transcript on new session
+    this.accumulatedFinalTranscript = '';
     // Starts real-time streaming transcription
     this.recognition.start();
   }
+  
+  // Emits both interim (isFinal: false) and final (isFinal: true) results
+  // Final transcripts are accumulated across multiple recognition events
 }
 ```
 
@@ -223,10 +246,33 @@ export async function POST(request: NextRequest) {
 ```typescript
 // lib/voiceToText.ts
 class BackendSTTEngine {
+  private mediaRecorder: MediaRecorder | null = null;
+  private audioChunks: Blob[] = [];
+  private maxRecordingDuration: number = 90000; // 90 seconds hard cap
+  
   async start(): Promise<void> {
-    // Records audio using MediaRecorder
-    this.mediaRecorder = new MediaRecorder(stream);
-    this.mediaRecorder.start();
+    // Request microphone access
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        sampleRate: 16000,
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    
+    // Determine MIME type based on browser support
+    const options: MediaRecorderOptions = {};
+    if (MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      options.mimeType = 'audio/webm;codecs=opus';
+    } else if (MediaRecorder.isTypeSupported('audio/webm')) {
+      options.mimeType = 'audio/webm';
+    }
+    
+    this.mediaRecorder = new MediaRecorder(stream, options);
+    this.mediaRecorder.start(1000); // Collect data every second
+    this.startMaxDurationTimer(); // 90-second hard cap
   }
   
   private async processRecording(): Promise<void> {
@@ -235,7 +281,7 @@ class BackendSTTEngine {
     
     // Sends to backend API
     const formData = new FormData();
-    formData.append('audio', audioBlob);
+    formData.append('audio', audioBlob, 'recording.webm');
     formData.append('language', this.currentLanguage);
     formData.append('provider', this.provider);
     
@@ -245,55 +291,62 @@ class BackendSTTEngine {
     });
     
     const { text } = await response.json();
-    this.onResultCallback?.({ text, isFinal: true, ... });
+    // Only emits final results (no interim support for backend STT)
+    this.onResultCallback?.({ 
+      text: text.trim(), 
+      confidence: 1.0, 
+      isFinal: true, 
+      timestamp: performance.now() 
+    });
   }
 }
 ```
 
-### Audio Processing
+### Enhanced MicButton Factory
 
-Advanced audio processing for better recognition:
+The voice system uses a factory function to create enhanced mic button instances:
 
 ```typescript
-// lib/audioProcessor.ts
-export class AudioProcessor {
+// lib/voiceToText.ts
+export function createEnhancedMicButton(
+  language: string = 'en-US', 
+  provider: VoiceProvider = 'webspeech'
+): EnhancedMicButton {
+  // Creates an EnhancedMicButton instance that wraps VoiceToTextEngine or BackendSTTEngine
+  // Provides unified interface for both providers
+  // Handles language switching, provider selection, and error handling
+}
+
+// EnhancedMicButton provides:
+// - startListening(): Promise<void>
+// - stopListening(): Promise<void>
+// - setLanguage(language: string): void
+// - onResult(callback: (text: string, isFinal: boolean) => void): void
+// - onError(callback: (error: string) => void): void
+// - onStart(callback: () => void): void
+// - onStop(callback: () => void): void
+```
+
+### Voice Activity Detection (VAD)
+
+Optional voice activity detection for enhanced recording control:
+
+```typescript
+// lib/voiceToText.ts
+class VoiceActivityDetector {
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
-  private microphone: MediaStreamAudioSourceNode | null = null;
+  private threshold: number = 0.3;
   
-  async initializeAudio(): Promise<void> {
-    try {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      this.analyser = this.audioContext.createAnalyser();
-      
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          sampleRate: 16000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true
-        }
-      });
-      
-      this.microphone = this.audioContext.createMediaStreamSource(stream);
-      this.microphone.connect(this.analyser);
-      
-      this.analyser.fftSize = 2048;
-      this.analyser.smoothingTimeConstant = 0.8;
-    } catch (error) {
-      console.error('Failed to initialize audio:', error);
-      throw error;
-    }
+  async initialize(): Promise<boolean> {
+    // Initializes Web Audio API for voice activity detection
+    // Uses AnalyserNode to monitor audio levels
+    // Returns false if initialization fails
   }
   
   getAudioLevel(): number {
-    if (!this.analyser) return 0;
-    
-    const dataArray = new Uint8Array(this.analyser.frequencyBinCount);
-    this.analyser.getByteFrequencyData(dataArray);
-    
-    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-    return average / 255; // Normalize to 0-1
+    // Returns normalized audio level (0-1)
+    // Used for visual feedback and voice activity detection
   }
 }
 ```

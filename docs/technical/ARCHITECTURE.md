@@ -28,7 +28,8 @@ Heijō Mini-Journal is a **privacy-first journaling application** built with Nex
 - **Storage**: `lib/secureStorage.ts`, `lib/store.ts` (hybrid: localStorage + Supabase)
 - **Premium**: `lib/premium.ts` (premium status management)
 - **Encryption**: `lib/encryption.ts`
-- **Voice**: `lib/voiceToText.ts`
+- **Voice**: `lib/voiceToText.ts` (WebSpeech + Backend STT engines)
+- **Browser Detection**: `lib/browserCapabilities.ts` (voice provider selection)
 - **GDPR & Analytics**: `lib/gdpr.ts`, `lib/analytics.ts`
 - **Notifications**: `lib/notifications.ts` (push notifications, email reminders, notification preferences)
 
@@ -42,6 +43,9 @@ Heijō Mini-Journal is a **privacy-first journaling application** built with Nex
 - **Premium sync** → Only if `user_metadata.premium = true`
 - **Notifications** → Preferences stored in Supabase (if premium) or localStorage (free tier)
 - **Notification reminders** → Check preferences → Send push/email if conditions met (frequency, quiet hours, smart skip)
+- **Voice transcription**:
+  - **WebSpeech**: Browser API → interim results → final results → Composer
+  - **Backend STT**: MediaRecorder → `/api/stt` → Whisper/Google → final result → Composer
 
 ---
 
@@ -68,10 +72,13 @@ Heijō Mini-Journal is a **privacy-first journaling application** built with Nex
 
 #### `components/MicButton.tsx`
 **Voice recording interface**
-- Visual recording state (pulse animation)
-- Browser Web Speech API integration
-- Real-time transcription streaming
-- Error handling for microphone permissions
+- Visual recording state (pulse animation with orange ring)
+- Dual-provider support: Web Speech API (desktop) + Backend STT (mobile/Firefox)
+- Browser detection and automatic provider selection
+- Real-time transcription streaming (WebSpeech) or batch transcription (Backend STT)
+- Language selection support (8+ languages)
+- Error handling for microphone permissions and unsupported browsers
+- State machine: idle → initializing → ready → recording → error
 
 #### `components/Settings.tsx`
 **Settings and privacy controls**

@@ -24,10 +24,12 @@ Heijō Mini-Journal is designed with **privacy-first principles**, offering a co
 - See [Premium Features Documentation](docs/PREMIUM_FEATURES.md) for details
 
 ### Voice & Text Input
-- **Streaming Voice Recognition**: Real-time transcription with <300ms latency
-- **Web Speech API**: Browser-native voice recognition for privacy
+- **Dual Voice Providers**: Web Speech API (Chrome/Edge/Safari Desktop) and Backend STT (iOS Safari/Firefox)
+- **Streaming Voice Recognition**: Real-time transcription with <300ms latency (WebSpeech)
+- **Language Selection**: Support for 8+ languages via Settings
 - **Visual Feedback**: Animated recording button with pulse effects
-- **Offline Support**: Voice recognition works without internet connection
+- **Offline Support**: Web Speech API works without internet connection
+- **Backend STT**: Whisper/Google STT for browsers without Web Speech API support
 
 ### Journaling Features
 - **Daily Prompts**: 90-day rotating prompt system with Y/N chip interface
@@ -175,10 +177,11 @@ CREATE POLICY "Prompts are public" ON prompts
 ### Tech Stack
 - **Frontend**: Next.js 14 (App Router), React 18, TypeScript
 - **Styling**: Tailwind CSS with custom PalmPilot 1985 design system
-- **Database**: Supabase (PostgreSQL) with local storage fallback
+- **Database**: Supabase (PostgreSQL) with localStorage fallback
 - **Authentication**: Supabase Auth with magic link support
-- **Voice Recognition**: Web Speech API (browser-native)
+- **Voice Recognition**: Web Speech API (browser-native) + Backend STT (Whisper/Google)
 - **Encryption**: Web Crypto API (AES-GCM)
+- **Storage**: Hybrid localStorage + Supabase (Premium tier)
 - **Animations**: Subtle CSS-based transitions
 
 ### Project Structure
@@ -196,9 +199,12 @@ heijo-mini-journal/
 ├── lib/                   # Utility libraries
 │   ├── auth.tsx           # Authentication management
 │   ├── encryption.ts      # AES-GCM encryption
-│   ├── voiceToText.ts     # Voice recognition
-│   ├── store.ts           # Data storage management
-│   └── analytics.ts       # Analytics tracking (v1.0.0)
+│   ├── voiceToText.ts     # Voice recognition (WebSpeech + Backend STT)
+│   ├── store.ts           # Data storage management (HybridStorage)
+│   ├── browserCapabilities.ts # Browser detection and voice provider selection
+│   ├── analytics.ts        # Analytics tracking (v1.0.0)
+│   ├── premium.ts         # Premium tier management
+│   └── notifications.ts   # Push notifications and reminders
 ├── docs/                  # Comprehensive documentation
 │   ├── technical/         # Technical documentation
 │   └── product/           # Product documentation
@@ -349,9 +355,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
   - Fix: Already resolved by marking `/debug/mic` as dynamic. If you still see it, ensure you're on latest main and rebuild.
 
 - Voice recognition not working
-  - Ensure your browser supports Web Speech API (Chrome, Edge, Safari 14+).
+  - **Desktop (Chrome/Edge/Safari)**: Uses Web Speech API - ensure microphone permission is granted
+  - **Mobile (iOS Safari/Firefox)**: Uses Backend STT - requires `/api/stt` endpoint with Whisper/Google API keys
   - Grant microphone permission; reload the page after granting.
   - If using HTTPS locally, use `http://localhost:3000` or a trusted certificate.
+  - Check browser console for specific error messages about voice recognition support
 
 - Supabase sync not working
   - Fill `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in `.env.local`.
